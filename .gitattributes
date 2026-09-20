@@ -1,0 +1,22 @@
+# Windows termina las líneas con CRLF y Linux con LF. Sin esto, el mismo archivo
+# aparece como modificado entero al abrirlo en otra computadora.
+# text=auto: git guarda siempre con LF y entrega a cada sistema lo que le corresponde.
+
+* text=auto
+
+# Estos necesitan LF sí o sí, porque si no el intérprete no los ejecuta.
+*.sh  text eol=lf
+mvnw  text eol=lf
+
+# Estos son de Windows y necesitan CRLF.
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# Binarios: que git no les toque los saltos de línea.
+*.png  binary
+*.jpg  binary
+*.pdf  binary
+*.jar  binary
+*.docx binary
+*.xlsx binary
+*.pptx binary

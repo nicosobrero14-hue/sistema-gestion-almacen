@@ -1,0 +1,35 @@
+# ---------- Backend: Java / Maven ----------
+target/
+!.mvn/wrapper/maven-wrapper.properties
+.mvn/wrapper/maven-wrapper.jar
+HELP.md
+
+# Configuración local con credenciales reales: nunca va al repositorio
+**/application-local.properties
+.env
+.env.local
+
+# ---------- Frontend: Node / Vite ----------
+node_modules/
+dist/
+*.local
+npm-debug.log*
+.vite/
+
+# ---------- Entornos de desarrollo ----------
+.classpath
+.project
+.settings/
+.apt_generated
+.factorypath
+.idea/
+*.iml
+.vscode/
+.claude/
+
+# ---------- Sistema operativo y Office ----------
+Thumbs.db
+desktop.ini
+~$*.docx
+~$*.xlsx
+~$*.pptx
