@@ -2,12 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import client from '../api/client'
 import { getExpiringProducts, getLowStockProducts } from '../api/stock'
+import { formatDate } from '../utils/format'
 
 // Se avisa de los productos que vencen dentro de este plazo.
 const EXPIRATION_DAYS = 30
-
-// "2026-10-15" -> "15/10/2026"
-const formatDate = (value) => value.split('-').reverse().join('/')
 
 // Dias que faltan hasta la fecha. Negativo si ya paso.
 const daysUntil = (value) => {

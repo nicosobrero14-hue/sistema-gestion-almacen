@@ -24,11 +24,13 @@ const toNumber = (value) => (value === '' ? null : Number(value))
 // Alta y modificacion de productos (CU-02, CU-20). Si product es null, es un alta.
 // CU-19 y CU-20: el empleado pone el precio en el alta, pero despues solo el administrador lo cambia.
 // Las ofertas son siempre del administrador. El backend controla lo mismo.
-export default function ProductForm({ product, isAdmin, onSaved, onCancel }) {
+// barcode: en un alta, el codigo que leyo el lector y no existia (CU-03 paso 6).
+// onSaved recibe el mensaje y el producto guardado.
+export default function ProductForm({ product, barcode = '', isAdmin, onSaved, onCancel }) {
   const canEditPrice = isAdmin || !product
 
   const [data, setData] = useState(
-    product ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '' } : EMPTY,
+    product ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '' } : { ...EMPTY, barcode },
   )
   const [suppliers, setSuppliers] = useState([])
   const [errors, setErrors] = useState({})
@@ -69,11 +71,11 @@ export default function ProductForm({ product, isAdmin, onSaved, onCancel }) {
 
     try {
       if (product) {
-        await editProduct(product.id, body)
-        onSaved(`"${body.name}" fue modificado.`)
+        const saved = await editProduct(product.id, body)
+        onSaved(`"${body.name}" fue modificado.`, saved)
       } else {
-        await saveProduct(body)
-        onSaved(`"${body.name}" fue creado.`)
+        const saved = await saveProduct(body)
+        onSaved(`"${body.name}" fue creado.`, saved)
       }
     } catch (e) {
       setErrors(e.errors)

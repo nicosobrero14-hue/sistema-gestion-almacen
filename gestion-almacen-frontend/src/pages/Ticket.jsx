@@ -1,25 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { findSale } from '../api/sales'
 import Message from '../components/Message'
-
-const formatPrice = (value) => Number(value).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
-
-// "2026-09-21T17:40:12" -> "21/09/2026, 17:40"
-const formatDateTime = (value) => new Date(value).toLocaleString('es-AR', {
-  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
-})
-
-const PAYMENT_METHODS = {
-  EFECTIVO: 'Efectivo',
-  TRANSFERENCIA: 'Transferencia',
-}
+import { formatDateTime, formatPrice, formatTicketNumber, PAYMENT_METHODS } from '../utils/format'
 
 // Ticket de una venta (RF-06 / CU-14). Se arma con los datos guardados de la venta, asi se puede volver a abrir.
 // Imprimir usa la impresora que elija el usuario, por ejemplo la de tickets (CU-15).
 export default function Ticket() {
   const { id } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
 
   const [sale, setSale] = useState(null)
   const [error, setError] = useState('')
@@ -44,7 +34,14 @@ export default function Ticket() {
           <button type="button" className="button" onClick={() => window.print()} disabled={!sale}>
             Imprimir
           </button>
-          <Link to="/sale" className="button button-primary">Nueva venta</Link>
+          {/* Desde el historial se vuelve atras, asi los filtros siguen puestos. */}
+          {location.state?.fromHistory ? (
+            <button type="button" className="button button-primary" onClick={() => navigate(-1)}>
+              Volver al historial
+            </button>
+          ) : (
+            <Link to="/sale" className="button button-primary">Nueva venta</Link>
+          )}
         </div>
       </div>
 
@@ -55,7 +52,7 @@ export default function Ticket() {
         <div className="ticket">
           <div className="ticket-header">
             <strong>Comprobante de venta</strong>
-            <span>Ticket N° {String(sale.id).padStart(6, '0')}</span>
+            <span>Ticket N° {formatTicketNumber(sale.id)}</span>
             <span>{formatDateTime(sale.dateTime)}</span>
             <span>Atendió: {sale.username}</span>
           </div>
