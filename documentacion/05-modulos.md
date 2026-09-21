@@ -12,7 +12,7 @@ así cada fase termina con algo que se puede usar.
 | Inicio de sesión y roles | RF-11 / CU-01 | 3 | Implementado |
 | Stock y alertas | RF-02, RF-09 / CU-04, CU-06 | 4 | Implementado |
 | Ventas y ticket | RF-03, RF-06 / CU-07 a CU-09, CU-11 a CU-15 | 5 | Implementado |
-| Historial y lector | RF-04, RF-07 / CU-03, CU-16 | 6 | Pendiente |
+| Historial y lector | RF-04, RF-07 / CU-03, CU-16 | 6 | Implementado |
 | Ofertas | RF-10 / CU-19 | 7 | Pendiente |
 
 ## 5.1 Estructura del código
@@ -36,6 +36,7 @@ así cada fase termina con algo que se puede usar.
 | `api` | Una función por cada llamada al backend |
 | `components` | Piezas que se reusan: el menú, la ventana modal, el campo de formulario y los mensajes |
 | `pages` | Una pantalla por sección, y el formulario de cada una |
+| `utils` | Funciones chicas que usan varias pantallas: el formato de precios y fechas, y el reconocimiento de un código de barras |
 
 Todas las pantallas siguen la misma estructura: una tabla con buscador, un botón para crear y, en
 cada fila, los botones para editar y dar de baja. Quien entiende una, entiende las tres. La de stock
@@ -157,6 +158,8 @@ puede hacer depende de su rol (RF-11).
 | Ajustar el stock y ver sus movimientos (CU-04) | Sí | Sí |
 | Ver las alertas del panel (CU-06) | Sí | Sí |
 | Vender y ver el ticket (CU-07 a CU-15) | Sí | Sí |
+| Usar el lector de código de barras (CU-03) | Sí | Sí |
+| Consultar el historial de ventas (CU-16) | No | Sí |
 | Gestionar usuarios (CU-18) | No | Sí |
 
 Los permisos se controlan en el servidor. La pantalla además esconde lo que el rol no puede usar:
@@ -312,7 +315,73 @@ impresora no está disponible, el diálogo lo informa y el ticket sigue en panta
 El pie aclara que el comprobante no es válido como factura: el comercio no emite comprobantes
 fiscales desde este sistema.
 
-## 5.10 Decisiones de esta etapa
+## 5.10 Historial de ventas
+
+Permite al Administrador consultar todas las ventas hechas y cuánto se recaudó (RF-07 / CU-16).
+El Empleado no lo ve en el menú, y si pide el historial a la API, el servidor responde que no
+tiene permiso.
+
+![Historial de ventas](imagenes/fase-6-historial.png)
+
+**Qué se puede hacer:**
+
+- Ver las ventas de un período, de la más nueva a la más vieja. Al entrar se muestra el mes en
+  curso, del día 1 a hoy.
+- Filtrar por empleado y por producto. El producto se busca por nombre dentro de los renglones de
+  cada venta.
+- Ver cuántas ventas hay, el total recaudado y cuánto entró por cada forma de pago (CU-16 paso 6).
+- Abrir el ticket de cualquier venta y volver al historial con los mismos filtros (CU-16 paso 5).
+- Si no hay ventas con esos filtros, se informa con un mensaje (CU-16 exc. 3a).
+
+![Historial filtrado por empleado](imagenes/fase-6-historial-filtro.png)
+
+**Reglas:**
+
+- La fecha desde no puede ser posterior a la fecha hasta.
+- La fecha hasta incluye todo ese día.
+- El filtro de empleado incluye a los usuarios dados de baja, que pueden tener ventas viejas.
+
+Los filtros quedan guardados en la dirección de la página, por ejemplo
+`/sales?from=2026-09-01&to=2026-09-21&username=vendedor`. Por eso, al volver de un ticket, el
+historial sigue filtrado igual.
+
+![Ticket abierto desde el historial](imagenes/fase-6-historial-ticket.png)
+
+El total por forma de pago es la base para el cierre de caja: se compara con el efectivo que hay en
+la caja y con las transferencias que entraron a la cuenta del comercio.
+
+## 5.11 Lector de código de barras
+
+Permite cargar productos sin escribir (RF-04 / CU-03). El lector se conecta por USB y funciona
+como un teclado: escribe los números del código y aprieta Enter. No hace falta instalar nada.
+
+El sistema toma como lectura del lector un Enter en el buscador cuando lo escrito son solo
+números, como los códigos EAN de los productos. Si se escribe un nombre y se aprieta Enter, no pasa
+nada: la búsqueda por nombre sigue funcionando igual que siempre.
+
+**En una venta (CU-03 paso 4):** el producto leído se agrega al carrito, o suma una unidad si ya
+estaba. El buscador queda vacío y con el cursor adentro, listo para el próximo producto. También
+vuelve al buscador después de tocar "Agregar", así el lector nunca escribe en otro lado.
+
+![Tres lecturas: dos yerbas y un aceite](imagenes/fase-6-lector-venta.png)
+
+**En el catálogo (CU-03 paso 5):** el producto leído se abre en su ficha, para ver o modificar sus
+datos.
+
+![Ficha abierta con el lector](imagenes/fase-6-lector-catalogo.png)
+
+**Si el código no existe (CU-03 paso 6):** el sistema lo avisa y ofrece darlo de alta. El
+formulario se abre con el código ya cargado. En una venta, al guardarlo, el producto nuevo entra
+directo al carrito. Si el usuario cierra el aviso o el formulario, todo queda como estaba
+(CU-03 exc. 3a).
+
+![Código que no existe](imagenes/fase-6-lector-codigo-inexistente.png)
+
+![Alta con el código leído](imagenes/fase-6-lector-alta.png)
+
+![El producto nuevo en el carrito](imagenes/fase-6-lector-alta-carrito.png)
+
+## 5.12 Decisiones de esta etapa
 
 **No hay borrado definitivo.** Proveedores, productos y usuarios se dan de baja y se reactivan,
 pero no se borran. Un producto dado de baja sigue apareciendo en las ventas pasadas, y un usuario
@@ -338,3 +407,11 @@ completa cuando se confirma, y ahí se valida todo de nuevo.
 **El precio lo pone el servidor.** Del carrito solo viajan el producto y la cantidad. Así nadie
 puede cambiar un precio desde el navegador, y la regla de que solo el Administrador maneja los
 precios se sigue cumpliendo también en la venta.
+
+**El historial se filtra por el nombre de los productos vendidos.** Los renglones guardan una copia
+del nombre, así que una venta vieja se encuentra por el nombre que tenía el producto cuando se
+vendió, aunque después haya cambiado o se haya dado de baja.
+
+**Un Enter con números es una lectura del lector.** El lector no se distingue de un teclado. En
+lugar de configurar algo especial, se usa lo que hace siempre: números y Enter. Así funciona con
+cualquier lector USB.

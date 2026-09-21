@@ -6,6 +6,7 @@ import Home from './pages/Home'
 import Login from './pages/Login'
 import NewSale from './pages/NewSale'
 import Products from './pages/Products'
+import SalesHistory from './pages/SalesHistory'
 import Stock from './pages/Stock'
 import Suppliers from './pages/Suppliers'
 import Ticket from './pages/Ticket'
@@ -40,7 +41,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout user={user} onLogout={onLogout} />}>
           <Route index element={<Home user={user} />} />
-          <Route path="sale" element={<NewSale />} />
+          <Route path="sale" element={<NewSale isAdmin={isAdmin} />} />
+          {/* RF-07: el historial de ventas es solo del administrador. */}
+          {isAdmin && <Route path="sales" element={<SalesHistory />} />}
           <Route path="sales/:id" element={<Ticket />} />
           <Route path="products" element={<Products isAdmin={isAdmin} />} />
           <Route path="stock" element={<Stock />} />

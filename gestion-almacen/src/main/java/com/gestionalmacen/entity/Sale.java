@@ -41,8 +41,9 @@ public class Sale {
 	@Column(name = "fecha_hora", nullable = false)
 	private LocalDateTime dateTime;
 
+	// LAZY: el usuario no sale en el JSON (alcanza con la copia del username), asi que no se busca en la base.
 	@JsonIgnore
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "id_usuario")
 	private User user;
 

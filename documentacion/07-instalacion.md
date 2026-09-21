@@ -164,3 +164,17 @@ El sistema no necesita ninguna configuración: la hoja de estilos de impresión 
 comprobante, con el ancho de un ticket de 80 mm. Si el navegador agrega el encabezado y el pie con
 la dirección y la fecha, se quitan en el diálogo, en "Más opciones", desmarcando "Encabezados y pies
 de página".
+
+## 7.11 Lector de código de barras
+
+Es opcional: sin lector, los códigos se pueden escribir a mano.
+
+1. Conectar el lector a un puerto USB. Windows lo reconoce solo, como un teclado.
+2. Abrir el Bloc de notas y leer el código de cualquier producto. Tienen que aparecer los números
+   y el cursor tiene que bajar de renglón. Eso significa que el lector aprieta Enter al terminar,
+   que es lo que el sistema necesita.
+3. Si el cursor no baja de renglón, hay que activar el sufijo Enter (en inglés, *CR* o *Enter
+   suffix*) con el código de configuración que trae el manual del lector.
+
+En el sistema no hay nada que configurar. Para usarlo, el cursor tiene que estar en el buscador de
+la venta o del catálogo.

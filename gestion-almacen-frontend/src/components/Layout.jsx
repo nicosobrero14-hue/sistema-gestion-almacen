@@ -20,6 +20,8 @@ export default function Layout({ user, onLogout }) {
         <nav aria-label="Menú principal">
           <NavLink to="/" className={linkClass} end>Inicio</NavLink>
           <NavLink to="/sale" className={linkClass}>Nueva venta</NavLink>
+          {/* RF-07: el historial es del administrador. end: el ticket de una venta nueva no marca esta opcion. */}
+          {isAdmin && <NavLink to="/sales" className={linkClass} end>Historial de ventas</NavLink>}
           <NavLink to="/products" className={linkClass}>Productos</NavLink>
           <NavLink to="/stock" className={linkClass}>Stock</NavLink>
           <NavLink to="/suppliers" className={linkClass}>Proveedores</NavLink>

@@ -14,8 +14,10 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import com.gestionalmacen.dto.ErrorDTO;
 
@@ -69,6 +71,13 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorDTO> unreadableBody(HttpMessageNotReadableException ex) {
 		return ResponseEntity.badRequest()
 				.body(new ErrorDTO("El formato de los datos no es válido. Revise el tipo de cada campo."));
+	}
+
+	//400- falta un dato de la direccion o esta mal escrito (una fecha invalida, un numero con letras)
+	@ExceptionHandler({ MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class })
+	public ResponseEntity<ErrorDTO> badParameter(Exception ex) {
+		return ResponseEntity.badRequest()
+				.body(new ErrorDTO("Falta un dato de la búsqueda o tiene un formato inválido."));
 	}
 
 	//409- choca con una restriccion de la base (por ejemplo, dos altas a la vez con el mismo codigo)

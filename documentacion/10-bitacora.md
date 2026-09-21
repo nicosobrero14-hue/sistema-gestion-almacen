@@ -363,3 +363,60 @@ consulta.
 El comercio ya puede vender: el carrito, el cobro, el descuento de stock y el ticket funcionan de
 punta a punta. Lo que sigue es poder consultar las ventas hechas y cargar productos con el lector
 de código de barras.
+
+---
+
+## Fase 6 — Historial de ventas y lector de código de barras
+
+**21 de septiembre de 2026**
+
+### Qué se hizo
+
+1. El historial de ventas en la API: las ventas de un período, con filtro por empleado y por
+   producto, solo para el Administrador.
+2. La pantalla del historial, con el total recaudado y el total por forma de pago, y el acceso al
+   ticket de cada venta.
+3. La búsqueda de un producto por su código de barras exacto.
+4. El lector en la venta, que agrega al carrito, y en el catálogo, que abre la ficha.
+5. El alta de un producto con el código leído, cuando no existe.
+6. Un solo archivo con los formatos de precios y fechas, que estaban copiados en cinco pantallas.
+7. 9 pruebas automáticas nuevas.
+
+### Decisiones
+
+**El historial trae las ventas con sus renglones y su pago en una sola consulta.** La consulta usa
+`JOIN FETCH`. Sin eso, Hibernate haría una consulta más por cada venta de la lista.
+
+**Las relaciones que no salen en la respuesta se cargan solo si se usan.** Mirando las consultas en
+el log apareció que, al traer ventas o movimientos, Hibernate buscaba también el producto de cada
+renglón y el usuario de cada venta, que nunca se muestran. Esas relaciones pasaron a `LAZY`.
+
+**Los filtros del historial van en la dirección de la página.** Así, al abrir un ticket y volver,
+el historial sigue igual. Además, un historial filtrado se puede guardar como favorito.
+
+**El producto se filtra por nombre en los renglones.** Es la copia que se guardó al vender, así que
+funciona aunque el producto haya cambiado de nombre o esté dado de baja.
+
+**El lector se trata como lo que es: un teclado.** Un Enter con solo números en el buscador es una
+lectura. No hace falta configurar el lector ni instalar nada, y la búsqueda por nombre no cambia.
+
+**El buscador de la venta recupera el foco después de cada producto.** El lector escribe donde está
+el cursor. Si después de tocar un botón el cursor quedara en otro lado, la lectura se perdería.
+
+### Cómo se verificó
+
+- `mvnw test`: 73 pruebas en verde.
+- En el navegador, contra MySQL: el historial con las dos ventas del mes, los filtros, el ticket y
+  la vuelta con los filtros puestos, y el Empleado sin acceso. El lector se probó escribiendo el
+  código y apretando Enter, que es lo que hace el lector real: la venta con tres lecturas, un código
+  inexistente dado de alta en el momento y la ficha abierta desde el catálogo.
+- En el log del backend: una sola consulta para el historial y una para el ticket.
+- En MySQL: la consulta 10 no encontró diferencias entre el stock y los movimientos.
+
+![Historial de ventas](imagenes/fase-6-historial.png)
+
+### Estado al cerrar la fase
+
+El Administrador puede revisar las ventas y lo recaudado, y la carga de productos en la caja es
+tan rápida como pasar el lector. Queda la última fase: las sugerencias de ofertas y el cierre del
+proyecto.

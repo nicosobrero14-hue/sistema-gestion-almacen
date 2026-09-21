@@ -127,6 +127,24 @@ class ProductApiTests {
 				.andExpect(jsonPath("$[0].name").value("Gaseosa cola"));
 	}
 
+	// CU-03: el lector manda el codigo exacto.
+	@Test
+	void findsAProductByItsBarcode() throws Exception {
+		create("/api/products", product("Gaseosa cola", "3100.00", 45, 12, "7790895667788", null));
+
+		mvc.perform(get("/api/products/barcode/7790895667788"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("Gaseosa cola"));
+	}
+
+	// CU-03 paso 6: el codigo no existe.
+	@Test
+	void anUnknownBarcodeReturns404() throws Exception {
+		mvc.perform(get("/api/products/barcode/7790000099999"))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.message").value("No hay ningún producto con el código 7790000099999"));
+	}
+
 	@Test
 	void deactivatesAProduct() throws Exception {
 		long id = create("/api/products", product("Producto viejo", "100.00", 0, 0, null, null));

@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -28,14 +29,15 @@ public class SaleDetail {
 	@Column(name = "id_detalle")
 	private Long id;
 
+	// LAZY en las dos relaciones: no salen en el JSON, asi que no se buscan en la base salvo que el codigo las use.
 	// @JsonIgnore: la venta ya incluye sus renglones; si el renglon incluyera la venta, el JSON no terminaria nunca.
 	@JsonIgnore
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "id_venta", nullable = false)
 	private Sale sale;
 
 	@JsonIgnore
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "id_producto")
 	private Product product;
 

@@ -8,6 +8,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -31,9 +32,10 @@ public class StockMovement {
 	@Column(name = "id_movimiento")
 	private Long id;
 
+	// LAZY en las tres relaciones: no salen en el JSON, asi que no se buscan en la base salvo que el codigo las use.
 	// @JsonIgnore: en el JSON alcanza con el nombre, no hace falta el producto entero.
 	@JsonIgnore
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "id_producto")
 	private Product product;
 
@@ -42,7 +44,7 @@ public class StockMovement {
 	private String productName;
 
 	@JsonIgnore
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "id_usuario")
 	private User user;
 
@@ -52,7 +54,7 @@ public class StockMovement {
 
 	// Solo en los movimientos de tipo VENTA: la venta que desconto el stock.
 	@JsonIgnore
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "id_venta")
 	private Sale sale;
 

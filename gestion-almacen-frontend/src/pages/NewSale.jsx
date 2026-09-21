@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getProducts } from '../api/products'
+import { findProductByBarcode, getProducts } from '../api/products'
 import { saveSale } from '../api/sales'
 import Message from '../components/Message'
 import TextField from '../components/TextField'
-
-// Formato de moneda: 4850 -> "$ 4.850,00"
-const formatPrice = (value) => Number(value).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
+import { isBarcode } from '../utils/barcode'
+import { formatPrice } from '../utils/format'
+import ProductForm from './ProductForm'
 
 // El error de un renglon del carrito, o null si la cantidad esta bien (CU-08 exc. 3a y 4a).
 const quantityError = (line) => {
@@ -17,7 +17,8 @@ const quantityError = (line) => {
 
 // Nueva venta (RF-03 / CU-07 a CU-11): buscar productos, armar el carrito, elegir la forma de pago y confirmar.
 // El carrito vive en esta pantalla. Al servidor le llega la venta completa cuando se confirma.
-export default function NewSale() {
+// isAdmin: lo necesita el formulario de producto, si hay que dar de alta uno que no existe.
+export default function NewSale({ isAdmin }) {
   const navigate = useNavigate()
 
   const [search, setSearch] = useState('')
@@ -28,6 +29,13 @@ export default function NewSale() {
   const [cashReceived, setCashReceived] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Codigo leido que no corresponde a ningun producto, y el formulario para darlo de alta (CU-03 paso 6).
+  const [missingBarcode, setMissingBarcode] = useState('')
+  const [productFormOpen, setProductFormOpen] = useState(false)
+
+  // El buscador vuelve a tener el foco despues de cada producto agregado: el lector escribe donde esta el foco.
+  const searchRef = useRef(null)
 
   // Busca mientras se escribe, 300 ms despues de la ultima tecla. Solo productos activos.
   useEffect(() => {
@@ -60,6 +68,7 @@ export default function NewSale() {
     } else {
       setCart([...cart, { product, quantity }])
     }
+    searchRef.current.focus()
   }
 
   const changeQuantity = (productId, quantity) => {
@@ -67,6 +76,33 @@ export default function NewSale() {
   }
 
   const removeFromCart = (productId) => setCart(cart.filter((line) => line.product.id !== productId))
+
+  // CU-03 paso 4: en una venta, el codigo leido agrega el producto al carrito.
+  const onSearchKeyDown = async (event) => {
+    if (event.key !== 'Enter' || !isBarcode(search)) return
+    setMissingBarcode('')
+    try {
+      const product = await findProductByBarcode(search.trim())
+      if (!product.active) {
+        setError(`"${product.name}" está dado de baja.`)
+        return
+      }
+      addToCart(product)
+      setSearch('') // el buscador queda listo para el proximo producto
+    } catch (e) {
+      // CU-03 paso 6: si el codigo no existe, se ofrece darlo de alta.
+      if (e.status === 404) setMissingBarcode(search.trim())
+      else setError(e.message)
+    }
+  }
+
+  // El producto nuevo se agrega directo al carrito.
+  const onProductCreated = (message, product) => {
+    setProductFormOpen(false)
+    setMissingBarcode('')
+    setSearch('')
+    addToCart(product)
+  }
 
   // Totales en pantalla. Los que valen son los que calcula el servidor al confirmar.
   const subtotal = cart.reduce((sum, line) => sum + line.product.salePrice * Number(line.quantity), 0)
@@ -105,9 +141,15 @@ export default function NewSale() {
   return (
     <>
       <h1>Nueva venta</h1>
-      <p className="subtitle">Busque los productos por nombre o código de barras y agréguelos al carrito.</p>
+      <p className="subtitle">Busque los productos por nombre o código, o léalos con el lector, y agréguelos al carrito.</p>
 
       <Message type="error" text={error} onClose={() => setError('')} />
+      <Message type="warning" text={missingBarcode && `No hay ningún producto con el código ${missingBarcode}.`}
+        onClose={() => setMissingBarcode('')}>
+        <button type="button" className="button button-small" onClick={() => setProductFormOpen(true)}>
+          Dar de alta con ese código
+        </button>
+      </Message>
 
       <div className="sale-layout">
         <section className="panel">
@@ -118,13 +160,15 @@ export default function NewSale() {
               placeholder="Buscar por nombre o código de barras..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
+              onKeyDown={onSearchKeyDown}
               aria-label="Buscar productos"
+              ref={searchRef}
               autoFocus
             />
           </div>
 
-          {/* CU-07 exc. 3a: el producto buscado no existe. */}
-          {results !== null && results.length === 0 && (
+          {/* CU-07 exc. 3a: el producto buscado no existe. Si lo leyo el lector, ya lo dice el aviso de arriba. */}
+          {results !== null && results.length === 0 && !missingBarcode && (
             <p className="notice">No hay ningún producto con ese nombre o código.</p>
           )}
 
@@ -258,6 +302,11 @@ export default function NewSale() {
           </div>
         </section>
       </div>
+
+      {productFormOpen && (
+        <ProductForm product={null} barcode={missingBarcode} isAdmin={isAdmin} onSaved={onProductCreated}
+          onCancel={() => setProductFormOpen(false)} />
+      )}
     </>
   )
 }

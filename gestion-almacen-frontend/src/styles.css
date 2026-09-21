@@ -773,3 +773,40 @@ a.button {
     font-size: 12px;
   }
 }
+
+/* ---------- Historial de ventas ---------- */
+
+.filters {
+  flex-wrap: wrap;
+}
+
+/* El foco de los buscadores y filtros, igual que en los formularios. */
+.filters input:focus,
+.filters select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+}
+
+/* Filtro con su etiqueta al costado: fechas y empleado. */
+.filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.filter input,
+.filter select {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: #fff;
+  font: inherit;
+  font-weight: 400;
+}
+
+/* Aviso con un boton de accion: el texto ocupa el espacio y el boton queda a la derecha. */
+.message-text {
+  flex: 1;
+}

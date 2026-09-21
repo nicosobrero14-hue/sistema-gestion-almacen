@@ -12,6 +12,9 @@ public interface IProductService {
 
 	Product findProduct(Long id);
 
+	// Busca por el codigo exacto, como lo manda el lector de codigo de barras (CU-03).
+	Product findProductByBarcode(String barcode);
+
 	// isAdmin: si quien lo hace es administrador. Solo el administrador maneja precios y ofertas.
 	Product saveProduct(ProductDTO productDTO, boolean isAdmin);
 

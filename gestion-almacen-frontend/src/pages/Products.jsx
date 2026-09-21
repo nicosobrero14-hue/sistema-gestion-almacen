@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { activateProduct, deactivateProduct, getProducts } from '../api/products'
+import { activateProduct, deactivateProduct, findProductByBarcode, getProducts } from '../api/products'
 import Message from '../components/Message'
+import { isBarcode } from '../utils/barcode'
+import { formatPrice } from '../utils/format'
 import ProductForm from './ProductForm'
-
-// Formato de moneda: 4850 -> "$ 4.850,00"
-const formatPrice = (value) => Number(value).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
 
 // Pantalla del catalogo de productos (RF-01 / CU-02, CU-20).
 // isAdmin: el formulario bloquea el precio y la oferta si quien lo usa es empleado.
@@ -22,6 +21,9 @@ export default function Products({ isAdmin }) {
   // Formulario: abierto o cerrado, y el producto que se edita (null = producto nuevo).
   const [formOpen, setFormOpen] = useState(false)
   const [selected, setSelected] = useState(null)
+
+  // Codigo leido que no corresponde a ningun producto (CU-03 paso 6).
+  const [missingBarcode, setMissingBarcode] = useState('')
 
   const load = () => {
     getProducts(search, activeOnly)
@@ -40,10 +42,30 @@ export default function Products({ isAdmin }) {
     setFormOpen(true)
   }
 
+  // Un alta comun empieza con el formulario vacio, sin el codigo de un escaneo anterior.
+  const newProduct = () => {
+    setMissingBarcode('')
+    openForm(null)
+  }
+
   const onSaved = (message) => {
     setFormOpen(false)
+    setMissingBarcode('')
     setSuccess(message)
     load()
+  }
+
+  // CU-03 paso 5: en el catalogo, el codigo leido abre la ficha del producto.
+  const onSearchKeyDown = async (event) => {
+    if (event.key !== 'Enter' || !isBarcode(search)) return
+    setMissingBarcode('')
+    try {
+      openForm(await findProductByBarcode(search.trim()))
+    } catch (e) {
+      // CU-03 paso 6: si el codigo no existe, se ofrece darlo de alta.
+      if (e.status === 404) setMissingBarcode(search.trim())
+      else setError(e.message)
+    }
   }
 
   const toggleActive = async (product) => {
@@ -73,7 +95,7 @@ export default function Products({ isAdmin }) {
           <h1>Productos</h1>
           <p className="subtitle">Catálogo del comercio.</p>
         </div>
-        <button type="button" className="button button-primary" onClick={() => openForm(null)}>
+        <button type="button" className="button button-primary" onClick={newProduct}>
           + Nuevo producto
         </button>
       </div>
@@ -84,6 +106,7 @@ export default function Products({ isAdmin }) {
           placeholder="Buscar por nombre o código de barras..."
           value={search}
           onChange={(event) => setSearch(event.target.value)}
+          onKeyDown={onSearchKeyDown}
           aria-label="Buscar productos"
         />
         <label className="checkbox">
@@ -94,6 +117,12 @@ export default function Products({ isAdmin }) {
 
       <Message type="error" text={error} onClose={() => setError('')} />
       <Message type="success" text={success} onClose={() => setSuccess('')} />
+      <Message type="warning" text={missingBarcode && `No hay ningún producto con el código ${missingBarcode}.`}
+        onClose={() => setMissingBarcode('')}>
+        <button type="button" className="button button-small" onClick={() => openForm(null)}>
+          Dar de alta con ese código
+        </button>
+      </Message>
 
       {products.length === 0 ? (
         <p className="notice">No se encontraron productos.</p>
@@ -153,7 +182,8 @@ export default function Products({ isAdmin }) {
       )}
 
       {formOpen && (
-        <ProductForm product={selected} isAdmin={isAdmin} onSaved={onSaved} onCancel={() => setFormOpen(false)} />
+        <ProductForm product={selected} barcode={missingBarcode} isAdmin={isAdmin} onSaved={onSaved}
+          onCancel={() => setFormOpen(false)} />
       )}
     </>
   )

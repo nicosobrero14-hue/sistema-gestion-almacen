@@ -2,17 +2,13 @@ import { useEffect, useState } from 'react'
 import { getMovements } from '../api/stock'
 import Message from '../components/Message'
 import Modal from '../components/Modal'
+import { formatDateTime } from '../utils/format'
 
 const TYPES = {
   CARGA_INICIAL: 'Carga inicial',
   AJUSTE_MANUAL: 'Ajuste manual',
   VENTA: 'Venta',
 }
-
-// "2026-09-21T15:30:00" -> "21/09/2026, 15:30"
-const formatDateTime = (value) => new Date(value).toLocaleString('es-AR', {
-  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
-})
 
 // Movimientos de stock de un producto (RF-02): quien cambio el stock, cuando y por que.
 export default function StockMovements({ product, onClose }) {

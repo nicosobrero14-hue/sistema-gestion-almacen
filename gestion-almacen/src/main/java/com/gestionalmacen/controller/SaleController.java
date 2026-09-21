@@ -1,12 +1,17 @@
 package com.gestionalmacen.controller;
 
+import java.time.LocalDate;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -35,5 +40,15 @@ public class SaleController {
 	@GetMapping("/{id}")
 	public Sale findSale(@PathVariable Long id) {
 		return saleService.findSale(id);
+	}
+
+	//3- historial de ventas entre dos fechas, por empleado o por producto (CU-16). Solo el administrador
+	// Las fechas llegan como 2026-09-21.
+	@GetMapping
+	public List<Sale> getSales(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+			@RequestParam(defaultValue = "") String username,
+			@RequestParam(defaultValue = "") String product) {
+		return saleService.getSales(from, to, username, product);
 	}
 }

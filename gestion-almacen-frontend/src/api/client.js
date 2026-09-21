@@ -23,6 +23,7 @@ client.interceptors.response.use(
 
     const appError = new Error(data?.message ?? defaultMessage)
     appError.errors = data?.errors ?? {} // error de cada campo, para marcarlo en el formulario
+    appError.status = status // por ejemplo, 404 cuando el lector lee un codigo que no existe
     return Promise.reject(appError)
   },
 )
