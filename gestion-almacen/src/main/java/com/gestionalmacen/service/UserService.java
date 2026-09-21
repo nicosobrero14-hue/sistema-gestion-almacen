@@ -3,6 +3,7 @@ package com.gestionalmacen.service;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,7 @@ public class UserService implements IUserService {
 	@Autowired
 	private IUserRepository userRepository;
 
-	// Hashea las contraseñas con BCrypt (se configura en PasswordConfig).
+	// Hashea las contraseñas con BCrypt (se configura en SecurityConfig).
 	@Autowired
 	private PasswordEncoder passwordEncoder;
 
@@ -38,6 +39,13 @@ public class UserService implements IUserService {
 	public User findUserByUsername(String username) {
 		return userRepository.findByUsername(username)
 				.orElseThrow(() -> new NotFoundException("No existe el usuario " + username));
+	}
+
+	@Override
+	public User getSessionUser() {
+		// Spring Security guarda al usuario de la sesion en el SecurityContext de cada pedido.
+		String username = SecurityContextHolder.getContext().getAuthentication().getName();
+		return this.findUserByUsername(username);
 	}
 
 	@Override

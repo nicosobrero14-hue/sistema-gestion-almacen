@@ -14,6 +14,9 @@ public interface IUserService {
 
 	User findUserByUsername(String username);
 
+	// El usuario que inicio la sesion en este pedido.
+	User getSessionUser();
+
 	User saveUser(UserDTO userDTO);
 
 	User editUser(Long id, UserDTO userDTO);

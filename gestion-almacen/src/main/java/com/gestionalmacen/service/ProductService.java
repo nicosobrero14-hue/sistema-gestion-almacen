@@ -6,13 +6,17 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.gestionalmacen.dto.ProductDTO;
+import com.gestionalmacen.entity.MovementType;
 import com.gestionalmacen.entity.Product;
+import com.gestionalmacen.entity.StockMovement;
 import com.gestionalmacen.entity.Supplier;
 import com.gestionalmacen.exception.BusinessRuleException;
 import com.gestionalmacen.exception.NotFoundException;
 import com.gestionalmacen.repository.IProductRepository;
+import com.gestionalmacen.repository.IStockMovementRepository;
 
 @Service
 public class ProductService implements IProductService {
@@ -23,6 +27,13 @@ public class ProductService implements IProductService {
 	// Para buscar el proveedor que se le asigna al producto.
 	@Autowired
 	private ISupplierService supplierService;
+
+	// Para registrar la carga inicial con el usuario que la hizo.
+	@Autowired
+	private IStockMovementRepository movementRepository;
+
+	@Autowired
+	private IUserService userService;
 
 	@Override
 	public List<Product> getProducts(String search, boolean activeOnly) {
@@ -35,7 +46,9 @@ public class ProductService implements IProductService {
 				.orElseThrow(() -> new NotFoundException("No existe el producto con id " + id));
 	}
 
+	// @Transactional: el producto y su movimiento se guardan juntos. Si uno falla, no se guarda ninguno.
 	@Override
+	@Transactional
 	public Product saveProduct(ProductDTO productDTO, boolean isAdmin) {
 		// CU-19: poner un producto en oferta es una decision del administrador.
 		if (productDTO.isOnOffer() && !isAdmin) {
@@ -49,7 +62,12 @@ public class ProductService implements IProductService {
 		// El stock se carga solo en el alta. Despues se ajusta desde la pantalla de stock.
 		product.setStock(productDTO.getStock());
 		this.copyData(productDTO, product);
-		return productRepository.save(product);
+		productRepository.save(product);
+
+		// RF-02: el stock inicial tambien queda registrado como movimiento.
+		movementRepository.save(new StockMovement(product, userService.getSessionUser(),
+				MovementType.CARGA_INICIAL, 0, "Alta del producto"));
+		return product;
 	}
 
 	@Override

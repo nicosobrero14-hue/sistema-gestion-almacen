@@ -1,5 +1,6 @@
 package com.gestionalmacen.repository;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,6 +23,23 @@ public interface IProductRepository extends JpaRepository<Product, Long> {
 			ORDER BY p.name
 			""")
 	List<Product> search(@Param("text") String text, @Param("activeOnly") boolean activeOnly);
+
+	// Alerta de stock bajo (RF-09): productos activos con el stock en el minimo o por debajo.
+	@Query("""
+			SELECT p FROM Product p
+			WHERE p.active = TRUE AND p.stock <= p.minimumStock
+			ORDER BY p.stock, p.name
+			""")
+	List<Product> findLowStock();
+
+	// Alerta de vencimiento (RF-09): productos activos, con stock, que vencen hasta la fecha limite.
+	// Incluye los que ya vencieron. Los que no tienen fecha no entran: la comparacion con NULL da falso.
+	@Query("""
+			SELECT p FROM Product p
+			WHERE p.active = TRUE AND p.stock > 0 AND p.expirationDate <= :limit
+			ORDER BY p.expirationDate, p.name
+			""")
+	List<Product> findExpiring(@Param("limit") LocalDate limit);
 
 	boolean existsByBarcode(String barcode);
 

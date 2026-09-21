@@ -55,6 +55,7 @@ class AuthApiTests {
 	void withoutASessionTheApiReturns401() throws Exception {
 		mvc.perform(get("/api/products")).andExpect(status().isUnauthorized());
 		mvc.perform(get("/api/suppliers")).andExpect(status().isUnauthorized());
+		mvc.perform(get("/api/stock/low-stock")).andExpect(status().isUnauthorized());
 	}
 
 	// El estado del sistema es publico: sirve para verificar la instalacion.
