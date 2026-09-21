@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import client from '../api/client'
 
 // Pantalla de inicio. Muestra si el backend y la base de datos responden.
-export default function Home() {
+export default function Home({ user }) {
   const [status, setStatus] = useState(null)
   const [error, setError] = useState('')
 
@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <>
       <h1>Panel principal</h1>
-      <p className="subtitle">Estado del sistema.</p>
+      <p className="subtitle">Bienvenido, {user.name}. Este es el estado del sistema.</p>
 
       {error && <p className="alert">{error}</p>}
 

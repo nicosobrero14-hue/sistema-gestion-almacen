@@ -22,7 +22,11 @@ const EMPTY = {
 const toNumber = (value) => (value === '' ? null : Number(value))
 
 // Alta y modificacion de productos (CU-02, CU-20). Si product es null, es un alta.
-export default function ProductForm({ product, onSaved, onCancel }) {
+// CU-19 y CU-20: el empleado pone el precio en el alta, pero despues solo el administrador lo cambia.
+// Las ofertas son siempre del administrador. El backend controla lo mismo.
+export default function ProductForm({ product, isAdmin, onSaved, onCancel }) {
+  const canEditPrice = isAdmin || !product
+
   const [data, setData] = useState(
     product ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '' } : EMPTY,
   )
@@ -92,7 +96,8 @@ export default function ProductForm({ product, onSaved, onCancel }) {
 
         <div className="fields-row">
           <TextField name="price" label="Precio" type="number" step="0.01" min="0" value={data.price}
-            onChange={onChange} error={errors.price} required />
+            onChange={onChange} error={errors.price} required disabled={!canEditPrice}
+            help={canEditPrice ? null : 'Solo el administrador modifica precios'} />
           <TextField name="barcode" label="Código de barras" value={data.barcode} onChange={onChange}
             error={errors.barcode} maxLength={64} help="Opcional" />
         </div>
@@ -124,13 +129,14 @@ export default function ProductForm({ product, onSaved, onCancel }) {
         </div>
 
         <label className="checkbox">
-          <input type="checkbox" name="onOffer" checked={data.onOffer} onChange={onChange} />
+          <input type="checkbox" name="onOffer" checked={data.onOffer} onChange={onChange} disabled={!isAdmin} />
           Producto en oferta
+          {!isAdmin && <small className="help">(las ofertas las define el administrador)</small>}
         </label>
 
         {data.onOffer && (
           <TextField name="offerPrice" label="Precio de oferta" type="number" step="0.01" min="0"
-            value={data.offerPrice} onChange={onChange} error={errors.offerPrice} required
+            value={data.offerPrice} onChange={onChange} error={errors.offerPrice} required disabled={!isAdmin}
             help="Tiene que ser menor al precio normal" />
         )}
 
