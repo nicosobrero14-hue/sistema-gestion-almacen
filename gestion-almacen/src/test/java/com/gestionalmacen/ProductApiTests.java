@@ -1,5 +1,6 @@
 package com.gestionalmacen;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ import com.jayway.jsonpath.JsonPath;
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
+@WithMockUser(roles = "ADMIN") // con la seguridad activa, cada pedido necesita un usuario con sesion
 class ProductApiTests {
 
 	@Autowired
@@ -32,7 +35,7 @@ class ProductApiTests {
 	void createsAProductWithItsSupplier() throws Exception {
 		long supplierId = create("/api/suppliers", "{\"name\":\"Distribuidora Sur\"}");
 
-		mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(product("Yerba 1kg", "4850.00", 40, 10, "7790010001234", supplierId)))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.name").value("Yerba 1kg"))
@@ -43,7 +46,7 @@ class ProductApiTests {
 	// RF-09: el stock en el minimo o por debajo se marca como bajo.
 	@Test
 	void marksLowStock() throws Exception {
-		mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(product("Leche 1L", "1650.00", 5, 20, null, null)))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.lowStock").value(true));
@@ -52,7 +55,7 @@ class ProductApiTests {
 	// CU-02 exc. 5a: datos invalidos, con el campo marcado.
 	@Test
 	void rejectsANegativePrice() throws Exception {
-		mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(product("Malo", "-5", 1, 1, null, null)))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.errors.price").value("El precio debe ser mayor a cero"));
@@ -62,7 +65,7 @@ class ProductApiTests {
 	void rejectsARepeatedBarcode() throws Exception {
 		create("/api/products", product("Original", "100.00", 1, 1, "7790000000001", null));
 
-		mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(product("Copia", "100.00", 1, 1, "7790000000001", null)))
 				.andExpect(status().isConflict());
 	}
@@ -70,7 +73,7 @@ class ProductApiTests {
 	// CU-19 exc. 4a: la oferta tiene que ser mas barata que el precio normal.
 	@Test
 	void rejectsAnOfferMoreExpensiveThanThePrice() throws Exception {
-		mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"name\":\"Oferta mala\",\"price\":100.00,\"stock\":1,\"minimumStock\":1,"
 						+ "\"onOffer\":true,\"offerPrice\":150.00}"))
 				.andExpect(status().isConflict());
@@ -79,9 +82,9 @@ class ProductApiTests {
 	@Test
 	void rejectsAnInactiveSupplier() throws Exception {
 		long supplierId = create("/api/suppliers", "{\"name\":\"Proveedor dado de baja\"}");
-		mvc.perform(patch("/api/suppliers/" + supplierId + "/deactivate")).andExpect(status().isNoContent());
+		mvc.perform(patch("/api/suppliers/" + supplierId + "/deactivate").with(csrf())).andExpect(status().isNoContent());
 
-		mvc.perform(post("/api/products").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(product("Sin proveedor valido", "100.00", 1, 1, null, supplierId)))
 				.andExpect(status().isConflict());
 	}
@@ -91,7 +94,7 @@ class ProductApiTests {
 	void editingDoesNotChangeTheStock() throws Exception {
 		long id = create("/api/products", product("Fideos", "1200.00", 60, 15, null, null));
 
-		mvc.perform(put("/api/products/" + id).contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(put("/api/products/" + id).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(product("Fideos guiseros", "1300.00", 999, 15, null, null)))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.name").value("Fideos guiseros"))
@@ -114,8 +117,43 @@ class ProductApiTests {
 	void deactivatesAProduct() throws Exception {
 		long id = create("/api/products", product("Producto viejo", "100.00", 0, 0, null, null));
 
-		mvc.perform(patch("/api/products/" + id + "/deactivate")).andExpect(status().isNoContent());
+		mvc.perform(patch("/api/products/" + id + "/deactivate").with(csrf())).andExpect(status().isNoContent());
 		mvc.perform(get("/api/products/" + id)).andExpect(jsonPath("$.active").value(false));
+	}
+
+	// CU-20: el empleado puede editar el producto mientras no cambie el precio.
+	// 900 y 900.00 son el mismo precio: no cuenta como cambio.
+	@Test
+	@WithMockUser(roles = "EMPLEADO")
+	void anEmployeeCanEditAProductWithoutChangingThePrice() throws Exception {
+		long id = create("/api/products", product("Arroz", "900.00", 20, 5, null, null));
+
+		mvc.perform(put("/api/products/" + id).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+				.content(product("Arroz largo fino", "900", 20, 5, null, null)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.name").value("Arroz largo fino"));
+	}
+
+	// CU-20: solo el administrador cambia precios.
+	@Test
+	@WithMockUser(roles = "EMPLEADO")
+	void anEmployeeCannotChangeThePrice() throws Exception {
+		long id = create("/api/products", product("Arroz", "900.00", 20, 5, null, null));
+
+		mvc.perform(put("/api/products/" + id).with(csrf()).contentType(MediaType.APPLICATION_JSON)
+				.content(product("Arroz", "1000.00", 20, 5, null, null)))
+				.andExpect(status().isForbidden())
+				.andExpect(jsonPath("$.message").value("Solo el administrador puede modificar el precio y la oferta."));
+	}
+
+	// CU-19: poner un producto en oferta es decision del administrador.
+	@Test
+	@WithMockUser(roles = "EMPLEADO")
+	void anEmployeeCannotPutAProductOnOffer() throws Exception {
+		mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"name\":\"Oferta\",\"price\":100.00,\"stock\":1,\"minimumStock\":1,"
+						+ "\"onOffer\":true,\"offerPrice\":80.00}"))
+				.andExpect(status().isForbidden());
 	}
 
 	// Arma el JSON de un producto. barcode y supplierId pueden ir en null.
@@ -128,7 +166,7 @@ class ProductApiTests {
 
 	// Da de alta un registro y devuelve el id que le asigno la base.
 	private long create(String url, String json) throws Exception {
-		String response = mvc.perform(post(url).contentType(MediaType.APPLICATION_JSON).content(json))
+		String response = mvc.perform(post(url).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json))
 				.andExpect(status().isCreated())
 				.andReturn().getResponse().getContentAsString();
 		return ((Number) JsonPath.read(response, "$.id")).longValue();

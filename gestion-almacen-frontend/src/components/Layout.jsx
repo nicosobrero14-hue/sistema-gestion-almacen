@@ -1,9 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom'
 
 // Estructura comun a todas las pantallas: menu a la izquierda y contenido a la derecha.
-export default function Layout() {
+export default function Layout({ user, onLogout }) {
   // NavLink marca el enlace de la seccion en la que se esta.
   const linkClass = ({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')
+  const isAdmin = user.role === 'ADMIN'
 
   return (
     <div className="layout">
@@ -20,8 +21,17 @@ export default function Layout() {
           <NavLink to="/" className={linkClass} end>Inicio</NavLink>
           <NavLink to="/products" className={linkClass}>Productos</NavLink>
           <NavLink to="/suppliers" className={linkClass}>Proveedores</NavLink>
-          <NavLink to="/users" className={linkClass}>Usuarios</NavLink>
+          {/* El empleado no gestiona usuarios (RF-11), asi que ni ve la opcion. Igual quien lo controla es el backend. */}
+          {isAdmin && <NavLink to="/users" className={linkClass}>Usuarios</NavLink>}
         </nav>
+
+        <div className="session">
+          <strong>{user.name} {user.lastName}</strong>
+          <small>{isAdmin ? 'Administrador' : 'Empleado'}</small>
+          <button type="button" className="button button-secondary button-wide" onClick={onLogout}>
+            Cerrar sesión
+          </button>
+        </div>
       </aside>
 
       {/* Outlet es donde React Router dibuja la pantalla de la ruta actual. */}

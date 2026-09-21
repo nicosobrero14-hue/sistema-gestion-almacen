@@ -53,10 +53,10 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<!-- Hashea las contrasenas con BCrypt. Solo la biblioteca, sin la configuracion de seguridad -->
+		<!-- Inicio de sesion, permisos por rol y hash de contrasenas -->
 		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-crypto</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
 
 		<!-- Genera getters, setters y constructores -->
@@ -75,6 +75,11 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 		<dependency>

@@ -12,6 +12,8 @@ public interface IUserService {
 
 	User findUser(Long id);
 
+	User findUserByUsername(String username);
+
 	User saveUser(UserDTO userDTO);
 
 	User editUser(Long id, UserDTO userDTO);

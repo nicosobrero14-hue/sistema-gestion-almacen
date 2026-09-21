@@ -7,7 +7,8 @@ import ProductForm from './ProductForm'
 const formatPrice = (value) => Number(value).toLocaleString('es-AR', { style: 'currency', currency: 'ARS' })
 
 // Pantalla del catalogo de productos (RF-01 / CU-02, CU-20).
-export default function Products() {
+// isAdmin: el formulario bloquea el precio y la oferta si quien lo usa es empleado.
+export default function Products({ isAdmin }) {
   const [products, setProducts] = useState([])
   const [search, setSearch] = useState('')
   const [activeOnly, setActiveOnly] = useState(true)
@@ -147,7 +148,9 @@ export default function Products() {
         </div>
       )}
 
-      {formOpen && <ProductForm product={selected} onSaved={onSaved} onCancel={() => setFormOpen(false)} />}
+      {formOpen && (
+        <ProductForm product={selected} isAdmin={isAdmin} onSaved={onSaved} onCancel={() => setFormOpen(false)} />
+      )}
     </>
   )
 }

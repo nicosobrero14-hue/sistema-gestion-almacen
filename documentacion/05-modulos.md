@@ -9,7 +9,7 @@ así cada fase termina con algo que se puede usar.
 | Proveedores | RF-08 / CU-05 | 2 | Implementado |
 | Productos | RF-01 / CU-02, CU-20 | 2 | Implementado |
 | Usuarios | RF-11 / CU-18 | 2 | Implementado |
-| Inicio de sesión y roles | RF-11 / CU-01 | 3 | Pendiente |
+| Inicio de sesión y roles | RF-11 / CU-01 | 3 | Implementado |
 | Stock y alertas | RF-02, RF-09 / CU-04, CU-06 | 4 | Pendiente |
 | Ventas y ticket | RF-03, RF-06 / CU-07 a CU-15 | 5 | Pendiente |
 | Historial y lector | RF-04, RF-07 / CU-03, CU-16 | 6 | Pendiente |
@@ -27,7 +27,7 @@ así cada fase termina con algo que se puede usar.
 | `service` | Las reglas del negocio. Cada servicio tiene su interfaz (`IProductService`) y su clase (`ProductService`) |
 | `controller` | Los endpoints de la API |
 | `exception` | Las excepciones propias y el manejador que las convierte en respuestas |
-| `config` | La configuración del algoritmo de contraseñas |
+| `config` | La seguridad: quién puede entrar y a qué, y el algoritmo de contraseñas |
 
 **Frontend** (`gestion-almacen-frontend/src/`):
 
@@ -80,6 +80,8 @@ stock bajo y, si corresponde, su proveedor, su código de barras y su fecha de v
 - El precio tiene que ser mayor a cero.
 - Si está en oferta, el precio de oferta es obligatorio y tiene que ser menor al precio normal
   (CU-19 exc. 4a).
+- El Empleado pone el precio al dar de alta un producto, pero después solo el Administrador puede
+  cambiarlo. Las ofertas las define siempre el Administrador (CU-19, CU-20).
 - El stock se carga solo en el alta. Al editar el producto el campo aparece bloqueado: el stock se
   ajusta desde la pantalla de stock, que deja registrado quién lo cambió y por qué (fase 4).
 - Antes de dar de baja un producto que todavía tiene stock, el sistema lo avisa y pide
@@ -96,8 +98,7 @@ Al editar, los datos se cargan en el formulario y el stock queda bloqueado:
 
 ## 5.4 Usuarios
 
-Permite administrar quiénes usan el sistema y con qué rol. En la fase 3 esta pantalla queda
-reservada al Administrador.
+Permite administrar quiénes usan el sistema y con qué rol. Es exclusiva del Administrador.
 
 ![Pantalla de usuarios](imagenes/fase-2-usuarios.png)
 
@@ -118,7 +119,49 @@ reservada al Administrador.
 
 ![Intento de dar de baja al único administrador](imagenes/fase-2-ultimo-administrador.png)
 
-## 5.5 Decisiones de esta etapa
+## 5.5 Inicio de sesión y permisos
+
+Para usar el sistema hay que iniciar sesión con usuario y contraseña (CU-01). Lo que cada uno
+puede hacer depende de su rol (RF-11).
+
+![Pantalla de inicio de sesión](imagenes/fase-3-login.png)
+
+**Cómo funciona:**
+
+- El servidor compara la contraseña con el hash guardado. Si coincide, abre una sesión y el
+  navegador recibe una cookie que ningún script puede leer.
+- La sesión dura una jornada de trabajo: 8 horas. Al recargar la página no hay que volver a entrar.
+- Cerrar sesión la invalida en el servidor, no solo en el navegador.
+- Si la sesión vence mientras se usa el sistema, vuelve solo a la pantalla de inicio de sesión.
+
+**Reglas:**
+
+- Si falta el usuario o la contraseña, se marca el campo vacío (CU-01 exc. 3a).
+- Si el usuario o la contraseña no coinciden, el mensaje es siempre el mismo: *"Usuario o
+  contraseña incorrectos"*. No dice cuál de los dos falló, para no confirmarle a nadie qué usuarios
+  existen (CU-01 exc. 4a).
+- Un usuario dado de baja no puede entrar, y el mensaje lo explica.
+
+![Usuario o contraseña incorrectos](imagenes/fase-3-login-error.png)
+
+**Qué puede hacer cada rol:**
+
+| Acción | Empleado | Administrador |
+|---|---|---|
+| Ver y buscar productos y proveedores | Sí | Sí |
+| Dar de alta, editar, dar de baja y reactivar productos y proveedores | Sí | Sí |
+| Cambiar el precio de un producto existente (CU-20) | No | Sí |
+| Poner un producto en oferta (CU-19) | No | Sí |
+| Gestionar usuarios (CU-18) | No | Sí |
+
+Los permisos se controlan en el servidor. La pantalla además esconde lo que el rol no puede usar:
+el Empleado no ve la sección de usuarios en el menú y, al editar un producto, el precio y la oferta
+le aparecen bloqueados. Pero eso es solo comodidad: aunque alguien llamara a la API directamente,
+el servidor le respondería que no tiene permiso.
+
+![Menú y formulario del Empleado](imagenes/fase-3-empleado-editar-producto.png)
+
+## 5.6 Decisiones de esta etapa
 
 **No hay borrado definitivo.** Los tres módulos dan de baja y reactivan, pero no borran. Un
 producto dado de baja sigue apareciendo en las ventas pasadas, y un usuario dado de baja sigue

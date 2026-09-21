@@ -35,6 +35,12 @@ public class UserService implements IUserService {
 	}
 
 	@Override
+	public User findUserByUsername(String username) {
+		return userRepository.findByUsername(username)
+				.orElseThrow(() -> new NotFoundException("No existe el usuario " + username));
+	}
+
+	@Override
 	public User saveUser(UserDTO userDTO) {
 		if (userRepository.existsByUsername(userDTO.getUsername())) {
 			throw new BusinessRuleException("El nombre de usuario " + userDTO.getUsername() + " ya está en uso.");

@@ -1,8 +1,10 @@
 package com.gestionalmacen.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import com.gestionalmacen.dto.ProductDTO;
@@ -34,7 +36,11 @@ public class ProductService implements IProductService {
 	}
 
 	@Override
-	public Product saveProduct(ProductDTO productDTO) {
+	public Product saveProduct(ProductDTO productDTO, boolean isAdmin) {
+		// CU-19: poner un producto en oferta es una decision del administrador.
+		if (productDTO.isOnOffer() && !isAdmin) {
+			throw new AccessDeniedException("Solo el administrador puede poner un producto en oferta.");
+		}
 		if (productDTO.getBarcode() != null && productRepository.existsByBarcode(productDTO.getBarcode())) {
 			throw new BusinessRuleException("Ya existe un producto con el código de barras " + productDTO.getBarcode());
 		}
@@ -47,8 +53,13 @@ public class ProductService implements IProductService {
 	}
 
 	@Override
-	public Product editProduct(Long id, ProductDTO productDTO) {
+	public Product editProduct(Long id, ProductDTO productDTO, boolean isAdmin) {
 		Product product = this.findProduct(id);
+
+		// CU-19 y CU-20: solo el administrador cambia el precio o la oferta.
+		if (!isAdmin && this.changesPrice(product, productDTO)) {
+			throw new AccessDeniedException("Solo el administrador puede modificar el precio y la oferta.");
+		}
 
 		if (productDTO.getBarcode() != null && productRepository.existsByBarcodeAndIdNot(productDTO.getBarcode(), id)) {
 			throw new BusinessRuleException("Ya existe otro producto con el código de barras " + productDTO.getBarcode());
@@ -89,6 +100,21 @@ public class ProductService implements IProductService {
 		product.setOnOffer(productDTO.isOnOffer());
 		product.setOfferPrice(productDTO.isOnOffer() ? productDTO.getOfferPrice() : null);
 		product.setSupplier(this.findActiveSupplier(productDTO.getSupplierId()));
+	}
+
+	// true si el DTO trae un precio o una oferta distinta de la que tiene el producto.
+	private boolean changesPrice(Product product, ProductDTO productDTO) {
+		return !this.sameAmount(product.getPrice(), productDTO.getPrice())
+				|| product.isOnOffer() != productDTO.isOnOffer()
+				|| !this.sameAmount(product.getOfferPrice(), productDTO.getOfferPrice());
+	}
+
+	// Compara importes: 10.0 y 10.00 son el mismo precio. Dos vacios tambien son iguales.
+	private boolean sameAmount(BigDecimal first, BigDecimal second) {
+		if (first == null || second == null) {
+			return first == second;
+		}
+		return first.compareTo(second) == 0;
 	}
 
 	// El proveedor es opcional. Si viene uno, tiene que existir y estar activo.

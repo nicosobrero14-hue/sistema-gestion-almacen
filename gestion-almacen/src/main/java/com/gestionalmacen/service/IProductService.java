@@ -12,9 +12,10 @@ public interface IProductService {
 
 	Product findProduct(Long id);
 
-	Product saveProduct(ProductDTO productDTO);
+	// isAdmin: si quien lo hace es administrador. Solo el administrador maneja precios y ofertas.
+	Product saveProduct(ProductDTO productDTO, boolean isAdmin);
 
-	Product editProduct(Long id, ProductDTO productDTO);
+	Product editProduct(Long id, ProductDTO productDTO, boolean isAdmin);
 
 	void deactivateProduct(Long id);
 

@@ -40,7 +40,7 @@ El desarrollo avanza por fases. Cada una deja una funcionalidad completa, probad
 | 0 | Repositorio, documentación y modelo de datos | Terminada |
 | 1 | Esqueleto: backend y frontend en funcionamiento | Terminada |
 | 2 | Alta, baja y modificación de proveedores, productos y usuarios | Terminada |
-| 3 | Inicio de sesión y permisos por rol | Pendiente |
+| 3 | Inicio de sesión y permisos por rol | Terminada |
 | 4 | Control de stock y alertas | Pendiente |
 | 5 | Venta y ticket | Pendiente |
 | 6 | Historial de ventas y lector de código de barras | Pendiente |
@@ -74,8 +74,12 @@ Frontend, desde la carpeta `gestion-almacen-frontend`:
 npm install && npm run dev
 ```
 
-El sistema queda en `http://localhost:5173`. Los pasos detallados y los problemas frecuentes están
-en el [manual de instalación](documentacion/07-instalacion.md).
+El sistema queda en `http://localhost:5173`. Los datos de prueba traen dos usuarios: `admin` / `Admin1234`
+(Administrador) y `vendedor` / `Empleado1234` (Empleado). Son contraseñas de prueba: hay que
+cambiarlas antes de usar el sistema en el comercio.
+
+Los pasos detallados y los problemas frecuentes están en el
+[manual de instalación](documentacion/07-instalacion.md).
 
 ## Pruebas
 
