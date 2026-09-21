@@ -176,11 +176,16 @@ con el usuario de la sesión.
   "active": true,
   "createdAt": "2026-09-20T16:05:12",
   "supplier": { "id": 1, "name": "Distribuidora del Sur", "...": "..." },
-  "lowStock": false
+  "lowStock": false,
+  "salePrice": 4850.00
 }
 ```
 
-`lowStock` no es una columna: se calcula como `stock <= minimumStock`.
+`lowStock` y `salePrice` no son columnas, se calculan:
+
+- `lowStock`: `stock <= minimumStock`.
+- `salePrice`: el precio que se cobra. Es el de oferta si el producto está en oferta, y si no, el
+  normal.
 
 **Devuelve `409` si:**
 
@@ -290,3 +295,83 @@ copias: el movimiento se sigue leyendo igual aunque el producto cambie de nombre
 - El producto está dado de baja.
 
 **Devuelve `404` si:** el producto no existe.
+
+---
+
+## 6.10 Ventas — `/api/sales`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/api/sales` | Confirma una venta (CU-11) → `201` |
+| `GET` | `/api/sales/{id}` | Trae una venta con sus renglones y su pago. Es lo que muestra el ticket (CU-14) |
+
+Los usan el Empleado y el Administrador.
+
+**Lo que entra:**
+
+```json
+{
+  "items": [
+    { "productId": 1, "quantity": 2 },
+    { "productId": 4, "quantity": 1 }
+  ],
+  "discount": 290,
+  "paymentMethod": "EFECTIVO"
+}
+```
+
+- `items` es el carrito: qué productos y cuántos. **El precio no viaja**: lo pone el servidor con el
+  precio de venta de cada producto en ese momento.
+- `discount` es un descuento en pesos sobre el total. Es opcional.
+- `paymentMethod` admite `EFECTIVO` o `TRANSFERENCIA`.
+
+**Lo que sale:**
+
+```json
+{
+  "id": 1,
+  "dateTime": "2026-09-21T17:51:52",
+  "username": "vendedor",
+  "subtotal": 16290.00,
+  "discount": 290.00,
+  "total": 16000.00,
+  "status": "CONFIRMADA",
+  "details": [
+    { "id": 1, "productName": "Yerba Mate 1kg", "unitPrice": 4850.00, "quantity": 2, "subtotal": 9700.00 },
+    { "id": 2, "productName": "Aceite girasol 900ml", "unitPrice": 2990.00, "quantity": 1, "subtotal": 2990.00 }
+  ],
+  "payments": [
+    { "id": 1, "method": "EFECTIVO", "amount": 16000.00, "status": "APROBADO",
+      "dateTime": "2026-09-21T17:51:52", "confirmedAt": "2026-09-21T17:51:52" }
+  ]
+}
+```
+
+El `id` es también el número de ticket. El nombre y el precio de cada renglón son copias: el ticket
+no cambia aunque después cambie el producto.
+
+Al confirmar, en la misma transacción, el servidor:
+
+1. Registra la venta con sus renglones.
+2. Registra el pago como aprobado.
+3. Descuenta el stock de cada producto y deja un movimiento de tipo `VENTA` con el motivo
+   "Venta N° 1" (CU-12).
+
+Si algo falla, no se guarda nada y el stock queda como estaba.
+
+**Devuelve `400` si:**
+
+- No hay productos: *"Agregue al menos un producto a la venta"* (CU-11 exc. 1a).
+- Una cantidad es cero o negativa (CU-08 exc. 3a).
+- El descuento es negativo.
+- Falta la forma de pago.
+
+**Devuelve `409` si:**
+
+- Se pide más de lo que hay: *"No hay stock suficiente de Leche entera 1L. Disponible: 8."*
+  (CU-07 exc. 5a, CU-08 exc. 4a).
+- Un producto está dado de baja.
+- Un producto aparece en dos renglones.
+- El descuento es igual o mayor al subtotal: el total tiene que quedar mayor a cero.
+
+**Devuelve `404` si:** un producto o la venta pedida no existe.

@@ -150,3 +150,17 @@ mvnw test
 ```
 
 Las pruebas usan una base en memoria, así que no necesitan MySQL ni modifican los datos reales.
+
+## 7.10 Impresora de tickets
+
+Es opcional: sin impresora, el ticket se ve igual en pantalla.
+
+1. Instalar la impresora en Windows con el driver del fabricante, como cualquier impresora.
+2. Imprimir una página de prueba desde Windows para confirmar que funciona.
+3. En el sistema, después de una venta, apretar "Imprimir" en el ticket y elegir esa impresora en
+   el diálogo.
+
+El sistema no necesita ninguna configuración: la hoja de estilos de impresión deja solo el
+comprobante, con el ancho de un ticket de 80 mm. Si el navegador agrega el encabezado y el pie con
+la dirección y la fecha, se quitan en el diálogo, en "Más opciones", desmarcando "Encabezados y pies
+de página".

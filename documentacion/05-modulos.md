@@ -11,7 +11,7 @@ así cada fase termina con algo que se puede usar.
 | Usuarios | RF-11 / CU-18 | 2 | Implementado |
 | Inicio de sesión y roles | RF-11 / CU-01 | 3 | Implementado |
 | Stock y alertas | RF-02, RF-09 / CU-04, CU-06 | 4 | Implementado |
-| Ventas y ticket | RF-03, RF-06 / CU-07 a CU-15 | 5 | Pendiente |
+| Ventas y ticket | RF-03, RF-06 / CU-07 a CU-09, CU-11 a CU-15 | 5 | Implementado |
 | Historial y lector | RF-04, RF-07 / CU-03, CU-16 | 6 | Pendiente |
 | Ofertas | RF-10 / CU-19 | 7 | Pendiente |
 
@@ -21,7 +21,7 @@ así cada fase termina con algo que se puede usar.
 
 | Paquete | Qué contiene |
 |---|---|
-| `entity` | Las clases que representan las tablas: `Supplier`, `Product`, `User`, `StockMovement` |
+| `entity` | Las clases que representan las tablas: `Supplier`, `Product`, `User`, `StockMovement`, `Sale`, `SaleDetail`, `Payment` |
 | `dto` | Los datos que llegan en cada pedido, con sus validaciones |
 | `repository` | Las interfaces de acceso a la base |
 | `service` | Las reglas del negocio. Cada servicio tiene su interfaz (`IProductService`) y su clase (`ProductService`) |
@@ -156,6 +156,7 @@ puede hacer depende de su rol (RF-11).
 | Poner un producto en oferta (CU-19) | No | Sí |
 | Ajustar el stock y ver sus movimientos (CU-04) | Sí | Sí |
 | Ver las alertas del panel (CU-06) | Sí | Sí |
+| Vender y ver el ticket (CU-07 a CU-15) | Sí | Sí |
 | Gestionar usuarios (CU-18) | No | Sí |
 
 Los permisos se controlan en el servidor. La pantalla además esconde lo que el rol no puede usar:
@@ -236,7 +237,82 @@ catálogo con ese producto ya buscado, para revisar sus datos.
 - Las tarjetas de arriba muestran cuántas alertas hay de cada tipo, y se marcan en naranja cuando
   hay alguna.
 
-## 5.8 Decisiones de esta etapa
+## 5.8 Venta
+
+Es la pantalla que más se usa (RF-03 / CU-07 a CU-11). A la izquierda se buscan los productos; a
+la derecha se arma el carrito, se elige la forma de pago y se confirma.
+
+![Nueva venta](imagenes/fase-5-venta.png)
+
+**Cómo se arma el carrito:**
+
+- Se busca por nombre o código de barras mientras se escribe. Si no hay coincidencias, se avisa
+  (CU-07 exc. 3a).
+- "Agregar" suma una unidad. Si el producto ya está en el carrito, suma una más a su renglón.
+- La cantidad se puede escribir en el renglón, y el renglón se quita con la cruz.
+- Un producto en oferta se cobra al precio de oferta, y en la búsqueda aparece el precio normal
+  tachado.
+- Un producto sin stock aparece en la búsqueda, pero no se puede agregar.
+
+**Reglas del carrito:**
+
+- La cantidad tiene que ser al menos 1 (CU-08 exc. 3a).
+- No se puede pedir más de lo que hay. El renglón lo marca con la cantidad disponible, y el botón
+  para agregar avisa cuando ya no quedan unidades (CU-07 exc. 5a, CU-08 exc. 4a).
+- El descuento es en pesos y tiene que ser menor al subtotal: el total nunca queda en cero.
+- Si falta algo o hay un error, "Confirmar venta" queda deshabilitado. Sin productos tampoco se
+  puede confirmar (CU-11 exc. 1a).
+
+![Cantidad mayor al stock](imagenes/fase-5-venta-sin-stock.png)
+
+**Formas de pago (CU-09):**
+
+- **Efectivo.** El campo "Paga con" es opcional: si se completa, el sistema calcula el vuelto. Si
+  lo que paga no alcanza, lo marca y no deja confirmar.
+- **Transferencia.** Se confirma cuando la transferencia figura acreditada en la cuenta del
+  comercio.
+
+MercadoPago (CU-10) no está incluido en esta fase. La base de datos ya tiene lo necesario para
+sumarlo: el estado de pago pendiente y la referencia del pago externo.
+
+**Qué pasa al confirmar (CU-11 a CU-13):** el servidor vuelve a controlar todo, porque el stock
+pudo cambiar mientras se armaba el carrito. Si está bien, en una sola transacción:
+
+1. Registra la venta con la fecha, el usuario y cada renglón con el precio del momento.
+2. Registra el pago como aprobado.
+3. Descuenta el stock de cada producto y deja un movimiento de tipo venta, con el número de venta
+   como motivo (CU-12).
+
+Si algo falla, no se guarda nada. Si algún producto queda con stock bajo, aparece en las alertas
+del panel (CU-12 paso 4).
+
+![Movimiento de stock generado por la venta](imagenes/fase-5-movimiento-venta.png)
+
+## 5.9 Ticket
+
+Después de confirmar, el sistema muestra el ticket de la venta (RF-06 / CU-14).
+
+![Ticket de la venta](imagenes/fase-5-ticket.png)
+
+**Qué muestra:** el número de ticket, que es el número de la venta; la fecha y la hora; quién
+atendió; cada producto con su cantidad, su precio unitario y su subtotal; el subtotal, el
+descuento, el total y la forma de pago.
+
+El ticket no se guarda como archivo. Se arma cada vez con los datos guardados de la venta, que no
+cambian aunque después cambien los productos. Por eso se puede volver a abrir y a imprimir las
+veces que haga falta.
+
+**Impresión (CU-15):** el botón "Imprimir" abre el diálogo de impresión del navegador. Ahí se
+elige la impresora de tickets, que Windows trata como cualquier otra impresora. En el papel sale
+solo el comprobante, con el ancho de un ticket de 80 mm: sin el menú y sin los botones. Si la
+impresora no está disponible, el diálogo lo informa y el ticket sigue en pantalla (CU-15 exc. 2a).
+
+![El ticket como sale en la impresora](imagenes/fase-5-ticket-impresion.png)
+
+El pie aclara que el comprobante no es válido como factura: el comercio no emite comprobantes
+fiscales desde este sistema.
+
+## 5.10 Decisiones de esta etapa
 
 **No hay borrado definitivo.** Proveedores, productos y usuarios se dan de baja y se reactivan,
 pero no se borran. Un producto dado de baja sigue apareciendo en las ventas pasadas, y un usuario
@@ -254,3 +330,11 @@ estuvo mal, se corrige con otro ajuste y quedan los dos, igual que en un cuadern
 de stock. Quedó en el formulario del producto, junto con el resto de sus datos, y la pantalla de
 stock lo muestra al lado del stock actual. Así esa pantalla hace una sola cosa, y todo lo que pasa
 por ella deja un movimiento.
+
+**El carrito vive en la pantalla, no en el servidor.** Mientras se arma no se guarda nada: si el
+cliente se arrepiente, no queda una venta a medias en la base. Al servidor le llega la venta
+completa cuando se confirma, y ahí se valida todo de nuevo.
+
+**El precio lo pone el servidor.** Del carrito solo viajan el producto y la cantidad. Así nadie
+puede cambiar un precio desde el navegador, y la regla de que solo el Administrador maneja los
+precios se sigue cumpliendo también en la venta.
