@@ -1,8 +1,10 @@
 package com.gestionalmacen.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -115,6 +117,15 @@ public class SaleService implements ISaleService {
 	public Sale findSale(Long id) {
 		return saleRepository.findById(id)
 				.orElseThrow(() -> new NotFoundException("No existe la venta N° " + id));
+	}
+
+	@Override
+	public List<Sale> getSales(LocalDate from, LocalDate to, String username, String product) {
+		if (from.isAfter(to)) {
+			throw new BusinessRuleException("La fecha desde no puede ser posterior a la fecha hasta.");
+		}
+		// "Hasta" incluye todo ese dia: se busca hasta el comienzo del dia siguiente.
+		return saleRepository.search(from.atStartOfDay(), to.plusDays(1).atStartOfDay(), username.trim(), product.trim());
 	}
 
 	// El producto tiene que estar activo y tener stock suficiente (CU-07 exc. 5a, CU-08 exc. 4a).

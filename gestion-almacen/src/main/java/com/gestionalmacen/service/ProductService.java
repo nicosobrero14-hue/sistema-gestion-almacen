@@ -46,6 +46,12 @@ public class ProductService implements IProductService {
 				.orElseThrow(() -> new NotFoundException("No existe el producto con id " + id));
 	}
 
+	@Override
+	public Product findProductByBarcode(String barcode) {
+		return productRepository.findByBarcode(barcode.trim())
+				.orElseThrow(() -> new NotFoundException("No hay ningún producto con el código " + barcode.trim()));
+	}
+
 	// @Transactional: el producto y su movimiento se guardan juntos. Si uno falla, no se guarda ninguno.
 	@Override
 	@Transactional

@@ -2,6 +2,7 @@ package com.gestionalmacen.repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -40,6 +41,9 @@ public interface IProductRepository extends JpaRepository<Product, Long> {
 			ORDER BY p.expirationDate, p.name
 			""")
 	List<Product> findExpiring(@Param("limit") LocalDate limit);
+
+	// El producto con ese codigo exacto. Lo usa el lector de codigo de barras (CU-03).
+	Optional<Product> findByBarcode(String barcode);
 
 	boolean existsByBarcode(String barcode);
 
