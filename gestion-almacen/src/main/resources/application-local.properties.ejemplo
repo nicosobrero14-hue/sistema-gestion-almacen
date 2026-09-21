@@ -1,0 +1,5 @@
+# Copiar este archivo como application-local.properties y completar con los datos del MySQL propio.
+# El archivo real no se sube al repositorio.
+
+spring.datasource.username=root
+spring.datasource.password=tu_clave_de_mysql
