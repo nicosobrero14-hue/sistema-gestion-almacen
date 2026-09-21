@@ -13,8 +13,8 @@ guardan en MySQL. Todo corre en la terminal del comercio.
 | `base-de-datos/` | Scripts SQL: esquema, datos de prueba y consultas de ejemplo |
 | `documentacion/` | Documentación del proyecto |
 | `documentacion/imagenes/` | Diagramas y capturas de pantalla |
-| `gestion-almacen/` | Backend en Spring Boot (desde la fase 1) |
-| `gestion-almacen-frontend/` | Frontend en React (desde la fase 1) |
+| `gestion-almacen/` | Backend en Spring Boot |
+| `gestion-almacen-frontend/` | Frontend en React |
 
 ## Documentación
 
@@ -24,12 +24,12 @@ guardan en MySQL. Todo corre en la terminal del comercio.
 | [02-arquitectura.md](documentacion/02-arquitectura.md) | Arquitectura de la solución y decisiones de diseño |
 | [03-tecnologias.md](documentacion/03-tecnologias.md) | Herramientas y tecnologías, con su justificación |
 | [04-modelo-datos.md](documentacion/04-modelo-datos.md) | Modelo de datos, diccionario y reglas de integridad |
+| [07-instalacion.md](documentacion/07-instalacion.md) | Manual de instalación y configuración |
+| [10-bitacora.md](documentacion/10-bitacora.md) | Registro del desarrollo, fase por fase |
 | 05-modulos.md | Módulos implementados (desde la fase 2) |
 | 06-api-rest.md | Descripción de la API (desde la fase 2) |
-| 07-instalacion.md | Manual de instalación y configuración (fase 1) |
 | 08-manual-usuario.md | Manual de usuario (fase 5) |
 | 09-pruebas.md | Estrategia de pruebas y casos ejecutados (fase 2) |
-| 10-bitacora.md | Registro del desarrollo, fase por fase |
 
 ## Fases
 
@@ -37,8 +37,8 @@ El desarrollo avanza por fases. Cada una deja una funcionalidad completa, probad
 
 | Fase | Contenido | Estado |
 |---|---|---|
-| 0 | Repositorio, documentación y modelo de datos | En curso |
-| 1 | Esqueleto: backend y frontend en funcionamiento | Pendiente |
+| 0 | Repositorio, documentación y modelo de datos | Terminada |
+| 1 | Esqueleto: backend y frontend en funcionamiento | Terminada |
 | 2 | Alta, baja y modificación de proveedores, productos y usuarios | Pendiente |
 | 3 | Inicio de sesión y permisos por rol | Pendiente |
 | 4 | Control de stock y alertas | Pendiente |
@@ -46,9 +46,9 @@ El desarrollo avanza por fases. Cada una deja una funcionalidad completa, probad
 | 6 | Historial de ventas y lector de código de barras | Pendiente |
 | 7 | Sugerencias de ofertas y cierre del proyecto | Pendiente |
 
-## Base de datos
+## Puesta en marcha
 
-Con MySQL 8 instalado y en ejecución:
+Con MySQL 8, Java 25 y Node instalados:
 
 ```bash
 mysql -u root -p < base-de-datos/01-esquema.sql
@@ -58,8 +58,29 @@ mysql -u root -p < base-de-datos/01-esquema.sql
 mysql -u root -p gestion_almacen < base-de-datos/02-datos-de-prueba.sql
 ```
 
-El primer script crea la base y las siete tablas. El segundo carga datos de prueba: dos usuarios,
-tres proveedores y ocho productos.
+Después hay que crear `gestion-almacen/src/main/resources/application-local.properties` con el
+usuario y la clave de MySQL, copiando el archivo de ejemplo que está al lado. Ese archivo no se
+sube al repositorio.
 
-Las credenciales de conexión no están en el repositorio. Se configuran en un archivo local que
-Git ignora, explicado en el manual de instalación.
+Backend, desde la carpeta `gestion-almacen`:
+
+```bash
+mvnw spring-boot:run
+```
+
+Frontend, desde la carpeta `gestion-almacen-frontend`:
+
+```bash
+npm install && npm run dev
+```
+
+El sistema queda en `http://localhost:5173`. Los pasos detallados y los problemas frecuentes están
+en el [manual de instalación](documentacion/07-instalacion.md).
+
+## Pruebas
+
+```bash
+cd gestion-almacen && mvnw test
+```
+
+Las pruebas corren sobre una base en memoria: no necesitan MySQL ni tocan los datos reales.
