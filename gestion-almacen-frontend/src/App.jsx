@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Products from './pages/Products'
+import Stock from './pages/Stock'
 import Suppliers from './pages/Suppliers'
 import Users from './pages/Users'
 
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/" element={<Layout user={user} onLogout={onLogout} />}>
           <Route index element={<Home user={user} />} />
           <Route path="products" element={<Products isAdmin={isAdmin} />} />
+          <Route path="stock" element={<Stock />} />
           <Route path="suppliers" element={<Suppliers />} />
           {/* RF-11: la gestion de usuarios es solo del administrador. */}
           {isAdmin && <Route path="users" element={<Users />} />}

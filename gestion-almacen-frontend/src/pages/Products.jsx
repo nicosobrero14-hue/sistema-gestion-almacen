@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { activateProduct, deactivateProduct, getProducts } from '../api/products'
 import Message from '../components/Message'
 import ProductForm from './ProductForm'
@@ -9,8 +10,11 @@ const formatPrice = (value) => Number(value).toLocaleString('es-AR', { style: 'c
 // Pantalla del catalogo de productos (RF-01 / CU-02, CU-20).
 // isAdmin: el formulario bloquea el precio y la oferta si quien lo usa es empleado.
 export default function Products({ isAdmin }) {
+  // Las alertas del panel abren esta pantalla con el producto ya buscado: /products?search=Leche
+  const [searchParams] = useSearchParams()
+
   const [products, setProducts] = useState([])
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const [activeOnly, setActiveOnly] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
