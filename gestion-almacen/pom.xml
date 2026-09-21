@@ -53,6 +53,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Hashea las contrasenas con BCrypt. Solo la biblioteca, sin la configuracion de seguridad -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+
 		<!-- Genera getters, setters y constructores -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
