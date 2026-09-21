@@ -9,7 +9,7 @@ Base: `http://localhost:8080/api` · Formato: JSON
 | `200 OK` | Consulta o modificación correcta |
 | `201 Created` | Alta correcta |
 | `204 No Content` | Baja o reactivación correcta |
-| `400 Bad Request` | Los datos no pasaron la validación. Trae el error de cada campo |
+| `400 Bad Request` | Los datos no pasaron la validación, o falta un dato de la búsqueda o está mal escrito. En la validación trae el error de cada campo |
 | `401 Unauthorized` | No hay sesión, o el usuario y la contraseña no coinciden |
 | `403 Forbidden` | El rol no alcanza para lo que se quiere hacer |
 | `404 Not Found` | El registro pedido no existe |
@@ -133,6 +133,7 @@ Es público: sirve para verificar la instalación sin tener que iniciar sesión.
 |---|---|---|
 | `GET` | `/api/products?search=&activeOnly=true` | Lista y busca por nombre o código de barras |
 | `GET` | `/api/products/{id}` | Trae un producto |
+| `GET` | `/api/products/barcode/{barcode}` | Trae el producto con ese código de barras exacto. Lo usa el lector (CU-03). `404` si no existe |
 | `POST` | `/api/products` | Alta → `201` |
 | `PUT` | `/api/products/{id}` | Modificación. No cambia el stock |
 | `PATCH` | `/api/products/{id}/deactivate` | Baja → `204` |
@@ -304,8 +305,10 @@ copias: el movimiento se sigue leyendo igual aunque el producto cambie de nombre
 |---|---|---|
 | `POST` | `/api/sales` | Confirma una venta (CU-11) → `201` |
 | `GET` | `/api/sales/{id}` | Trae una venta con sus renglones y su pago. Es lo que muestra el ticket (CU-14) |
+| `GET` | `/api/sales?from=2026-09-01&to=2026-09-30&username=&product=` | Historial (CU-16). **Solo Administrador** |
 
-Los usan el Empleado y el Administrador.
+Confirmar una venta y ver su ticket lo pueden hacer el Empleado y el Administrador. El historial es
+solo del Administrador: al Empleado le responde `403`.
 
 **Lo que entra:**
 
@@ -375,3 +378,12 @@ Si algo falla, no se guarda nada y el stock queda como estaba.
 - El descuento es igual o mayor al subtotal: el total tiene que quedar mayor a cero.
 
 **Devuelve `404` si:** un producto o la venta pedida no existe.
+
+**El historial:**
+
+- `from` y `to` son obligatorias, con el formato `2026-09-21`. `to` incluye todo ese día.
+- `username` filtra por el empleado que hizo la venta. Vacío, no filtra.
+- `product` busca ese texto en el nombre de los productos vendidos. Vacío, no filtra.
+- Devuelve las ventas completas, con sus renglones y su pago, de la más nueva a la más vieja.
+
+Devuelve `400` si falta una fecha o está mal escrita, y `409` si `from` es posterior a `to`.

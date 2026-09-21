@@ -208,6 +208,38 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | CP-114 | Venta registrada en la base | Venta del caso CP-110 | Consultas 6, 7 y 8 de `03-consultas-de-ejemplo.sql` | Los tres renglones con su precio, la venta con su empleado y su forma de pago, y $16.000 recaudados en efectivo | Correcto | Aprobada |
 | CP-115 | Stock consistente después de vender | Venta del caso CP-110 | Consulta 10 | Ningún producto con diferencias | Correcto | Aprobada |
 
+### Historial y lector
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-116 | Producto por código (CU-03) | Gaseosa con código 7790895667788 | `GET /api/products/barcode/7790895667788` | `200` con la gaseosa | Correcto | Aprobada |
+| CP-117 | Código inexistente (CU-03 paso 6) | — | Código 7790000099999 | `404`, "No hay ningún producto con el código 7790000099999" | Correcto | Aprobada |
+| CP-118 | Historial del período (CU-16) | Venta del empleado y después del administrador, hoy | Desde y hasta: hoy | Las dos, primero la del administrador, con renglones y pago | Correcto | Aprobada |
+| CP-119 | Filtro por empleado | Las dos ventas | `username=vendedor` | Solo la del empleado, por $9.700 | Correcto | Aprobada |
+| CP-120 | Filtro por producto | Las dos ventas | `product=leche` | Solo la que tiene leche | Correcto | Aprobada |
+| CP-121 | Período sin ventas (CU-16 exc. 3a) | Las dos ventas, hoy | Desde y hasta: ayer | Lista vacía | Correcto | Aprobada |
+| CP-122 | Período invertido | — | Desde mañana, hasta hoy | `409`, "La fecha desde no puede ser posterior a la fecha hasta." | Correcto | Aprobada |
+| CP-123 | Fecha faltante o mal escrita | — | Sin fecha hasta; después "21/09/2026" | `400` en los dos, "Falta un dato de la búsqueda o tiene un formato inválido." | Correcto | Aprobada |
+| CP-124 | Historial del Empleado (RF-07) | Sesión de Empleado | Pedir el historial | `403` | Correcto | Aprobada |
+
+### Historial y lector en el navegador
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-125 | Historial del mes (CU-16) | Ventas N° 1 y N° 2, sesión de `admin` | Abrir "Historial de ventas" | Del 1/9 a hoy: 2 ventas, la más nueva primero; recaudado $33.880, todo en efectivo | Correcto | Aprobada |
+| CP-126 | Filtro por empleado en pantalla | Historial abierto | Empleado `vendedor` | 1 venta de $16.000, y la dirección guarda el filtro | Correcto | Aprobada |
+| CP-127 | Filtro por producto en pantalla | Historial abierto | "azúcar"; después, además, empleado `vendedor` | La venta N° 2; con los dos filtros, "No se encontraron ventas con esos filtros." | Correcto | Aprobada |
+| CP-128 | Ticket desde el historial (CU-16 paso 5) | Historial filtrado por "azúcar" | "Ver ticket" y "Volver al historial" | Ticket N° 000002; al volver, el mismo filtro y la misma venta | Correcto | Aprobada |
+| CP-129 | Período contra MySQL | Sesión de `admin` | Período invertido; período sin ventas; sin fecha hasta | `409`, lista vacía y `400` | Correcto | Aprobada |
+| CP-130 | Historial para el Empleado | Sesión de `vendedor` | Recorrer el menú, ir a `/sales` y pedir la API | Sin la opción en el menú, la dirección vuelve al inicio, la API responde `403` y el ticket sigue respondiendo `200` | Correcto | Aprobada |
+| CP-131 | Lector en la venta (CU-03 paso 4) | Nueva venta, sesión de `vendedor` | Leer yerba, aceite y otra vez yerba | 2 renglones, la yerba con 2 unidades; el buscador queda vacío después de cada lectura | Correcto | Aprobada |
+| CP-132 | Código inexistente en la venta (CU-03 paso 6) | Nueva venta | Leer un código que no existe | Un solo aviso, con el botón "Dar de alta con ese código" | Correcto | Aprobada |
+| CP-133 | Alta desde el lector | Aviso del caso anterior | "Dar de alta", mermelada a $2.300 con 15 unidades | El formulario trae el código; al guardar, la mermelada entra al carrito y queda su carga inicial | Correcto | Aprobada |
+| CP-134 | Lector en el catálogo (CU-03 paso 5) | Productos | Leer el código de la gaseosa | Se abre la ficha de la gaseosa | Correcto | Aprobada |
+| CP-135 | El buscador conserva el foco | Nueva venta, con el cursor en una cantidad | "Agregar" | El cursor vuelve al buscador | Correcto | Aprobada |
+| CP-136 | Consultas a la base | Backend contra MySQL | Historial, ticket y movimientos | Una sola consulta para el historial y una para el ticket, sin buscar productos ni usuarios aparte | Correcto | Aprobada |
+| CP-137 | Stock consistente | Después del alta del caso CP-133 | Consulta 10 | Ningún producto con diferencias | Correcto | Aprobada |
+
 ## 9.3 Incidencias detectadas
 
 | Fase | Incidencia | Solución |
@@ -221,6 +253,11 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | 5 | Con un pago en efectivo menor al total, la venta se podía confirmar igual | Si lo que paga el cliente no alcanza, el campo se marca en rojo con lo que falta y no deja confirmar |
 | 5 | En una pantalla de 1280 píxeles los nombres del carrito ocupaban dos renglones y el botón "Confirmar venta" quedaba al borde de la pantalla | El carrito ocupa más ancho que la búsqueda |
 | 5 | El campo de cantidad del carrito mostraba el foco en negro | Toma el mismo estilo que los formularios: azul, o rojo si hay error |
+| 6 | El historial, el ticket y los movimientos buscaban aparte cada producto y cada usuario relacionados, aunque no salían en la respuesta. En los movimientos, cada venta se traía completa | Esas relaciones pasaron a carga diferida (`LAZY`): no se buscan salvo que el código las use. CP-136 lo verifica |
+| 6 | Un dato faltante o mal escrito en la dirección, como una fecha, respondía error 500 | Responde 400 con un mensaje claro. Vale también para el plazo de la alerta de vencimiento |
+| 6 | Después de tocar "Agregar" o de dar de alta un producto, el cursor quedaba fuera del buscador y la siguiente lectura del lector se perdía | El cursor vuelve al buscador cada vez que se agrega un producto |
+| 6 | Un código inexistente mostraba dos avisos: el del lector y el de la búsqueda | Queda solo el del lector, que tiene el botón para darlo de alta |
+| 6 | Los buscadores y filtros mostraban el foco en negro | Toman el mismo estilo que los formularios |
 
 En la fase 3 no se registraron incidencias: los casos pasaron en el primer intento.
 
@@ -229,6 +266,6 @@ En la fase 3 no se registraron incidencias: los casos pasaron en el primer inten
 | Nivel | Casos | Aprobados |
 |---|---|---|
 | Base de datos | 15 | 15 |
-| Backend automático | 64 | 64 |
-| Sistema completo | 36 | 36 |
-| **Total** | **115** | **115** |
+| Backend automático | 73 | 73 |
+| Sistema completo | 49 | 49 |
+| **Total** | **137** | **137** |
