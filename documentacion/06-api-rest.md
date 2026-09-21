@@ -387,3 +387,43 @@ Si algo falla, no se guarda nada y el stock queda como estaba.
 - Devuelve las ventas completas, con sus renglones y su pago, de la más nueva a la más vieja.
 
 Devuelve `400` si falta una fecha o está mal escrita, y `409` si `from` es posterior a `to`.
+
+---
+
+## 6.11 Ofertas — `/api/offers` (solo Administrador)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/api/offers` | Productos en oferta ahora |
+| `GET` | `/api/offers/least-sold?days=30` | Sugerencia por baja rotación: los 10 productos con stock que menos se vendieron en esos días |
+| `PATCH` | `/api/offers/{productId}` | Pone el producto en oferta. Devuelve el producto |
+| `PATCH` | `/api/offers/{productId}/end` | Quita la oferta. Devuelve el producto con su precio normal |
+
+La sugerencia por vencimiento usa `GET /api/stock/expiring?days=`, la misma consulta de la alerta
+(punto 6.9).
+
+**Lo que sale de la baja rotación:**
+
+```json
+[
+  { "product": { "id": 6, "name": "Galletitas surtidas", "...": "..." }, "unitsSold": 0 },
+  { "product": { "id": 5, "name": "Azúcar 1kg", "...": "..." }, "unitsSold": 1 }
+]
+```
+
+Primero los que menos se vendieron. Los productos dados de baja o sin stock no aparecen.
+
+**Lo que entra al poner una oferta:**
+
+```json
+{ "offerPrice": 1800 }
+```
+
+**Devuelve `400` si:** falta el precio de oferta o no es mayor a cero.
+
+**Devuelve `409` si:**
+
+- El precio de oferta es igual o mayor al precio normal (CU-19 exc. 4a).
+- El producto está dado de baja.
+
+**Devuelve `403`** si quien lo pide es Empleado.

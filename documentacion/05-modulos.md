@@ -13,7 +13,7 @@ así cada fase termina con algo que se puede usar.
 | Stock y alertas | RF-02, RF-09 / CU-04, CU-06 | 4 | Implementado |
 | Ventas y ticket | RF-03, RF-06 / CU-07 a CU-09, CU-11 a CU-15 | 5 | Implementado |
 | Historial y lector | RF-04, RF-07 / CU-03, CU-16 | 6 | Implementado |
-| Ofertas | RF-10 / CU-19 | 7 | Pendiente |
+| Ofertas | RF-10 / CU-19 | 7 | Implementado |
 
 ## 5.1 Estructura del código
 
@@ -22,7 +22,7 @@ así cada fase termina con algo que se puede usar.
 | Paquete | Qué contiene |
 |---|---|
 | `entity` | Las clases que representan las tablas: `Supplier`, `Product`, `User`, `StockMovement`, `Sale`, `SaleDetail`, `Payment` |
-| `dto` | Los datos que llegan en cada pedido, con sus validaciones |
+| `dto` | Los datos que llegan en cada pedido, con sus validaciones. Y uno de salida: el producto con sus unidades vendidas, para las ofertas |
 | `repository` | Las interfaces de acceso a la base |
 | `service` | Las reglas del negocio. Cada servicio tiene su interfaz (`IProductService`) y su clase (`ProductService`) |
 | `controller` | Los endpoints de la API |
@@ -155,6 +155,7 @@ puede hacer depende de su rol (RF-11).
 | Dar de alta, editar, dar de baja y reactivar productos y proveedores | Sí | Sí |
 | Cambiar el precio de un producto existente (CU-20) | No | Sí |
 | Poner un producto en oferta (CU-19) | No | Sí |
+| Ver las sugerencias de ofertas (RF-10) | No | Sí |
 | Ajustar el stock y ver sus movimientos (CU-04) | Sí | Sí |
 | Ver las alertas del panel (CU-06) | Sí | Sí |
 | Vender y ver el ticket (CU-07 a CU-15) | Sí | Sí |
@@ -381,7 +382,53 @@ directo al carrito. Si el usuario cierra el aviso o el formulario, todo queda co
 
 ![El producto nuevo en el carrito](imagenes/fase-6-lector-alta-carrito.png)
 
-## 5.12 Decisiones de esta etapa
+## 5.12 Ofertas
+
+Ayuda al Administrador a decidir qué productos promocionar (RF-10 / CU-19). El sistema sugiere
+candidatos, pero nunca pone una oferta solo: la decisión es siempre del Administrador. El Empleado
+no ve esta sección.
+
+![Pantalla de ofertas](imagenes/fase-7-ofertas.png)
+
+**Qué muestra:**
+
+- **Ofertas vigentes:** los productos que están en oferta, con el precio normal, el de oferta, el
+  descuento en porcentaje y el stock. Cada una se puede quitar en cualquier momento (CU-19 paso 6).
+- **Menos vendidos:** los 10 productos con stock que menos se vendieron en el plazo elegido. Un
+  producto sin ventas aparece con cero. Es la sugerencia por baja rotación.
+- **Próximos a vencer:** los productos con stock que vencen dentro del plazo. Es la misma consulta
+  que la alerta del panel principal.
+
+El plazo se elige arriba a la derecha: 15, 30 o 60 días, porque RF-10 pide que sea configurable.
+Vale para las dos sugerencias.
+
+En las sugerencias, un producto que ya está en oferta muestra su precio de oferta en lugar del
+botón.
+
+**Cómo se pone una oferta (CU-19 paso 4):** "Poner en oferta" abre una ventana con el precio normal
+y el stock. Mientras se escribe el precio de oferta, el sistema muestra cuánto descuento
+representa.
+
+![Precio de oferta con su descuento](imagenes/fase-7-oferta-form.png)
+
+Al guardar, el producto pasa a las ofertas vigentes y en la venta se cobra al precio de oferta
+(CU-19 paso 5).
+
+![Oferta guardada](imagenes/fase-7-oferta-guardada.png)
+
+**Reglas:**
+
+- El precio de oferta es obligatorio y tiene que ser menor al precio normal (CU-19 exc. 4a). La
+  pantalla lo marca mientras se escribe y no deja guardar.
+- No se pone en oferta un producto dado de baja.
+- Al quitar la oferta, el producto vuelve a su precio normal.
+- Los productos dados de baja o sin stock no se sugieren: no hay nada que promocionar.
+
+![Precio de oferta mayor al normal](imagenes/fase-7-oferta-precio-invalido.png)
+
+![Oferta quitada](imagenes/fase-7-oferta-quitada.png)
+
+## 5.13 Decisiones de esta etapa
 
 **No hay borrado definitivo.** Proveedores, productos y usuarios se dan de baja y se reactivan,
 pero no se borran. Un producto dado de baja sigue apareciendo en las ventas pasadas, y un usuario
@@ -390,7 +437,9 @@ ese historial.
 
 **Lo que entra es un DTO y lo que sale es la entidad.** El DTO tiene solo los campos que el usuario
 puede mandar, así no se puede alterar el id, la fecha de alta ni el estado. La respuesta devuelve la
-entidad directamente, y la contraseña queda excluida con `@JsonIgnore`.
+entidad directamente, y la contraseña queda excluida con `@JsonIgnore`. Hay una sola excepción: la
+sugerencia por baja rotación devuelve el producto junto con sus unidades vendidas, que no son un
+dato del producto sino un cálculo, así que sale en un DTO (`ProductSalesDTO`).
 
 **Los movimientos no se modifican ni se borran.** Son el registro de lo que pasó. Si un ajuste
 estuvo mal, se corrige con otro ajuste y quedan los dos, igual que en un cuaderno de stock.
@@ -415,3 +464,8 @@ vendió, aunque después haya cambiado o se haya dado de baja.
 **Un Enter con números es una lectura del lector.** El lector no se distingue de un teclado. En
 lugar de configurar algo especial, se usa lo que hace siempre: números y Enter. Así funciona con
 cualquier lector USB.
+
+**La oferta con precio mayor al normal no se puede confirmar.** CU-19 exc. 4a dice que el sistema
+advierte y pide confirmar o corregir. Se dejó solo la opción de corregir: una "oferta" más cara que
+el precio normal no tiene sentido, y la base de datos la rechaza con una restricción desde la
+fase 0.

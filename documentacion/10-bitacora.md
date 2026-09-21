@@ -420,3 +420,54 @@ el cursor. Si después de tocar un botón el cursor quedara en otro lado, la lec
 El Administrador puede revisar las ventas y lo recaudado, y la carga de productos en la caja es
 tan rápida como pasar el lector. Queda la última fase: las sugerencias de ofertas y el cierre del
 proyecto.
+
+---
+
+## Fase 7 — Ofertas
+
+**21 de septiembre de 2026**
+
+### Qué se hizo
+
+1. La sugerencia por baja rotación: los productos con stock que menos se vendieron en un plazo.
+2. Poner y quitar ofertas desde la API de ofertas, solo para el Administrador.
+3. La pantalla de ofertas: las vigentes, los menos vendidos y los próximos a vencer, con un plazo
+   de 15, 30 o 60 días.
+4. La ventana para poner una oferta, que muestra el descuento mientras se escribe.
+5. 9 pruebas automáticas nuevas.
+
+### Decisiones
+
+**Las sugerencias no aplican nada.** RF-10 lo pide así: la oferta la decide el Administrador. La
+pantalla muestra candidatos y un botón; nada cambia hasta que se apreta.
+
+**La baja rotación se calcula con una sola consulta.** Un `LEFT JOIN` contra los renglones de venta
+del período, agrupado por producto, así los productos sin ventas aparecen con cero. La consulta ya
+devuelve los 10 primeros ordenados.
+
+**La sugerencia por vencimiento reusa la alerta.** En la fase 4 el endpoint de vencimientos quedó
+con el plazo como parámetro pensando en esto. La pantalla de ofertas lo llama con el plazo elegido.
+
+**Las unidades vendidas salen en un DTO.** Es la única respuesta que no es una entidad: las
+unidades vendidas no son un dato del producto, se calculan.
+
+**Una oferta más cara que el precio normal no se puede confirmar.** CU-19 exc. 4a menciona
+confirmar o corregir; se dejó solo corregir, porque la base de datos rechaza ese caso desde la
+fase 0.
+
+### Cómo se verificó
+
+- `mvnw test`: 82 pruebas en verde. Una de ellas mueve una venta 40 días atrás para comprobar que
+  no cuenta en un plazo de 30.
+- Contra MySQL: la baja rotación coincide con las dos ventas registradas.
+- En el navegador, con el usuario `admin`: la pantalla con las tres secciones, el precio de oferta
+  inválido, las galletitas puestas en oferta a $1.800 y la oferta quitada, que dejó la base como
+  estaba. Con `vendedor`: sin acceso.
+
+![Pantalla de ofertas](imagenes/fase-7-ofertas.png)
+
+### Estado al cerrar la parte de ofertas
+
+Todos los requisitos funcionales del análisis están implementados, salvo MercadoPago (CU-10), que
+se definirá en el issue #29. Queda el cierre: el manual de usuario, la planilla final de pruebas,
+las conclusiones y la presentación.

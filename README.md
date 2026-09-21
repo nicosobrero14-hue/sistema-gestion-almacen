@@ -44,7 +44,7 @@ El desarrollo avanza por fases. Cada una deja una funcionalidad completa, probad
 | 4 | Control de stock y alertas | Terminada |
 | 5 | Venta y ticket | Terminada |
 | 6 | Historial de ventas y lector de código de barras | Terminada |
-| 7 | Sugerencias de ofertas y cierre del proyecto | Pendiente |
+| 7 | Sugerencias de ofertas y cierre del proyecto | En curso: ofertas terminadas |
 
 ## Puesta en marcha
 
