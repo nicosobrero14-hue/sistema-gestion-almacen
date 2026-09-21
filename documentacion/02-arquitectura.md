@@ -64,6 +64,10 @@ Un recurso por entidad y el método HTTP indica la operación.
 No hay `DELETE`: el sistema no borra registros, los da de baja. Así se conserva el historial que
 los referencia.
 
+El stock tiene su propio recurso, `/api/stock`, porque no se modifica como un dato más del
+producto: cada cambio pasa por un ajuste con motivo, que deja su movimiento registrado. Ahí mismo
+se consultan los movimientos y las alertas.
+
 Convenciones que se repiten en todos los recursos:
 
 - Los códigos de respuesta se usan por su significado: 200 y 201 para las operaciones que salieron
@@ -149,7 +153,7 @@ decisión no es evidente, y el trabajo se versiona en ramas por funcionalidad.
 
 Cada parte del sistema usa el idioma que le corresponde:
 
-- **El código, en inglés.** Clases, variables, métodos y rutas de la API: `Product`, `stockMinimum`,
+- **El código, en inglés.** Clases, variables, métodos y rutas de la API: `Product`, `minimumStock`,
   `/api/products`. Es la convención del lenguaje y de las bibliotecas que se usan.
 - **La base de datos, en español.** Tablas y columnas: `productos`, `stock_minimo`. Son los mismos
   nombres que usan el análisis y el diccionario de datos, así que el modelo se lee igual en los dos
