@@ -107,3 +107,60 @@ aparece enseguida, no cuando un dato se guarda mal.
 
 El sistema arranca de punta a punta. Las secciones de productos, proveedores y usuarios están en el
 menú pero todavía sin contenido: se implementan en la fase 2.
+
+---
+
+## Fase 2 — Proveedores, productos y usuarios
+
+**21 de septiembre de 2026**
+
+### Qué se hizo
+
+1. Las tres entidades con su mapeo a las tablas: `Supplier`, `Product` y `User`.
+2. Para cada una: DTO con validaciones, repositorio con búsqueda, servicio con sus reglas y
+   controlador con seis endpoints (listar, traer, crear, modificar, dar de baja y reactivar).
+3. Un manejador de errores único, que devuelve siempre el mismo formato: mensaje general y error de
+   cada campo.
+4. El hash de contraseñas con BCrypt.
+5. Las tres pantallas, con tabla, buscador, filtro de activos y formulario en una ventana.
+6. 25 pruebas automáticas nuevas.
+7. Los documentos de módulos, API y pruebas.
+
+### Decisiones
+
+**No hay borrado definitivo, solo baja y reactivación.** Un producto dado de baja sigue figurando
+en las ventas que ya se hicieron, y un usuario dado de baja sigue siendo quien las registró. El
+borrado rompería ese historial. Además simplifica la interfaz: dos botones por fila en lugar de
+tres, y ninguna confirmación en dos pasos.
+
+**El stock se carga solo en el alta.** Al editar un producto el campo queda bloqueado. En la fase 4
+el stock se va a ajustar desde su propia pantalla, que deja registrado quién lo cambió y por qué.
+Si también se pudiera cambiar desde la edición del producto, ese registro tendría huecos.
+
+**Servicios con interfaz.** Cada servicio tiene su interfaz (`IProductService`) y su clase
+(`ProductService`). El controlador depende de la interfaz, así la clase puede cambiar sin tocarlo.
+
+**Solo la biblioteca de contraseñas de Spring Security.** Para hashear hace falta BCrypt, pero la
+configuración completa de seguridad llega con el inicio de sesión en la fase 3. Por ahora se agregó
+únicamente `spring-security-crypto`.
+
+**Los roles guardan los mismos valores que la base.** El enumerado `Role` tiene `ADMIN` y
+`EMPLEADO`, que son los códigos que acepta la columna `rol`. Son datos, no nombres de código.
+
+### Cómo se verificó
+
+- `mvnw test`: 27 pruebas en verde.
+- El backend arrancó contra MySQL sin errores de validación del esquema: las entidades en inglés
+  coinciden con las tablas en español.
+- Recorrido en el navegador de las tres pantallas, con los datos de prueba reales.
+- Se probaron las reglas en pantalla sin modificar los datos: el formulario vacío, la edición, el
+  aviso al dar de baja un producto con stock y el intento de dar de baja al único administrador.
+
+El detalle de los 48 casos de prueba y de las incidencias encontradas está en `09-pruebas.md`.
+
+![Pantalla de productos de la fase 2](imagenes/fase-2-productos.png)
+
+### Estado al cerrar la fase
+
+El sistema administra el catálogo, los proveedores y los usuarios. Todavía no pide iniciar sesión:
+eso llega en la fase 3, junto con los permisos por rol.

@@ -24,12 +24,12 @@ guardan en MySQL. Todo corre en la terminal del comercio.
 | [02-arquitectura.md](documentacion/02-arquitectura.md) | Arquitectura de la solución y decisiones de diseño |
 | [03-tecnologias.md](documentacion/03-tecnologias.md) | Herramientas y tecnologías, con su justificación |
 | [04-modelo-datos.md](documentacion/04-modelo-datos.md) | Modelo de datos, diccionario y reglas de integridad |
+| [05-modulos.md](documentacion/05-modulos.md) | Módulos implementados, con sus reglas y capturas |
+| [06-api-rest.md](documentacion/06-api-rest.md) | Descripción de la API |
 | [07-instalacion.md](documentacion/07-instalacion.md) | Manual de instalación y configuración |
+| [09-pruebas.md](documentacion/09-pruebas.md) | Estrategia de pruebas, casos ejecutados e incidencias |
 | [10-bitacora.md](documentacion/10-bitacora.md) | Registro del desarrollo, fase por fase |
-| 05-modulos.md | Módulos implementados (desde la fase 2) |
-| 06-api-rest.md | Descripción de la API (desde la fase 2) |
 | 08-manual-usuario.md | Manual de usuario (fase 5) |
-| 09-pruebas.md | Estrategia de pruebas y casos ejecutados (fase 2) |
 
 ## Fases
 
@@ -39,7 +39,7 @@ El desarrollo avanza por fases. Cada una deja una funcionalidad completa, probad
 |---|---|---|
 | 0 | Repositorio, documentación y modelo de datos | Terminada |
 | 1 | Esqueleto: backend y frontend en funcionamiento | Terminada |
-| 2 | Alta, baja y modificación de proveedores, productos y usuarios | Pendiente |
+| 2 | Alta, baja y modificación de proveedores, productos y usuarios | Terminada |
 | 3 | Inicio de sesión y permisos por rol | Pendiente |
 | 4 | Control de stock y alertas | Pendiente |
 | 5 | Venta y ticket | Pendiente |

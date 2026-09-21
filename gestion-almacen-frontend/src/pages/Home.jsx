@@ -31,10 +31,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      <p className="notice">
-        Las secciones de productos, proveedores y usuarios se implementan en la fase 2.
-      </p>
     </>
   )
 }

@@ -100,8 +100,11 @@ siendo `ADMIN` para siempre. Además la base queda legible al consultarla a mano
 ### Las bajas son lógicas
 
 Productos, proveedores y usuarios tienen `activo`. Dar de baja los oculta pero conserva la fila y,
-con ella, el historial que los referencia. El borrado definitivo existe, pero es una operación
-aparte que la interfaz confirma antes de ejecutar.
+con ella, el historial que los referencia. La aplicación no borra registros.
+
+Las reglas de borrado de las claves foráneas, que se describen a continuación, igual están
+definidas: protegen la integridad si alguna vez se borra un registro desde fuera del sistema, por
+ejemplo desde MySQL Workbench.
 
 ### Cada clave foránea decide qué pasa al borrar
 
