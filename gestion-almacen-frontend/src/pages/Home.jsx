@@ -2,23 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import client from '../api/client'
 import { getExpiringProducts, getLowStockProducts } from '../api/stock'
-import { formatDate } from '../utils/format'
+import { daysUntil, expirationText, formatDate } from '../utils/format'
 
 // Se avisa de los productos que vencen dentro de este plazo.
 const EXPIRATION_DAYS = 30
-
-// Dias que faltan hasta la fecha. Negativo si ya paso.
-const daysUntil = (value) => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return Math.round((new Date(`${value}T00:00:00`) - today) / 86400000)
-}
-
-const expirationText = (days) => {
-  if (days < 0) return `Venció hace ${-days} ${days === -1 ? 'día' : 'días'}`
-  if (days === 0) return 'Vence hoy'
-  return `Vence en ${days} ${days === 1 ? 'día' : 'días'}`
-}
 
 // Panel principal: estado del sistema y alertas de stock bajo y vencimiento (RF-09 / CU-06).
 export default function Home({ user }) {

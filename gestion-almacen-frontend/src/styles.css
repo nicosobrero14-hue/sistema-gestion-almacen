@@ -190,10 +190,12 @@ h1 {
 
 /* ---------- Alertas del panel principal ---------- */
 
+/* align-items: start: cada panel tiene el alto de su contenido, no el del panel de al lado. */
 .panels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
   gap: 20px;
+  align-items: start;
 }
 
 .panel {
@@ -211,6 +213,11 @@ h1 {
 
 .panel .notice {
   margin: 0;
+}
+
+/* Panel que ocupa todo el ancho, arriba de los paneles de a dos. */
+.panel-wide {
+  margin-bottom: 20px;
 }
 
 /* Debajo de la fecha: cuantos dias faltan. */

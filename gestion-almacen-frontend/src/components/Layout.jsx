@@ -24,6 +24,8 @@ export default function Layout({ user, onLogout }) {
           {isAdmin && <NavLink to="/sales" className={linkClass} end>Historial de ventas</NavLink>}
           <NavLink to="/products" className={linkClass}>Productos</NavLink>
           <NavLink to="/stock" className={linkClass}>Stock</NavLink>
+          {/* RF-10: las ofertas las decide el administrador. */}
+          {isAdmin && <NavLink to="/offers" className={linkClass}>Ofertas</NavLink>}
           <NavLink to="/suppliers" className={linkClass}>Proveedores</NavLink>
           {/* El empleado no gestiona usuarios (RF-11), asi que ni ve la opcion. Igual quien lo controla es el backend. */}
           {isAdmin && <NavLink to="/users" className={linkClass}>Usuarios</NavLink>}
