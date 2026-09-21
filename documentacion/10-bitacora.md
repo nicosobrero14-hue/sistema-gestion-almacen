@@ -58,3 +58,52 @@ La base temporal se eliminó al terminar.
 
 La base de datos está diseñada, documentada y probada. El repositorio tiene la documentación de las
 cuatro primeras actividades de la guía. Falta el código, que empieza en la fase 1.
+
+---
+
+## Fase 1 — Esqueleto
+
+**20 de septiembre de 2026**
+
+### Qué se hizo
+
+1. Se creó el proyecto del backend con Spring Boot, conectado a MySQL.
+2. Se agregó un endpoint de estado, `GET /api/status`, que informa si la aplicación responde y si la
+   base contesta.
+3. Se creó el proyecto del frontend con React y Vite, con el menú lateral y las cuatro secciones.
+4. La pantalla de inicio consulta el estado y lo muestra.
+5. Se escribió el manual de instalación.
+
+### Decisiones
+
+**El código se escribe en inglés y la base de datos queda en español.** Las clases, las variables y
+las rutas de la API usan la convención del lenguaje. Las tablas y columnas mantienen los nombres del
+análisis, así el diccionario de datos y el modelo se leen igual en los dos lados. La unión la hacen
+las anotaciones `@Table` y `@Column`.
+
+**El endpoint de estado existe para poder probar la cadena completa.** Sin él, el frontend de esta
+fase no tendría nada que pedirle al backend y no habría forma de demostrar que las tres partes se
+comunican.
+
+**La seguridad todavía no se configura.** Se agrega en la fase 3, junto con el inicio de sesión.
+Sumarla antes obligaría a dejar todo abierto con una configuración provisional que después habría
+que reescribir.
+
+**El backend arranca con `validate`.** Hibernate no modifica las tablas: solo verifica que el mapeo
+coincida con lo que hay en la base. Si una entidad no coincide, la aplicación no levanta y el error
+aparece enseguida, no cuando un dato se guarda mal.
+
+### Cómo se verificó
+
+- `mvnw test`: 2 pruebas en verde, el arranque del contexto y la respuesta del endpoint de estado.
+- El backend levantó contra MySQL y quedó registrado `Started GestionAlmacenApplication`.
+- La pantalla de inicio muestra las dos tarjetas en **Ok**, lo que prueba el camino completo:
+  React, el proxy de Vite, Spring Boot y MySQL.
+- El frontend compila para producción con `npm run build`.
+
+![Panel principal de la fase 1](imagenes/fase-1-panel.png)
+
+### Estado al cerrar la fase
+
+El sistema arranca de punta a punta. Las secciones de productos, proveedores y usuarios están en el
+menú pero todavía sin contenido: se implementan en la fase 2.

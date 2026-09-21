@@ -54,11 +54,11 @@ Un recurso por entidad y el método HTTP indica la operación.
 
 | Método | Ruta | Operación |
 |---|---|---|
-| GET | `/api/productos` | Listar y buscar |
-| GET | `/api/productos/{id}` | Consultar uno |
-| POST | `/api/productos` | Crear |
-| PUT | `/api/productos/{id}` | Modificar |
-| DELETE | `/api/productos/{id}` | Dar de baja |
+| GET | `/api/products` | Listar y buscar |
+| GET | `/api/products/{id}` | Consultar uno |
+| POST | `/api/products` | Crear |
+| PUT | `/api/products/{id}` | Modificar |
+| DELETE | `/api/products/{id}` | Dar de baja |
 
 Convenciones que se repiten en todos los recursos:
 
@@ -140,3 +140,17 @@ decisión no es evidente, y el trabajo se versiona en ramas por funcionalidad.
 | Disponibilidad (RNF-04) | Todo corre en la terminal del comercio; solo el pago digital necesita internet |
 | Mantenibilidad (RNF-05) | Capas con una responsabilidad cada una y dependencia hacia interfaces, no hacia clases concretas |
 | Portabilidad (RNF-06) | Java y MySQL sobre Windows; el frontend se abre en cualquier navegador |
+
+## 2.10 Convenciones de nombres
+
+Cada parte del sistema usa el idioma que le corresponde:
+
+- **El código, en inglés.** Clases, variables, métodos y rutas de la API: `Product`, `stockMinimum`,
+  `/api/products`. Es la convención del lenguaje y de las bibliotecas que se usan.
+- **La base de datos, en español.** Tablas y columnas: `productos`, `stock_minimo`. Son los mismos
+  nombres que usan el análisis y el diccionario de datos, así que el modelo se lee igual en los dos
+  lados.
+- **Lo que ve el usuario, en español.** Textos de pantalla y mensajes de error (RNF-03).
+
+La unión entre el código y la base la hacen las anotaciones `@Table` y `@Column` de cada entidad, en
+un solo lugar por campo.
