@@ -58,7 +58,11 @@ Un recurso por entidad y el método HTTP indica la operación.
 | GET | `/api/products/{id}` | Consultar uno |
 | POST | `/api/products` | Crear |
 | PUT | `/api/products/{id}` | Modificar |
-| DELETE | `/api/products/{id}` | Dar de baja |
+| PATCH | `/api/products/{id}/deactivate` | Dar de baja |
+| PATCH | `/api/products/{id}/activate` | Reactivar |
+
+No hay `DELETE`: el sistema no borra registros, los da de baja. Así se conserva el historial que
+los referencia.
 
 Convenciones que se repiten en todos los recursos:
 
