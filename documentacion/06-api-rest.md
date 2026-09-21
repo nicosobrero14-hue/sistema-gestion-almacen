@@ -10,6 +10,8 @@ Base: `http://localhost:8080/api` · Formato: JSON
 | `201 Created` | Alta correcta |
 | `204 No Content` | Baja o reactivación correcta |
 | `400 Bad Request` | Los datos no pasaron la validación. Trae el error de cada campo |
+| `401 Unauthorized` | No hay sesión, o el usuario y la contraseña no coinciden |
+| `403 Forbidden` | El rol no alcanza para lo que se quiere hacer |
 | `404 Not Found` | El registro pedido no existe |
 | `409 Conflict` | Los datos son válidos pero rompen una regla del negocio |
 | `500 Internal Server Error` | Error inesperado. El detalle queda en el log del servidor |
@@ -33,6 +35,11 @@ formulario lo muestra debajo del campo que corresponde.
 
 ## 6.3 Convenciones
 
+- Todos los endpoints piden haber iniciado sesión, salvo `POST /api/auth/login` y
+  `GET /api/status`.
+- Los pedidos que modifican datos (`POST`, `PUT`, `PATCH`) tienen que mandar el token CSRF: el
+  servidor lo deja en la cookie `XSRF-TOKEN` y el cliente lo devuelve en la cabecera
+  `X-XSRF-TOKEN`. El frontend lo hace solo.
 - Los listados aceptan `search` (texto a buscar) y `activeOnly` (`true` por defecto, oculta los
   dados de baja).
 - No hay `DELETE`: el sistema no borra registros. Se dan de baja con `PATCH /{id}/deactivate` y se
@@ -51,9 +58,34 @@ formulario lo muestra debajo del campo que corresponde.
 { "application": "ok", "database": "ok" }
 ```
 
+Es público: sirve para verificar la instalación sin tener que iniciar sesión.
+
 ---
 
-## 6.5 Proveedores — `/api/suppliers`
+## 6.5 Sesión — `/api/auth`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `POST` | `/api/auth/login` | Inicia sesión y devuelve el usuario conectado |
+| `POST` | `/api/auth/logout` | Cierra la sesión en el servidor → `204` |
+| `GET` | `/api/auth/me` | Devuelve quién está conectado. `401` si no hay sesión |
+
+**Lo que entra en el login:**
+
+```json
+{ "username": "admin", "password": "Admin1234" }
+```
+
+**Lo que sale:** el usuario, igual que en `/api/users`, sin la contraseña.
+
+**Devuelve `401` si:**
+
+- El usuario no existe o la contraseña no coincide: *"Usuario o contraseña incorrectos"*.
+- El usuario está dado de baja: *"El usuario está dado de baja. Consulte con el administrador."*
+
+---
+
+## 6.6 Proveedores — `/api/suppliers`
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -95,7 +127,7 @@ formulario lo muestra debajo del campo que corresponde.
 
 ---
 
-## 6.6 Productos — `/api/products`
+## 6.7 Productos — `/api/products`
 
 | Método | Ruta | Descripción |
 |---|---|---|
@@ -156,9 +188,15 @@ formulario lo muestra debajo del campo que corresponde.
 
 **Devuelve `404` si:** el proveedor indicado no existe.
 
+**Devuelve `403` si quien lo pide es Empleado y:**
+
+- En el alta, marca el producto en oferta (CU-19).
+- En la modificación, cambia el precio o la oferta (CU-20). Mandar el mismo precio con otra
+  escritura, como `900` en lugar de `900.00`, no cuenta como cambio.
+
 ---
 
-## 6.7 Usuarios — `/api/users`
+## 6.8 Usuarios — `/api/users` (solo Administrador)
 
 | Método | Ruta | Descripción |
 |---|---|---|

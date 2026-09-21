@@ -104,10 +104,24 @@ El sistema queda disponible en `http://localhost:5173`.
 
 ## 7.7 Verificar la instalación
 
-Abrir `http://localhost:5173`. En el panel principal tienen que aparecer las dos tarjetas de estado
-en **Ok**: una para la aplicación y otra para la base de datos.
+Abrir `http://localhost:5173`. Aparece la pantalla de inicio de sesión.
 
-![Panel principal](imagenes/fase-1-panel.png)
+![Inicio de sesión](imagenes/fase-3-login.png)
+
+Los datos de prueba traen dos usuarios:
+
+| Usuario | Contraseña | Rol |
+|---|---|---|
+| `admin` | `Admin1234` | Administrador |
+| `vendedor` | `Empleado1234` | Empleado |
+
+**Son contraseñas de prueba.** Antes de usar el sistema en el comercio hay que cambiar la del
+administrador desde la pantalla de usuarios, y dar de baja o modificar el usuario `vendedor`.
+
+Después de entrar, en el panel principal tienen que aparecer las dos tarjetas de estado en **Ok**:
+una para la aplicación y otra para la base de datos.
+
+![Panel principal](imagenes/fase-3-admin-inicio.png)
 
 Si la tarjeta de base de datos dice "sin conexión", revisar el punto 7.4.
 
@@ -121,6 +135,7 @@ Si la tarjeta de base de datos dice "sin conexión", revisar el punto 7.4.
 | `Schema-validation: missing table` | La base existe pero le faltan tablas. Volver a ejecutar el esquema |
 | La pantalla carga pero dice que no se pudo conectar | El backend no está en ejecución. Arrancarlo con `mvnw spring-boot:run` |
 | `mvnw` no se reconoce como comando | Hay que ejecutarlo desde la carpeta `gestion-almacen` |
+| "Usuario o contraseña incorrectos" con los usuarios de prueba | Falta cargar los datos de prueba del punto 7.3 |
 
 ## 7.9 Ejecutar las pruebas automáticas
 

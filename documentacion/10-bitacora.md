@@ -164,3 +164,62 @@ El detalle de los 48 casos de prueba y de las incidencias encontradas está en `
 
 El sistema administra el catálogo, los proveedores y los usuarios. Todavía no pide iniciar sesión:
 eso llega en la fase 3, junto con los permisos por rol.
+
+---
+
+## Fase 3 — Inicio de sesión y permisos por rol
+
+**21 de septiembre de 2026**
+
+### Qué se hizo
+
+1. La configuración de seguridad: qué endpoints son públicos, cuáles pide sesión y cuáles son solo
+   del Administrador.
+2. El inicio de sesión, el cierre y la consulta de quién está conectado.
+3. La búsqueda del usuario en la base para Spring Security, que compara la contraseña contra el
+   hash BCrypt.
+4. Los errores 401 y 403 en el manejador global, con mensajes en español.
+5. La regla de precios y ofertas: solo las cambia el Administrador.
+6. La pantalla de inicio de sesión, el usuario conectado al pie del menú y el botón para cerrar
+   sesión.
+7. 14 pruebas automáticas nuevas, y las 25 anteriores adaptadas para correr con sesión.
+
+### Decisiones
+
+**Sesión con cookie y no un token en el navegador.** El sistema corre en una terminal dentro del
+comercio. Con la sesión guardada en el servidor, cerrar sesión la invalida de verdad, y la cookie
+no la puede leer ningún script. Un token en JavaScript no tiene ninguna de las dos cosas.
+
+**Protección CSRF activada.** Al usar una cookie de sesión, otra página podría intentar mandar
+pedidos en nombre del usuario. El servidor deja un token en otra cookie y exige que vuelva en una
+cabecera. El frontend lo manda solo, con una línea de configuración en axios.
+
+**El precio y la oferta son del Administrador.** No estaba en el issue original, pero sale del
+documento de análisis: el Administrador tiene acceso adicional a *"ofertas y modificación de
+precios"* (CU-19 y CU-20). El Empleado sigue poniendo el precio al dar de alta un producto, porque
+el alta es parte de su trabajo (CU-02); lo que no puede es cambiarlo después.
+
+**Los permisos se controlan en el servidor.** El frontend esconde lo que el rol no puede usar, pero
+eso es comodidad. Las pruebas CP-58, CP-61 y CP-62 llaman a la API directamente, sin pasar por la
+pantalla, y verifican que el servidor rechaza el pedido.
+
+**El usuario conectado vive en el componente principal.** Se pasa por props a las pantallas que lo
+necesitan: el menú, el inicio y productos. Para tres pantallas no hace falta armar un contexto
+global.
+
+**El estado del sistema sigue siendo público.** Solo informa si la aplicación y la base responden,
+y así el manual de instalación puede verificarlo sin iniciar sesión.
+
+### Cómo se verificó
+
+- `mvnw test`: 41 pruebas en verde.
+- En el navegador, contra MySQL, con los dos usuarios de prueba: login con campos vacíos y con
+  contraseña incorrecta, el menú y el formulario de cada rol, la sesión al recargar y el cierre de
+  sesión, que deja a `/api/auth/me` respondiendo 401.
+
+![Formulario de producto visto por el Empleado](imagenes/fase-3-empleado-editar-producto.png)
+
+### Estado al cerrar la fase
+
+El sistema pide usuario y contraseña, y cada rol ve y puede hacer solo lo que le corresponde. Lo
+que sigue es el control de stock y las alertas del panel principal.

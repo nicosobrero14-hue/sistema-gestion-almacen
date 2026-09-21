@@ -111,6 +111,37 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | CP-47 | Aviso de baja con stock (CU-02 exc. 3b) | Producto con 40 unidades | Dar de baja | Pide confirmación mencionando las 40 unidades | Correcto | Aprobada |
 | CP-48 | Último administrador en pantalla | Un solo administrador | Darlo de baja | Mensaje de error y el usuario sigue activo | Correcto | Aprobada |
 
+### Inicio de sesión y permisos
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-49 | Acceso sin sesión | Sin iniciar sesión | Pedir productos y proveedores | `401` | Correcto | Aprobada |
+| CP-50 | Estado público | Sin iniciar sesión | `GET /api/status` | `200` | Correcto | Aprobada |
+| CP-51 | Inicio de sesión (CU-01) | Usuario activo | Usuario y contraseña correctos | `200` con el usuario y su rol, sin la contraseña | Correcto | Aprobada |
+| CP-52 | La sesión se mantiene | Sesión iniciada | Pedir productos y `/api/auth/me` | Responden sin volver a mandar la contraseña | Correcto | Aprobada |
+| CP-53 | Cierre de sesión | Sesión iniciada | `POST /api/auth/logout` | `204` y la sesión queda invalidada en el servidor | Correcto | Aprobada |
+| CP-54 | Contraseña incorrecta (CU-01 exc. 4a) | Usuario activo | Contraseña equivocada | `401`, "Usuario o contraseña incorrectos" | Correcto | Aprobada |
+| CP-55 | Usuario inexistente | — | Usuario que no existe | `401` con el mismo mensaje que el caso anterior | Correcto | Aprobada |
+| CP-56 | Campos vacíos (CU-01 exc. 3a) | — | Usuario y contraseña vacíos | `400` con el error de los dos campos | Correcto | Aprobada |
+| CP-57 | Usuario dado de baja | Usuario inactivo | Su usuario y contraseña | `401`, "El usuario está dado de baja" | Correcto | Aprobada |
+| CP-58 | Permisos del Empleado (RF-11) | Sesión de Empleado | Pedir usuarios, productos y proveedores | `403` en usuarios; `200` en productos y proveedores | Correcto | Aprobada |
+| CP-59 | Permisos del Administrador | Sesión de Administrador | Pedir usuarios | `200` | Correcto | Aprobada |
+| CP-60 | Empleado edita sin cambiar el precio | Producto de $900.00, sesión de Empleado | Nombre nuevo y precio "900" | `200`: mismo precio con otra escritura | Correcto | Aprobada |
+| CP-61 | Empleado cambia el precio (CU-20) | Producto de $900.00, sesión de Empleado | Precio 1000 | `403` | Correcto | Aprobada |
+| CP-62 | Empleado pone una oferta (CU-19) | Sesión de Empleado | Alta de producto en oferta | `403` | Correcto | Aprobada |
+
+### Inicio de sesión en el navegador
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-63 | Pantalla de inicio de sesión | Sin sesión | Abrir el sistema y apretar "Ingresar" vacío | Se ve el login y se marcan los dos campos | Correcto | Aprobada |
+| CP-64 | Error de credenciales en pantalla | Sin sesión | `vendedor` con una contraseña equivocada | Aviso "Usuario o contraseña incorrectos" | Correcto | Aprobada |
+| CP-65 | Menú del Empleado | Sesión de `vendedor` | Recorrer el menú y escribir `/users` en la dirección | El menú no muestra Usuarios y la dirección vuelve al inicio | Correcto | Aprobada |
+| CP-66 | Formulario del Empleado | Sesión de `vendedor` | Editar el aceite, que está en oferta, y guardar sin cambios | Precio y oferta bloqueados; guarda sin error | Correcto | Aprobada |
+| CP-67 | Sesión al recargar | Sesión de `vendedor` | Recargar la página | Sigue conectado | Correcto | Aprobada |
+| CP-68 | Cierre de sesión | Sesión de `vendedor` | "Cerrar sesión" | Vuelve al login y `/api/auth/me` responde `401` | Correcto | Aprobada |
+| CP-69 | Menú y formulario del Administrador | Sesión de `admin` | Recorrer el menú y editar el aceite | Aparece Usuarios; precio y oferta editables | Correcto | Aprobada |
+
 ## 9.3 Incidencias detectadas
 
 | Fase | Incidencia | Solución |
@@ -120,11 +151,13 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | 2 | La línea divisoria de la columna de acciones quedaba desfasada respecto de las demás | Se corrigió el estilo de esa celda para que respete el formato de la tabla |
 | 2 | Al editar un producto, el campo de stock decía "Stock inicial" | Dice "Stock actual" al editar y "Stock inicial" en el alta |
 
+En la fase 3 no se registraron incidencias: los casos pasaron en el primer intento.
+
 ## 9.4 Resumen
 
 | Nivel | Casos | Aprobados |
 |---|---|---|
 | Base de datos | 15 | 15 |
-| Backend automático | 27 | 27 |
-| Sistema completo | 6 | 6 |
-| **Total** | **48** | **48** |
+| Backend automático | 41 | 41 |
+| Sistema completo | 13 | 13 |
+| **Total** | **69** | **69** |
