@@ -173,6 +173,41 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | CP-89 | Hora de los movimientos | Backend contra MySQL | Un ajuste por la API | `fecha_hora` igual a la hora de MySQL en ese momento | Correcto | Aprobada |
 | CP-90 | Stock consistente con los movimientos | Después de los ajustes | Consulta 10 de `03-consultas-de-ejemplo.sql` | Ningún producto con diferencias | Correcto | Aprobada |
 
+### Venta y ticket
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-91 | Venta en efectivo (CU-11) | Yerba a $4.850 y fideos a $1.200, sesión de Empleado | 2 yerbas, 3 fideos, descuento 100 | `201`: subtotal 13.300, total 13.200, estado confirmada, dos renglones con nombre y precio, pago en efectivo aprobado por 13.200 | Correcto | Aprobada |
+| CP-92 | Descuento de stock (CU-12) | Yerba con 40 unidades | Venta de 2 | Stock en 38 y movimiento `VENTA` de 40 a 38 con motivo "Venta N°" y el número | Correcto | Aprobada |
+| CP-93 | Venta por transferencia | Producto con stock | Forma de pago `TRANSFERENCIA`, sin descuento | `201`, descuento en cero y pago por transferencia | Correcto | Aprobada |
+| CP-94 | Precio de oferta | Aceite a $3.400 en oferta a $2.990 | Venta de 1 | Renglón y total a $2.990 | Correcto | Aprobada |
+| CP-95 | El ticket conserva el precio | Venta de arroz a $900 | Cambiar el precio a $1.100 y volver a pedir la venta | El renglón sigue a $900 | Correcto | Aprobada |
+| CP-96 | Stock insuficiente (CU-08 exc. 4a) | Leche con 5 unidades | Venta de 6 | `409`, "No hay stock suficiente de Leche 1L. Disponible: 5."; el stock sigue en 5 | Correcto | Aprobada |
+| CP-97 | Venta sin productos (CU-11 exc. 1a) | — | Lista de productos vacía | `400`, "Agregue al menos un producto a la venta" | Correcto | Aprobada |
+| CP-98 | Cantidad en cero (CU-08 exc. 3a) | Producto con stock | Cantidad 0 | `400`, "La cantidad tiene que ser mayor a cero" | Correcto | Aprobada |
+| CP-99 | Forma de pago obligatoria | Producto con stock | Sin forma de pago | `400`, "Elija la forma de pago" | Correcto | Aprobada |
+| CP-100 | Descuento igual al subtotal | Producto de $1.650 | Descuento de $1.650 | `409`, "El descuento tiene que ser menor al subtotal." | Correcto | Aprobada |
+| CP-101 | Producto dado de baja | Producto inactivo | Venta de 1 | `409` | Correcto | Aprobada |
+| CP-102 | Producto repetido | Leche con 5 unidades | Dos renglones de 3 | `409`: si se aceptara, cada renglón pasaría el control por separado y se venderían 6 | Correcto | Aprobada |
+| CP-103 | Venta para el ticket (CU-14) | Venta registrada | `GET /api/sales/{id}`, y después una venta que no existe | `200` con fecha, renglones y pago; `404` para la inexistente | Correcto | Aprobada |
+
+### Venta y ticket en el navegador
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-104 | Mapeo de las ventas | MySQL con el esquema | Arranque del backend | Arranca sin errores: `Sale`, `SaleDetail` y `Payment` coinciden con sus tablas | Correcto | Aprobada |
+| CP-105 | Producto no encontrado (CU-07 exc. 3a) | Sesión de `vendedor` | Buscar "chocolate" | Aviso "No hay ningún producto con ese nombre o código." | Correcto | Aprobada |
+| CP-106 | Cantidad mayor al stock en pantalla | Leche con 8 unidades en el carrito | Cantidad 9 | El renglón dice "Hay 8 disponibles" y no se puede confirmar | Correcto | Aprobada |
+| CP-107 | Agregar de más (CU-07 exc. 5a) | Leche con 8 unidades, 8 en el carrito | "Agregar" otra vez | Aviso "Solo hay 8 unidades" y el carrito no cambia | Correcto | Aprobada |
+| CP-108 | Descuento igual al subtotal en pantalla | Carrito de $13.200 | Descuento 13.200 | Error en el descuento y no se puede confirmar | Correcto | Aprobada |
+| CP-109 | Vuelto | Total de $13.000 en efectivo | Paga con 15.000, después con 10.000 | "Vuelto: $ 2.000,00"; después "Faltan $ 3.000,00" y no se puede confirmar | Correcto | Aprobada |
+| CP-110 | Venta completa (CU-11) | Datos de prueba | 2 yerbas, 1 aceite en oferta y 3 fideos, descuento 290, paga con 20.000 | Vuelto $4.000; al confirmar, ticket N° 000001 por $16.000 con el aceite a $2.990 | Correcto | Aprobada |
+| CP-111 | Ticket leído desde la base | Venta del caso anterior | Abrir el ticket | La pantalla pide la venta al servidor y muestra los tres renglones en orden y el pago | Correcto | Aprobada |
+| CP-112 | Impresión (CU-15) | Ticket abierto | Vista de impresión | Sale solo el comprobante, de 72 mm, sin menú ni botones | Correcto | Aprobada |
+| CP-113 | Descuento de stock en pantalla (CU-12) | Venta del caso CP-110 | Movimientos de la yerba | Movimiento "Venta" de 38 a 36 con motivo "Venta N° 1" | Correcto | Aprobada |
+| CP-114 | Venta registrada en la base | Venta del caso CP-110 | Consultas 6, 7 y 8 de `03-consultas-de-ejemplo.sql` | Los tres renglones con su precio, la venta con su empleado y su forma de pago, y $16.000 recaudados en efectivo | Correcto | Aprobada |
+| CP-115 | Stock consistente después de vender | Venta del caso CP-110 | Consulta 10 | Ningún producto con diferencias | Correcto | Aprobada |
+
 ## 9.3 Incidencias detectadas
 
 | Fase | Incidencia | Solución |
@@ -183,6 +218,9 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | 2 | Al editar un producto, el campo de stock decía "Stock inicial" | Dice "Stock actual" al editar y "Stock inicial" en el alta |
 | 4 | Los movimientos guardados por la aplicación quedaban con 3 horas de más que los cargados con los scripts, y al leerlos se mostraban con 3 horas de menos | La dirección de conexión tenía `serverTimezone=UTC`: el conector pasaba las horas a UTC al guardar y al leer, mientras MySQL trabaja en hora de Argentina. Se quitó el parámetro y ahora el backend usa la zona horaria de la computadora, que es la misma de MySQL. Se corrigió a mano la hora del único movimiento afectado. CP-89 verifica el arreglo |
 | 4 | La fecha de los movimientos se mostraba como "20/9/26, 1:18 p. m." | Se muestra como "20/09/2026, 13:18" |
+| 5 | Con un pago en efectivo menor al total, la venta se podía confirmar igual | Si lo que paga el cliente no alcanza, el campo se marca en rojo con lo que falta y no deja confirmar |
+| 5 | En una pantalla de 1280 píxeles los nombres del carrito ocupaban dos renglones y el botón "Confirmar venta" quedaba al borde de la pantalla | El carrito ocupa más ancho que la búsqueda |
+| 5 | El campo de cantidad del carrito mostraba el foco en negro | Toma el mismo estilo que los formularios: azul, o rojo si hay error |
 
 En la fase 3 no se registraron incidencias: los casos pasaron en el primer intento.
 
@@ -191,6 +229,6 @@ En la fase 3 no se registraron incidencias: los casos pasaron en el primer inten
 | Nivel | Casos | Aprobados |
 |---|---|---|
 | Base de datos | 15 | 15 |
-| Backend automático | 51 | 51 |
-| Sistema completo | 24 | 24 |
-| **Total** | **90** | **90** |
+| Backend automático | 64 | 64 |
+| Sistema completo | 36 | 36 |
+| **Total** | **115** | **115** |

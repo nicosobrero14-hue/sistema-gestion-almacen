@@ -588,3 +588,188 @@ a.button {
   gap: 10px;
   margin-top: 8px;
 }
+
+/* ---------- Nueva venta ---------- */
+
+/* Busqueda a la izquierda y carrito a la derecha, mas ancho. En pantallas angostas, uno debajo del otro. */
+.sale-layout {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .sale-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sale-layout .filters input[type='search'] {
+  max-width: none;
+}
+
+.quantity {
+  width: 72px;
+  padding: 5px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font: inherit;
+}
+
+.quantity.has-error {
+  border-color: var(--color-danger);
+}
+
+/* El foco igual que en los formularios: azul, o rojo si hay error. */
+.quantity:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -1px;
+}
+
+.quantity.has-error:focus {
+  outline-color: var(--color-danger);
+}
+
+.quantity + .field-error {
+  display: block;
+}
+
+.sale-summary {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.summary-total {
+  font-size: 22px;
+}
+
+.payment-methods {
+  display: flex;
+  gap: 20px;
+  margin: 0 0 14px;
+  padding: 0;
+  border: none;
+}
+
+.payment-methods legend {
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.payment-methods .checkbox {
+  margin-bottom: 0;
+}
+
+.sale-summary > .help {
+  margin: 0 0 14px;
+}
+
+/* ---------- Ticket ---------- */
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* Imita el papel de una impresora de tickets: angosto y con letra de ancho fijo. */
+.ticket {
+  width: 100%;
+  max-width: 380px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 14px;
+}
+
+.ticket-header,
+.ticket-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-align: center;
+}
+
+.ticket-header strong {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.ticket-lines,
+.ticket-totals {
+  margin: 12px 0;
+  padding: 12px 0 0;
+  border-top: 1px dashed #999;
+}
+
+.ticket-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.ticket-amounts {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  white-space: nowrap;
+}
+
+.ticket-amounts small {
+  color: var(--color-muted);
+}
+
+.ticket-total {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.ticket-footer {
+  padding-top: 12px;
+  border-top: 1px dashed #999;
+}
+
+/* ---------- Impresion ---------- */
+
+/* Al imprimir sale solo el ticket: sin menu, sin botones y sin avisos (CU-15). */
+@media print {
+  @page {
+    margin: 4mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .sidebar,
+  .no-print,
+  .message {
+    display: none;
+  }
+
+  .content {
+    padding: 0;
+  }
+
+  .ticket {
+    width: 72mm;
+    max-width: none;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    font-size: 12px;
+  }
+}

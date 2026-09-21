@@ -292,3 +292,74 @@ dirección de conexión, que venía de la fase 1. Se quitó. El detalle está en
 
 Cada cambio de stock queda registrado, y el panel avisa qué productos hay que reponer y cuáles
 están por vencer. Falta el cambio de stock que más se repite: la venta, que llega en la fase 5.
+
+---
+
+## Fase 5 — Venta y ticket
+
+**21 de septiembre de 2026**
+
+### Qué se hizo
+
+1. Las entidades `Sale`, `SaleDetail` y `Payment`, que mapean `ventas`, `detalle_venta` y `pagos`.
+2. El registro de la venta: renglones con el precio del momento, descuento, pago y descuento de
+   stock con su movimiento, todo en una transacción.
+3. El precio de venta de cada producto (`salePrice`): el de oferta si está en oferta.
+4. La pantalla de nueva venta: búsqueda, carrito, descuento, forma de pago y vuelto.
+5. La pantalla del ticket, con su versión para imprimir.
+6. 13 pruebas automáticas nuevas.
+
+### Decisiones
+
+**El carrito vive en la pantalla.** Mientras se arma no se guarda nada en la base. Así no quedan
+ventas a medias si el cliente se arrepiente, y no hace falta limpiar carritos abandonados. El
+servidor recibe la venta completa al confirmar.
+
+**Del carrito solo viajan el producto y la cantidad.** El precio lo busca el servidor. Si el
+navegador mandara el precio, cualquiera podría cambiarlo antes de confirmar.
+
+**El servidor vuelve a controlar el stock al confirmar.** La pantalla ya lo controla mientras se
+arma el carrito, pero entre que se busca un producto y se confirma, otra venta pudo llevarse las
+últimas unidades.
+
+**Un producto no puede aparecer en dos renglones.** El carrito suma las unidades en un solo
+renglón. Si llegaran dos, cada uno pasaría el control de stock por separado y se podría vender más
+de lo que hay.
+
+**El descuento tiene que ser menor al subtotal.** Un total de cero no es una venta, y la tabla de
+pagos no acepta pagos de cero pesos.
+
+**Efectivo y transferencia, sin MercadoPago.** Las dos se cobran en el momento, así que la venta
+nace confirmada y el pago aprobado. MercadoPago queda para más adelante: necesita credenciales,
+una dirección pública con HTTPS para recibir el aviso del pago, y es lo único del sistema que
+depende de un servicio externo. El modelo de datos ya lo contempla.
+
+**El ticket se arma con los datos de la venta.** No se guarda un archivo aparte: los renglones
+tienen copia del nombre y del precio, así que el ticket siempre sale igual.
+
+**La impresión usa el diálogo del navegador.** La impresora de tickets se instala en Windows como
+cualquier otra, y la hoja de estilos de impresión deja solo el comprobante con el ancho del papel.
+No hace falta ningún programa ni driver especial en el sistema.
+
+**Los renglones y el pago se traen junto con la venta.** El ticket siempre los necesita. Se
+declararon como `Set` y no como `List` porque Hibernate no puede traer dos `List` en la misma
+consulta.
+
+### Cómo se verificó
+
+- `mvnw test`: 64 pruebas en verde.
+- El backend arrancó contra MySQL sin errores de validación de las tres tablas nuevas.
+- En el navegador, con el usuario `vendedor`: el producto inexistente, los topes de stock, el
+  descuento inválido y el vuelto, sin guardar nada. Después, una venta real de 2 yerbas, 1 aceite en
+  oferta y 3 fideos, con $290 de descuento, en efectivo: ticket N° 000001 por $16.000.
+- En MySQL: las consultas 6, 7 y 8 muestran la venta, sus renglones y lo recaudado; los tres
+  movimientos de venta tienen el número de venta; la consulta 10 no encontró diferencias entre el
+  stock y los movimientos.
+
+![Ticket de la venta](imagenes/fase-5-ticket.png)
+
+### Estado al cerrar la fase
+
+El comercio ya puede vender: el carrito, el cobro, el descuento de stock y el ticket funcionan de
+punta a punta. Lo que sigue es poder consultar las ventas hechas y cargar productos con el lector
+de código de barras.

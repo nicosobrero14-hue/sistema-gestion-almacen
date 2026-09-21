@@ -29,7 +29,7 @@ guardan en MySQL. Todo corre en la terminal del comercio.
 | [07-instalacion.md](documentacion/07-instalacion.md) | Manual de instalación y configuración |
 | [09-pruebas.md](documentacion/09-pruebas.md) | Estrategia de pruebas, casos ejecutados e incidencias |
 | [10-bitacora.md](documentacion/10-bitacora.md) | Registro del desarrollo, fase por fase |
-| 08-manual-usuario.md | Manual de usuario (fase 5) |
+| 08-manual-usuario.md | Manual de usuario (fase 7) |
 
 ## Fases
 
@@ -42,7 +42,7 @@ El desarrollo avanza por fases. Cada una deja una funcionalidad completa, probad
 | 2 | Alta, baja y modificación de proveedores, productos y usuarios | Terminada |
 | 3 | Inicio de sesión y permisos por rol | Terminada |
 | 4 | Control de stock y alertas | Terminada |
-| 5 | Venta y ticket | Pendiente |
+| 5 | Venta y ticket | Terminada |
 | 6 | Historial de ventas y lector de código de barras | Pendiente |
 | 7 | Sugerencias de ofertas y cierre del proyecto | Pendiente |
 

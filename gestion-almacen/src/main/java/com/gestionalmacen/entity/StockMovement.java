@@ -50,6 +50,12 @@ public class StockMovement {
 	@Column(name = "username", nullable = false, length = 50)
 	private String username;
 
+	// Solo en los movimientos de tipo VENTA: la venta que desconto el stock.
+	@JsonIgnore
+	@ManyToOne
+	@JoinColumn(name = "id_venta")
+	private Sale sale;
+
 	@Enumerated(EnumType.STRING)
 	@Column(name = "tipo", nullable = false, length = 20)
 	private MovementType type;
