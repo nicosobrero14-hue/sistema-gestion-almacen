@@ -80,4 +80,9 @@ public class Product {
 	public boolean isLowStock() {
 		return stock <= minimumStock;
 	}
+
+	// El precio que se cobra: el de oferta si esta en oferta. En el JSON sale como "salePrice".
+	public BigDecimal getSalePrice() {
+		return onOffer ? offerPrice : price;
+	}
 }
