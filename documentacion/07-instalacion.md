@@ -119,9 +119,10 @@ Los datos de prueba traen dos usuarios:
 administrador desde la pantalla de usuarios, y dar de baja o modificar el usuario `vendedor`.
 
 Después de entrar, en el panel principal tienen que aparecer las dos tarjetas de estado en **Ok**:
-una para la aplicación y otra para la base de datos.
+una para la aplicación y otra para la base de datos. Con los datos de prueba, además, la leche
+aparece en la alerta de stock bajo.
 
-![Panel principal](imagenes/fase-3-admin-inicio.png)
+![Panel principal](imagenes/fase-4-panel-alertas.png)
 
 Si la tarjeta de base de datos dice "sin conexión", revisar el punto 7.4.
 
@@ -136,6 +137,7 @@ Si la tarjeta de base de datos dice "sin conexión", revisar el punto 7.4.
 | La pantalla carga pero dice que no se pudo conectar | El backend no está en ejecución. Arrancarlo con `mvnw spring-boot:run` |
 | `mvnw` no se reconoce como comando | Hay que ejecutarlo desde la carpeta `gestion-almacen` |
 | "Usuario o contraseña incorrectos" con los usuarios de prueba | Falta cargar los datos de prueba del punto 7.3 |
+| La hora de los movimientos no coincide con la real | El backend guarda la hora de la computadora en la que corre. Si MySQL está en otra computadora, las dos tienen que tener la misma zona horaria |
 
 ## 7.9 Ejecutar las pruebas automáticas
 

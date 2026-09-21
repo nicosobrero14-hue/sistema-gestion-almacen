@@ -115,7 +115,7 @@ que aparecieron durante las pruebas están en el punto 9.3.
 
 | ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
 |---|---|---|---|---|---|---|
-| CP-49 | Acceso sin sesión | Sin iniciar sesión | Pedir productos y proveedores | `401` | Correcto | Aprobada |
+| CP-49 | Acceso sin sesión | Sin iniciar sesión | Pedir productos, proveedores y la alerta de stock | `401` | Correcto | Aprobada |
 | CP-50 | Estado público | Sin iniciar sesión | `GET /api/status` | `200` | Correcto | Aprobada |
 | CP-51 | Inicio de sesión (CU-01) | Usuario activo | Usuario y contraseña correctos | `200` con el usuario y su rol, sin la contraseña | Correcto | Aprobada |
 | CP-52 | La sesión se mantiene | Sesión iniciada | Pedir productos y `/api/auth/me` | Responden sin volver a mandar la contraseña | Correcto | Aprobada |
@@ -142,6 +142,37 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | CP-68 | Cierre de sesión | Sesión de `vendedor` | "Cerrar sesión" | Vuelve al login y `/api/auth/me` responde `401` | Correcto | Aprobada |
 | CP-69 | Menú y formulario del Administrador | Sesión de `admin` | Recorrer el menú y editar el aceite | Aparece Usuarios; precio y oferta editables | Correcto | Aprobada |
 
+### Stock y alertas
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-70 | Carga inicial (RF-02) | Sesión de Empleado | Alta de un producto con 40 unidades | Un movimiento `CARGA_INICIAL` de 0 a 40, con el usuario de la sesión | Correcto | Aprobada |
+| CP-71 | Ajuste manual (CU-04) | Producto con 60 unidades | Stock nuevo 48, motivo "Rotura de 12 paquetes" | `200` con stock 48; movimiento `AJUSTE_MANUAL` de 60 a 48 con motivo, usuario y fecha, primero en la lista | Correcto | Aprobada |
+| CP-72 | Ajuste que deja stock bajo (CU-04 paso 7) | Producto con 30 unidades y mínimo 20 | Stock nuevo 8 | `lowStock` en `true` y el producto aparece en la alerta | Correcto | Aprobada |
+| CP-73 | Stock negativo (CU-04 exc. 5a) | Producto activo | Stock nuevo -3 | `400`, "El stock no puede ser negativo" | Correcto | Aprobada |
+| CP-74 | Motivo vacío | Producto activo | Motivo con un espacio | `400`, "El motivo es obligatorio" | Correcto | Aprobada |
+| CP-75 | Ajuste sin cambios | Producto con 10 unidades | Stock nuevo 10 | `409`, "El stock nuevo es igual al actual." | Correcto | Aprobada |
+| CP-76 | Ajuste de un producto dado de baja | Producto inactivo | Stock nuevo 0 | `409` | Correcto | Aprobada |
+| CP-77 | Producto inexistente | — | Ajuste y movimientos del producto 9999 | `404` en los dos | Correcto | Aprobada |
+| CP-78 | Alerta de stock bajo (RF-09) | Uno normal, uno en el mínimo, uno sin stock y uno dado de baja | `GET /api/stock/low-stock` | Solo los dos activos, primero el de menos stock | Correcto | Aprobada |
+| CP-79 | Alerta de vencimiento (RF-09) | Vencido, vence en 10 días, en 60 días, sin fecha, sin stock y dado de baja | `GET /api/stock/expiring`, y después con `days=90` | Con 30 días: el vencido y el de 10 días, en ese orden. Con 90: suma el de 60 | Correcto | Aprobada |
+
+### Stock y alertas en el navegador
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-80 | Mapeo de los movimientos | MySQL con el esquema | Arranque del backend | Arranca sin errores: `StockMovement` coincide con `movimientos_stock` | Correcto | Aprobada |
+| CP-81 | Alertas en el panel (CU-06) | Datos de prueba, sesión de `vendedor` | Abrir el panel | Leche entera 1L en stock bajo (8 de 20) y por vencer (en 24 días) | Correcto | Aprobada |
+| CP-82 | Acceso desde la alerta de stock (CU-06 paso 6) | Panel con alertas | "Ajustar stock" en la leche | Abre Stock con la leche ya buscada | Correcto | Aprobada |
+| CP-83 | Acceso desde la alerta de vencimiento | Panel con alertas | "Ver producto" en la leche | Abre Productos con la leche ya buscada | Correcto | Aprobada |
+| CP-84 | Ajuste vacío en pantalla | Ventana de ajuste abierta | "Guardar ajuste" sin datos | Aviso general y error debajo de los dos campos | Correcto | Aprobada |
+| CP-85 | Ajuste sin cambios en pantalla | Leche con 8 unidades | Stock nuevo 8 y un motivo | Aviso "El stock nuevo es igual al actual." | Correcto | Aprobada |
+| CP-86 | Stock negativo en pantalla | Ventana de ajuste abierta | Stock nuevo -1 | Error "El stock no puede ser negativo" debajo del campo | Correcto | Aprobada |
+| CP-87 | Ajuste que deja stock bajo en pantalla | Galletitas con 12 unidades y mínimo 8, sesión de `vendedor` | Stock nuevo 6, motivo "Rotura de 6 paquetes en el depósito" | Muestra "Diferencia: -6" antes de guardar; al guardar, aviso naranja y el panel pasa a 2 productos con stock bajo | Correcto | Aprobada |
+| CP-88 | Movimientos en pantalla | Ajuste del caso anterior | "Movimientos" de las galletitas | El ajuste de `vendedor` arriba (-6) y la carga inicial de `admin` abajo (+12) | Correcto | Aprobada |
+| CP-89 | Hora de los movimientos | Backend contra MySQL | Un ajuste por la API | `fecha_hora` igual a la hora de MySQL en ese momento | Correcto | Aprobada |
+| CP-90 | Stock consistente con los movimientos | Después de los ajustes | Consulta 10 de `03-consultas-de-ejemplo.sql` | Ningún producto con diferencias | Correcto | Aprobada |
+
 ## 9.3 Incidencias detectadas
 
 | Fase | Incidencia | Solución |
@@ -150,6 +181,8 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | 2 | El campo de un formulario con error y con el cursor adentro mostraba el borde del foco en negro, tapando el rojo del error | El borde del foco toma el color del error |
 | 2 | La línea divisoria de la columna de acciones quedaba desfasada respecto de las demás | Se corrigió el estilo de esa celda para que respete el formato de la tabla |
 | 2 | Al editar un producto, el campo de stock decía "Stock inicial" | Dice "Stock actual" al editar y "Stock inicial" en el alta |
+| 4 | Los movimientos guardados por la aplicación quedaban con 3 horas de más que los cargados con los scripts, y al leerlos se mostraban con 3 horas de menos | La dirección de conexión tenía `serverTimezone=UTC`: el conector pasaba las horas a UTC al guardar y al leer, mientras MySQL trabaja en hora de Argentina. Se quitó el parámetro y ahora el backend usa la zona horaria de la computadora, que es la misma de MySQL. Se corrigió a mano la hora del único movimiento afectado. CP-89 verifica el arreglo |
+| 4 | La fecha de los movimientos se mostraba como "20/9/26, 1:18 p. m." | Se muestra como "20/09/2026, 13:18" |
 
 En la fase 3 no se registraron incidencias: los casos pasaron en el primer intento.
 
@@ -158,6 +191,6 @@ En la fase 3 no se registraron incidencias: los casos pasaron en el primer inten
 | Nivel | Casos | Aprobados |
 |---|---|---|
 | Base de datos | 15 | 15 |
-| Backend automático | 41 | 41 |
-| Sistema completo | 13 | 13 |
-| **Total** | **69** | **69** |
+| Backend automático | 51 | 51 |
+| Sistema completo | 24 | 24 |
+| **Total** | **90** | **90** |

@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 
 // Ventana que se abre sobre la pantalla. Se cierra con Escape, con la X o tocando el fondo.
-export default function Modal({ title, onClose, children }) {
+// wide: mas ancha, para las tablas con muchas columnas.
+export default function Modal({ title, onClose, wide = false, children }) {
   // Mientras esta abierta, la tecla Escape la cierra.
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -15,7 +16,7 @@ export default function Modal({ title, onClose, children }) {
     <div className="modal-background" onClick={onClose}>
       {/* stopPropagation: un clic adentro no llega al fondo, asi no se cierra mientras se completa. */}
       <div
-        className="modal"
+        className={wide ? 'modal modal-wide' : 'modal'}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"

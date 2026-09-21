@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +19,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gestionalmacen.entity.Role;
+import com.gestionalmacen.entity.User;
+import com.gestionalmacen.repository.IUserRepository;
 import com.jayway.jsonpath.JsonPath;
 
 // Alta, baja, modificacion y busqueda de productos (RF-01 / CU-02, CU-20).
@@ -25,11 +29,21 @@ import com.jayway.jsonpath.JsonPath;
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
-@WithMockUser(roles = "ADMIN") // con la seguridad activa, cada pedido necesita un usuario con sesion
+@WithMockUser(username = "admin", roles = "ADMIN") // con la seguridad activa, cada pedido necesita un usuario con sesion
 class ProductApiTests {
 
 	@Autowired
 	private MockMvc mvc;
+
+	@Autowired
+	private IUserRepository userRepository;
+
+	// Los usuarios de la sesion tienen que existir en la base: el alta registra quien cargo el stock.
+	@BeforeEach
+	void loadUsers() {
+		userRepository.save(user("admin", Role.ADMIN));
+		userRepository.save(user("vendedor", Role.EMPLEADO));
+	}
 
 	@Test
 	void createsAProductWithItsSupplier() throws Exception {
@@ -124,7 +138,7 @@ class ProductApiTests {
 	// CU-20: el empleado puede editar el producto mientras no cambie el precio.
 	// 900 y 900.00 son el mismo precio: no cuenta como cambio.
 	@Test
-	@WithMockUser(roles = "EMPLEADO")
+	@WithMockUser(username = "vendedor", roles = "EMPLEADO")
 	void anEmployeeCanEditAProductWithoutChangingThePrice() throws Exception {
 		long id = create("/api/products", product("Arroz", "900.00", 20, 5, null, null));
 
@@ -136,7 +150,7 @@ class ProductApiTests {
 
 	// CU-20: solo el administrador cambia precios.
 	@Test
-	@WithMockUser(roles = "EMPLEADO")
+	@WithMockUser(username = "vendedor", roles = "EMPLEADO")
 	void anEmployeeCannotChangeThePrice() throws Exception {
 		long id = create("/api/products", product("Arroz", "900.00", 20, 5, null, null));
 
@@ -148,7 +162,7 @@ class ProductApiTests {
 
 	// CU-19: poner un producto en oferta es decision del administrador.
 	@Test
-	@WithMockUser(roles = "EMPLEADO")
+	@WithMockUser(username = "vendedor", roles = "EMPLEADO")
 	void anEmployeeCannotPutAProductOnOffer() throws Exception {
 		mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"name\":\"Oferta\",\"price\":100.00,\"stock\":1,\"minimumStock\":1,"
@@ -170,5 +184,15 @@ class ProductApiTests {
 				.andExpect(status().isCreated())
 				.andReturn().getResponse().getContentAsString();
 		return ((Number) JsonPath.read(response, "$.id")).longValue();
+	}
+
+	private User user(String username, Role role) {
+		User user = new User();
+		user.setName("Prueba");
+		user.setLastName("Prueba");
+		user.setUsername(username);
+		user.setPasswordHash("sin-uso"); // estas pruebas no inician sesion con contraseña
+		user.setRole(role);
+		return user;
 	}
 }

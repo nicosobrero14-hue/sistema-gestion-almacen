@@ -223,3 +223,72 @@ y así el manual de instalación puede verificarlo sin iniciar sesión.
 
 El sistema pide usuario y contraseña, y cada rol ve y puede hacer solo lo que le corresponde. Lo
 que sigue es el control de stock y las alertas del panel principal.
+
+---
+
+## Fase 4 — Stock y alertas
+
+**21 de septiembre de 2026**
+
+### Qué se hizo
+
+1. La entidad `StockMovement`, que mapea la tabla `movimientos_stock`, creada en la fase 0 y sin
+   uso hasta ahora.
+2. El ajuste manual de stock: stock nuevo y motivo, con el movimiento registrado junto al usuario
+   de la sesión y la fecha.
+3. La carga inicial: el alta de un producto ahora deja registrado su stock inicial como primer
+   movimiento.
+4. Las dos consultas de alertas: stock bajo y próximos a vencer.
+5. La pantalla de stock, con la ventana de ajuste y el historial de movimientos de cada producto.
+6. Las alertas en el panel principal, con acceso directo al producto de cada una.
+7. 10 pruebas automáticas nuevas. Las de productos se adaptaron: como el alta registra quién cargó
+   el stock, el usuario de la sesión tiene que existir en la base de prueba.
+
+### Decisiones
+
+**Se ingresa el stock nuevo, no la diferencia.** En el comercio el stock se corrige contando lo que
+hay en la estantería. Pedir el número contado evita la cuenta mental; la diferencia la calcula el
+formulario y la muestra antes de guardar.
+
+**El stock tiene su propio recurso en la API.** No se cambia con un `PUT` al producto, como el
+resto de sus datos, porque cada cambio tiene que pasar por un ajuste con motivo. Tenerlo aparte
+hace imposible cambiar el stock sin dejar el movimiento.
+
+**El cambio de stock y su movimiento se guardan en la misma transacción.** Si el movimiento no se
+pudiera guardar, el stock tampoco cambia. Así la suma de los movimientos nunca se separa del stock
+actual.
+
+**El movimiento se arma en su constructor.** Recibe el producto ya actualizado y el usuario, y
+copia de ellos el nombre, el usuario y el stock nuevo. El alta de productos y el ajuste lo usan
+igual, y la venta de la fase 5 también lo va a usar.
+
+**El usuario de la sesión lo resuelve el servicio de usuarios.** `getSessionUser()` lo toma del
+contexto de seguridad de cada pedido. Así el controlador no tiene que pasarlo, y el endpoint
+`/api/auth/me` usa el mismo método.
+
+**El plazo de vencimiento es un parámetro.** La alerta usa 30 días, pero el endpoint recibe el plazo.
+Las sugerencias de ofertas de la fase 7 van a necesitar otro plazo y pueden usar la misma consulta.
+
+**El stock mínimo se sigue configurando en el producto.** La pantalla de stock solo ajusta stock,
+así todo lo que pasa por ella deja un movimiento.
+
+### Cómo se verificó
+
+- `mvnw test`: 51 pruebas en verde.
+- El backend arrancó contra MySQL sin errores de validación: `StockMovement` coincide con la tabla.
+- En el navegador, con el usuario `vendedor`: las alertas del panel con los datos de prueba, los dos
+  accesos directos, los errores del formulario de ajuste y un ajuste real de las galletitas, de 12
+  a 6 unidades, que las dejó por debajo del mínimo y las sumó a las alertas.
+- En MySQL: la hora del movimiento coincide con la del servidor, y la consulta 10 no encontró
+  productos con el stock distinto de la suma de sus movimientos.
+
+Durante las pruebas apareció una diferencia de 3 horas entre los movimientos guardados por la
+aplicación y los cargados con los scripts. La causa era el parámetro `serverTimezone=UTC` en la
+dirección de conexión, que venía de la fase 1. Se quitó. El detalle está en `09-pruebas.md`.
+
+![Panel principal con alertas](imagenes/fase-4-panel-alertas.png)
+
+### Estado al cerrar la fase
+
+Cada cambio de stock queda registrado, y el panel avisa qué productos hay que reponer y cuáles
+están por vencer. Falta el cambio de stock que más se repite: la venta, que llega en la fase 5.

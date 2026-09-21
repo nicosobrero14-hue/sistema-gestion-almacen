@@ -41,7 +41,7 @@ El desarrollo avanza por fases. Cada una deja una funcionalidad completa, probad
 | 1 | Esqueleto: backend y frontend en funcionamiento | Terminada |
 | 2 | Alta, baja y modificación de proveedores, productos y usuarios | Terminada |
 | 3 | Inicio de sesión y permisos por rol | Terminada |
-| 4 | Control de stock y alertas | Pendiente |
+| 4 | Control de stock y alertas | Terminada |
 | 5 | Venta y ticket | Pendiente |
 | 6 | Historial de ventas y lector de código de barras | Pendiente |
 | 7 | Sugerencias de ofertas y cierre del proyecto | Pendiente |

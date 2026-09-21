@@ -20,6 +20,7 @@ export default function Layout({ user, onLogout }) {
         <nav aria-label="Menú principal">
           <NavLink to="/" className={linkClass} end>Inicio</NavLink>
           <NavLink to="/products" className={linkClass}>Productos</NavLink>
+          <NavLink to="/stock" className={linkClass}>Stock</NavLink>
           <NavLink to="/suppliers" className={linkClass}>Proveedores</NavLink>
           {/* El empleado no gestiona usuarios (RF-11), asi que ni ve la opcion. Igual quien lo controla es el backend. */}
           {isAdmin && <NavLink to="/users" className={linkClass}>Usuarios</NavLink>}

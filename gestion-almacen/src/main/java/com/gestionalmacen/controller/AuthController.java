@@ -60,7 +60,7 @@ public class AuthController {
 
 	//3- quien esta conectado. El frontend lo pregunta al abrir la aplicacion
 	@GetMapping("/me")
-	public User getSessionUser(Authentication authentication) {
-		return userService.findUserByUsername(authentication.getName());
+	public User getSessionUser() {
+		return userService.getSessionUser();
 	}
 }

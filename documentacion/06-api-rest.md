@@ -155,7 +155,9 @@ Es público: sirve para verificar la instalación sin tener que iniciar sesión.
 }
 ```
 
-`stock` solo se usa en el alta. En la modificación se ignora.
+`stock` solo se usa en el alta. En la modificación se ignora: el stock se cambia con un ajuste
+(punto 6.9). El alta deja registrado ese stock inicial como un movimiento de tipo `CARGA_INICIAL`,
+con el usuario de la sesión.
 
 **Lo que sale:**
 
@@ -231,3 +233,60 @@ hash.**
 - El nombre de usuario ya existe.
 - Es un alta sin contraseña.
 - Se intenta dar de baja al último administrador activo, o quitarle el rol.
+
+---
+
+## 6.9 Stock y alertas — `/api/stock`
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `PATCH` | `/api/stock/{productId}` | Ajuste manual del stock (CU-04). Devuelve el producto actualizado |
+| `GET` | `/api/stock/{productId}/movements` | Movimientos del producto, del más nuevo al más viejo |
+| `GET` | `/api/stock/low-stock` | Alerta de stock bajo (CU-06) |
+| `GET` | `/api/stock/expiring?days=30` | Alerta de vencimiento: los que vencen en los próximos días (CU-06) |
+
+Los usan el Empleado y el Administrador.
+
+**Lo que entra en el ajuste:**
+
+```json
+{ "newStock": 6, "reason": "Rotura de 6 paquetes en el depósito" }
+```
+
+`newStock` es la cantidad que hay ahora, no la diferencia. Es lo que se cuenta en la estantería.
+
+**Lo que sale de los movimientos:**
+
+```json
+[
+  {
+    "id": 16,
+    "productName": "Galletitas surtidas",
+    "username": "vendedor",
+    "type": "AJUSTE_MANUAL",
+    "previousStock": 12,
+    "newStock": 6,
+    "reason": "Rotura de 6 paquetes en el depósito",
+    "dateTime": "2026-09-21T17:22:35"
+  }
+]
+```
+
+`type` puede ser `CARGA_INICIAL`, `AJUSTE_MANUAL` o `VENTA`. El nombre del producto y el usuario son
+copias: el movimiento se sigue leyendo igual aunque el producto cambie de nombre.
+
+**Las alertas** devuelven una lista de productos, igual que `/api/products`:
+
+- `low-stock`: los activos con el stock en el mínimo o por debajo, del stock más bajo al más alto.
+- `expiring`: los activos con stock que vencen dentro de `days` días, incluidos los ya vencidos,
+  del más próximo al más lejano. Si no se indica `days`, son 30. Los productos sin fecha de
+  vencimiento no entran.
+
+**Devuelve `400` si:** falta el stock nuevo, es negativo, o falta el motivo (CU-04 exc. 5a).
+
+**Devuelve `409` si:**
+
+- El stock nuevo es igual al actual. Un ajuste que no cambia nada solo ensuciaría el historial.
+- El producto está dado de baja.
+
+**Devuelve `404` si:** el producto no existe.
