@@ -1,6 +1,7 @@
 package com.gestionalmacen.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -24,6 +25,9 @@ public interface IUserRepository extends JpaRepository<User, Long> {
 			ORDER BY u.username
 			""")
 	List<User> search(@Param("text") String text, @Param("activeOnly") boolean activeOnly);
+
+	// Lo usa el inicio de sesion (CU-01).
+	Optional<User> findByUsername(String username);
 
 	boolean existsByUsername(String username);
 

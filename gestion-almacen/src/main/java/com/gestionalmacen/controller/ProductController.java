@@ -19,6 +19,7 @@ import com.gestionalmacen.dto.ProductDTO;
 import com.gestionalmacen.entity.Product;
 import com.gestionalmacen.service.IProductService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 // API de productos (RF-01 / CU-02, CU-20).
@@ -43,16 +44,18 @@ public class ProductController {
 	}
 
 	//3- crear un producto
+	// isUserInRole: el rol sale de la sesion, no de lo que manda el cliente.
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public Product saveProduct(@Valid @RequestBody ProductDTO productDTO) {
-		return productService.saveProduct(productDTO);
+	public Product saveProduct(@Valid @RequestBody ProductDTO productDTO, HttpServletRequest request) {
+		return productService.saveProduct(productDTO, request.isUserInRole("ADMIN"));
 	}
 
 	//4- modificar un producto (CU-20). El stock no se modifica por aca
 	@PutMapping("/{id}")
-	public Product editProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO) {
-		return productService.editProduct(id, productDTO);
+	public Product editProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO,
+			HttpServletRequest request) {
+		return productService.editProduct(id, productDTO, request.isUserInRole("ADMIN"));
 	}
 
 	//5- dar de baja: deja de aparecer, pero no se borra

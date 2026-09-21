@@ -9,6 +9,9 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -33,6 +36,22 @@ public class GlobalExceptionHandler {
 	@ExceptionHandler(BusinessRuleException.class)
 	public ResponseEntity<ErrorDTO> businessRule(BusinessRuleException ex) {
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorDTO(ex.getMessage()));
+	}
+
+	//401- fallo el inicio de sesion (CU-01 exc. 4a)
+	// Mismo mensaje si falla el usuario o la contraseña: asi no se le confirma a nadie cual acerto.
+	@ExceptionHandler(AuthenticationException.class)
+	public ResponseEntity<ErrorDTO> loginFailed(AuthenticationException ex) {
+		String message = ex instanceof DisabledException
+				? "El usuario está dado de baja. Consulte con el administrador."
+				: "Usuario o contraseña incorrectos";
+		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorDTO(message));
+	}
+
+	//403- el rol no alcanza para lo que se quiere hacer
+	@ExceptionHandler(AccessDeniedException.class)
+	public ResponseEntity<ErrorDTO> accessDenied(AccessDeniedException ex) {
+		return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ErrorDTO(ex.getMessage()));
 	}
 
 	//400- fallo @Valid: devuelve el error de cada campo para marcarlo en rojo en el formulario

@@ -21,7 +21,7 @@ import com.gestionalmacen.service.IUserService;
 
 import jakarta.validation.Valid;
 
-// API de usuarios (RF-11 / CU-18). En la fase 3 queda restringida al administrador.
+// API de usuarios (RF-11 / CU-18). Solo la puede usar el administrador (ver SecurityConfig).
 @RestController
 @RequestMapping("/api/users")
 public class UserController {

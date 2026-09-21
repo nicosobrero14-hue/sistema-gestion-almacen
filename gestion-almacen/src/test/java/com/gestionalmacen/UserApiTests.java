@@ -1,5 +1,6 @@
 package com.gestionalmacen;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -13,6 +14,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ import com.jayway.jsonpath.JsonPath;
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional
+@WithMockUser(roles = "ADMIN") // con la seguridad activa, cada pedido necesita un usuario con sesion
 class UserApiTests {
 
 	@Autowired
@@ -40,7 +43,7 @@ class UserApiTests {
 	// RNF-02: la contraseña nunca sale por la API.
 	@Test
 	void createsAUserWithoutExposingThePassword() throws Exception {
-		mvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/users").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(user("maria", "Empleado1234", "EMPLEADO")))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.username").value("maria"))
@@ -63,7 +66,7 @@ class UserApiTests {
 	void rejectsARepeatedUsername() throws Exception {
 		create(user("repetido", "Clave1234", "EMPLEADO"));
 
-		mvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/users").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(user("repetido", "Otra12345", "EMPLEADO")))
 				.andExpect(status().isConflict());
 	}
@@ -71,7 +74,7 @@ class UserApiTests {
 	// RNF-02: minimo 8 caracteres, con letras y numeros.
 	@Test
 	void rejectsAWeakPassword() throws Exception {
-		mvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/users").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(user("debil", "corta", "EMPLEADO")))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.errors.password").exists());
@@ -79,7 +82,7 @@ class UserApiTests {
 
 	@Test
 	void requiresAPasswordToCreate() throws Exception {
-		mvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/users").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(user("sinclave", null, "EMPLEADO")))
 				.andExpect(status().isConflict());
 	}
@@ -88,7 +91,7 @@ class UserApiTests {
 	void editingWithoutPasswordKeepsTheCurrentOne() throws Exception {
 		long id = create(user("pedro", "Clave1234", "EMPLEADO"));
 
-		mvc.perform(put("/api/users/" + id).contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(put("/api/users/" + id).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(user("pedro", null, "EMPLEADO")))
 				.andExpect(status().isOk());
 
@@ -102,7 +105,7 @@ class UserApiTests {
 		userRepository.deleteAll();
 		long id = create(user("jefe", "Admin1234", "ADMIN"));
 
-		mvc.perform(patch("/api/users/" + id + "/deactivate"))
+		mvc.perform(patch("/api/users/" + id + "/deactivate").with(csrf()))
 				.andExpect(status().isConflict());
 	}
 
@@ -113,7 +116,7 @@ class UserApiTests {
 		long id = create(user("jefe", "Admin1234", "ADMIN"));
 		create(user("jefe2", "Admin1234", "ADMIN"));
 
-		mvc.perform(patch("/api/users/" + id + "/deactivate"))
+		mvc.perform(patch("/api/users/" + id + "/deactivate").with(csrf()))
 				.andExpect(status().isNoContent());
 	}
 
@@ -123,7 +126,7 @@ class UserApiTests {
 		userRepository.deleteAll();
 		long id = create(user("jefe", "Admin1234", "ADMIN"));
 
-		mvc.perform(put("/api/users/" + id).contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(put("/api/users/" + id).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content(user("jefe", null, "EMPLEADO")))
 				.andExpect(status().isConflict());
 	}
@@ -137,7 +140,7 @@ class UserApiTests {
 
 	// Da de alta un usuario y devuelve el id que le asigno la base.
 	private long create(String json) throws Exception {
-		String response = mvc.perform(post("/api/users").contentType(MediaType.APPLICATION_JSON).content(json))
+		String response = mvc.perform(post("/api/users").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json))
 				.andExpect(status().isCreated())
 				.andReturn().getResponse().getContentAsString();
 		return ((Number) JsonPath.read(response, "$.id")).longValue();

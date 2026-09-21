@@ -1,5 +1,6 @@
 package com.gestionalmacen;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ import com.jayway.jsonpath.JsonPath;
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @Transactional // cada prueba deshace lo que guardo
+@WithMockUser(roles = "EMPLEADO") // con la seguridad activa, cada pedido necesita un usuario con sesion
 class SupplierApiTests {
 
 	@Autowired
@@ -30,7 +33,7 @@ class SupplierApiTests {
 
 	@Test
 	void createsASupplier() throws Exception {
-		mvc.perform(post("/api/suppliers").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/suppliers").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"name\":\"Distribuidora Norte\",\"email\":\"norte@mail.com\",\"phone\":\"351555\"}"))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.id").isNumber())
@@ -41,7 +44,7 @@ class SupplierApiTests {
 	// CU-05 exc. 5a: faltan datos obligatorios.
 	@Test
 	void rejectsASupplierWithoutName() throws Exception {
-		mvc.perform(post("/api/suppliers").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/suppliers").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"email\":\"sin-nombre@mail.com\"}"))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.errors.name").value("El nombre es obligatorio"));
@@ -51,7 +54,7 @@ class SupplierApiTests {
 	void rejectsARepeatedEmail() throws Exception {
 		createSupplier("{\"name\":\"Primero\",\"email\":\"repetido@mail.com\"}");
 
-		mvc.perform(post("/api/suppliers").contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(post("/api/suppliers").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"name\":\"Segundo\",\"email\":\"repetido@mail.com\"}"))
 				.andExpect(status().isConflict())
 				.andExpect(jsonPath("$.message").exists());
@@ -62,7 +65,7 @@ class SupplierApiTests {
 		long id = createSupplier("{\"name\":\"Nombre viejo\",\"email\":\"editar@mail.com\"}");
 
 		// Guardar sin cambiar el email no cuenta como repetido.
-		mvc.perform(put("/api/suppliers/" + id).contentType(MediaType.APPLICATION_JSON)
+		mvc.perform(put("/api/suppliers/" + id).with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"name\":\"Nombre nuevo\",\"email\":\"editar@mail.com\"}"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.name").value("Nombre nuevo"));
@@ -83,7 +86,7 @@ class SupplierApiTests {
 	void deactivatesAndActivatesASupplier() throws Exception {
 		long id = createSupplier("{\"name\":\"Proveedor temporal\"}");
 
-		mvc.perform(patch("/api/suppliers/" + id + "/deactivate")).andExpect(status().isNoContent());
+		mvc.perform(patch("/api/suppliers/" + id + "/deactivate").with(csrf())).andExpect(status().isNoContent());
 
 		// Dado de baja: no aparece entre los activos, pero sigue existiendo.
 		mvc.perform(get("/api/suppliers").param("search", "temporal"))
@@ -91,7 +94,7 @@ class SupplierApiTests {
 		mvc.perform(get("/api/suppliers").param("search", "temporal").param("activeOnly", "false"))
 				.andExpect(jsonPath("$.length()").value(1));
 
-		mvc.perform(patch("/api/suppliers/" + id + "/activate")).andExpect(status().isNoContent());
+		mvc.perform(patch("/api/suppliers/" + id + "/activate").with(csrf())).andExpect(status().isNoContent());
 		mvc.perform(get("/api/suppliers").param("search", "temporal"))
 				.andExpect(jsonPath("$.length()").value(1));
 	}
@@ -103,7 +106,7 @@ class SupplierApiTests {
 
 	// Da de alta un proveedor y devuelve el id que le asigno la base.
 	private long createSupplier(String json) throws Exception {
-		String response = mvc.perform(post("/api/suppliers").contentType(MediaType.APPLICATION_JSON).content(json))
+		String response = mvc.perform(post("/api/suppliers").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json))
 				.andExpect(status().isCreated())
 				.andReturn().getResponse().getContentAsString();
 		return ((Number) JsonPath.read(response, "$.id")).longValue();
