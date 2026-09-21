@@ -4,9 +4,11 @@ import { getSessionUser, logout } from './api/auth'
 import Layout from './components/Layout'
 import Home from './pages/Home'
 import Login from './pages/Login'
+import NewSale from './pages/NewSale'
 import Products from './pages/Products'
 import Stock from './pages/Stock'
 import Suppliers from './pages/Suppliers'
+import Ticket from './pages/Ticket'
 import Users from './pages/Users'
 
 // Rutas de la aplicacion. Sin sesion se muestra el inicio de sesion (CU-01).
@@ -38,6 +40,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Layout user={user} onLogout={onLogout} />}>
           <Route index element={<Home user={user} />} />
+          <Route path="sale" element={<NewSale />} />
+          <Route path="sales/:id" element={<Ticket />} />
           <Route path="products" element={<Products isAdmin={isAdmin} />} />
           <Route path="stock" element={<Stock />} />
           <Route path="suppliers" element={<Suppliers />} />
