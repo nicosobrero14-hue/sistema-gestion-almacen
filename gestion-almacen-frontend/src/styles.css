@@ -1,17 +1,27 @@
 /* Estilos de la aplicacion. */
 
 :root {
-  --color-background: #f4f6f8;
+  --color-background: #f3f1eb; /* marfil */
   --color-panel: #ffffff;
-  --color-border: #dde3e9;
+  --color-border: #e2ddd2;
   --color-text: #1b2733;
   --color-muted: #5b6b7a;
-  --color-primary: #1d6fb8;
+  --color-primary: #2e7d32;       /* verde del logo */
+  --color-primary-dark: #25652a;  /* el primario al pasar el mouse */
+  --color-primary-light: #e3f1e2; /* fondo de las etiquetas del primario */
   --color-danger: #c0392b;
   --color-success: #1e7b34;
   --color-warning: #b35c00;
   --radius: 8px;
   --shadow: 0 1px 3px rgba(27, 39, 51, 0.12);
+
+  /* Menu lateral, verde oscuro con letras claras */
+  --color-sidebar: #1f3b29;
+  --color-sidebar-text: #eef4ea;
+  --color-sidebar-muted: #a8bea6;
+  --color-sidebar-hover: #2a4f37;
+  --color-sidebar-active: #3f8f46;
+  --color-sidebar-border: #2f5039;
 }
 
 * {
@@ -24,6 +34,7 @@ body {
   font-size: 15px;
   color: var(--color-text);
   background: var(--color-background);
+  accent-color: var(--color-primary); /* casillas y opciones del navegador en el mismo verde */
 }
 
 h1 {
@@ -49,15 +60,16 @@ h1 {
   width: 240px;
   flex-shrink: 0;
   padding: 20px 16px;
-  background: var(--color-panel);
-  border-right: 1px solid var(--color-border);
+  background: var(--color-sidebar);
+  border-right: 1px solid var(--color-sidebar-border);
+  color: var(--color-sidebar-text);
 }
 
 /* Usuario conectado, al pie del menu. */
 .session {
   margin-top: auto;
   padding-top: 16px;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-sidebar-border);
 }
 
 .session strong,
@@ -67,17 +79,45 @@ h1 {
 
 .session small {
   margin-bottom: 10px;
-  color: var(--color-muted);
+  color: var(--color-sidebar-muted);
+}
+
+/* Cerrar sesion: boton sin relleno, para que no quede un recuadro blanco sobre el menu oscuro. */
+.session .button {
+  background: transparent;
+  border-color: var(--color-sidebar-border);
+  color: var(--color-sidebar-text);
+}
+
+.session .button:hover {
+  background: var(--color-sidebar-hover);
 }
 
 /* ---------- Inicio de sesion ---------- */
 
 .login-page {
+  position: relative;
+  z-index: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   min-height: 100vh;
   padding: 24px;
+}
+
+/* El logo en version clara de fondo, detras del formulario. */
+.login-page::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: url('./assets/logo-fondo.webp') no-repeat center / min(95%, 1100px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.login-card .brand-logo {
+  max-width: 230px;
 }
 
 .login-card {
@@ -99,7 +139,10 @@ h1 {
   width: 100%;
 }
 
+/* position y z-index: arman una capa propia, asi el logo de fondo queda detras del contenido. */
 .content {
+  position: relative;
+  z-index: 0;
   flex: 1;
   min-width: 0;
   padding: 28px 32px;
@@ -114,21 +157,29 @@ h1 {
 
 /* ---------- Menu ---------- */
 
+/* Logo arriba y el nombre del sistema debajo, centrados. */
 .brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  text-align: center;
 }
 
-.brand-icon {
-  font-size: 24px;
+.brand-logo {
+  width: 100%;
+  max-width: 170px;
+  margin-bottom: 8px;
 }
 
 .brand small {
-  display: block;
-  color: var(--color-muted);
+  color: var(--color-sidebar-muted);
   font-size: 12px;
+}
+
+/* En el login la marca esta sobre la tarjeta blanca, no sobre el menu. */
+.login-card .brand small {
+  color: var(--color-muted);
 }
 
 .nav-link {
@@ -136,16 +187,16 @@ h1 {
   padding: 9px 12px;
   margin-bottom: 4px;
   border-radius: var(--radius);
-  color: var(--color-text);
+  color: var(--color-sidebar-text);
   text-decoration: none;
 }
 
 .nav-link:hover {
-  background: var(--color-background);
+  background: var(--color-sidebar-hover);
 }
 
 .nav-link.active {
-  background: var(--color-primary);
+  background: var(--color-sidebar-active);
   color: #fff;
   font-weight: 600;
 }
@@ -296,7 +347,7 @@ a.button {
 }
 
 .button-primary:hover {
-  background: #175d9b;
+  background: var(--color-primary-dark);
 }
 
 .button-secondary {
@@ -415,7 +466,7 @@ a.button {
 }
 
 .chip-admin {
-  background: #e6effa;
+  background: var(--color-primary-light);
   color: var(--color-primary);
 }
 
@@ -816,4 +867,19 @@ a.button {
 /* Aviso con un boton de accion: el texto ocupa el espacio y el boton queda a la derecha. */
 .message-text {
   flex: 1;
+}
+
+/* ---------- Logo de fondo ---------- */
+
+/* El logo en version clara, bien tenue, detras del contenido de todas las pantallas.
+   fixed: queda quieto al desplazar la pagina. left: 240px deja afuera el menu.
+   pointer-events: none hace que nunca tape un clic. */
+.content::before {
+  content: '';
+  position: fixed;
+  inset: 0 0 0 240px;
+  z-index: -1;
+  background: url('./assets/logo-fondo.webp') no-repeat center / min(75%, 900px);
+  opacity: 0.18;
+  pointer-events: none;
 }
