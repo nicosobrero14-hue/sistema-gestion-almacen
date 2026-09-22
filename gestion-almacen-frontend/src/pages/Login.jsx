@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { login } from '../api/auth'
+import logo from '../assets/logo.png'
 import Message from '../components/Message'
 import TextField from '../components/TextField'
 
@@ -34,11 +35,9 @@ export default function Login({ onLogin }) {
     <div className="login-page">
       <form className="login-card" onSubmit={onSubmit} noValidate>
         <div className="brand">
-          <span className="brand-icon" aria-hidden="true">📦</span>
-          <div>
-            <strong>Gestión de Almacén</strong>
-            <small>Control de stock</small>
-          </div>
+          <img src={logo} alt="Logo del Sistema de Gestión de Almacén" className="brand-logo" />
+          <strong>Gestión de Almacén</strong>
+          <small>Control de stock</small>
         </div>
 
         <h1>Iniciar sesión</h1>

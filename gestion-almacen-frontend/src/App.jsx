@@ -5,6 +5,7 @@ import Layout from './components/Layout'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import NewSale from './pages/NewSale'
+import Offers from './pages/Offers'
 import Products from './pages/Products'
 import SalesHistory from './pages/SalesHistory'
 import Stock from './pages/Stock'
@@ -47,6 +48,8 @@ export default function App() {
           <Route path="sales/:id" element={<Ticket />} />
           <Route path="products" element={<Products isAdmin={isAdmin} />} />
           <Route path="stock" element={<Stock />} />
+          {/* RF-10 / CU-19: las ofertas son solo del administrador. */}
+          {isAdmin && <Route path="offers" element={<Offers />} />}
           <Route path="suppliers" element={<Suppliers />} />
           {/* RF-11: la gestion de usuarios es solo del administrador. */}
           {isAdmin && <Route path="users" element={<Users />} />}

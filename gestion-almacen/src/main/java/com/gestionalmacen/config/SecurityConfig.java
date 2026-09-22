@@ -45,6 +45,7 @@ public class SecurityConfig {
 						.requestMatchers("/api/auth/login", "/api/status").permitAll()  // publicos
 						.requestMatchers("/api/users/**").hasRole("ADMIN")              // RF-11: usuarios, solo el administrador
 						.requestMatchers(HttpMethod.GET, "/api/sales").hasRole("ADMIN") // CU-16: historial de ventas, solo el administrador
+						.requestMatchers("/api/offers/**").hasRole("ADMIN")             // CU-19: ofertas, solo el administrador
 						.anyRequest().authenticated())                                  // el resto, cualquiera con sesion
 				// Sin sesion responde 401 en vez de redirigir a una pagina de login: esto es una API.
 				.exceptionHandling(errors -> errors

@@ -240,6 +240,31 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | CP-136 | Consultas a la base | Backend contra MySQL | Historial, ticket y movimientos | Una sola consulta para el historial y una para el ticket, sin buscar productos ni usuarios aparte | Correcto | Aprobada |
 | CP-137 | Stock consistente | Después del alta del caso CP-133 | Consulta 10 | Ningún producto con diferencias | Correcto | Aprobada |
 
+### Ofertas
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-138 | Baja rotación (RF-10) | Yerba con 5 vendidas, fideos con 1, arroz sin ventas | `GET /api/offers/least-sold` | Arroz (0), fideos (1) y yerba (5), en ese orden | Correcto | Aprobada |
+| CP-139 | Ventas fuera del período | Venta de 5 yerbas hace 40 días | Plazo de 30 días, después de 60 | Con 30, la yerba tiene 0 vendidas; con 60, tiene 5 | Correcto | Aprobada |
+| CP-140 | Sin productos dados de baja ni sin stock | Uno con stock, uno sin stock y uno dado de baja | Baja rotación | Solo el que tiene stock | Correcto | Aprobada |
+| CP-141 | Poner en oferta (CU-19) | Aceite a $3.400 | Oferta a $2.990 | `200`: en oferta, precio de venta $2.990, y aparece entre las ofertas vigentes | Correcto | Aprobada |
+| CP-142 | Oferta no más barata (CU-19 exc. 4a) | Aceite a $3.400 | Oferta a $3.400 | `409`, "El precio de oferta tiene que ser menor al precio normal." | Correcto | Aprobada |
+| CP-143 | Precio de oferta obligatorio | Aceite | Sin precio | `400`, "El precio de oferta es obligatorio" | Correcto | Aprobada |
+| CP-144 | Oferta de un producto dado de baja | Producto inactivo | Oferta a $2.990 | `409` | Correcto | Aprobada |
+| CP-145 | Quitar la oferta (CU-19 paso 6) | Aceite en oferta | `PATCH /api/offers/{id}/end` | `200`: sin oferta, precio de venta $3.400, y sale de las vigentes | Correcto | Aprobada |
+| CP-146 | Ofertas para el Empleado (RF-10) | Sesión de Empleado | Vigentes, baja rotación y poner una oferta | `403` en los tres | Correcto | Aprobada |
+
+### Ofertas en el navegador
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-147 | Baja rotación contra MySQL | Ventas N° 1 y N° 2 | `GET /api/offers/least-sold?days=30` | Primero los que no se vendieron; la yerba con 4 unidades, 2 de cada venta | Correcto | Aprobada |
+| CP-148 | Pantalla de ofertas (CU-19 paso 2) | Sesión de `admin` | Abrir "Ofertas" | El aceite en las vigentes con 12% de descuento, los menos vendidos y la leche por vencer en 24 días | Correcto | Aprobada |
+| CP-149 | Oferta más cara en pantalla (CU-19 exc. 4a) | Galletitas a $2.250 | Oferta a $2.500 | Error en rojo y "Guardar oferta" deshabilitado | Correcto | Aprobada |
+| CP-150 | Poner en oferta en pantalla (CU-19 pasos 4 y 5) | Galletitas a $2.250 | Oferta a $1.800 | Muestra "20% menos"; al guardar, aparece en las vigentes y la sugerencia dice "En oferta: $ 1.800,00" | Correcto | Aprobada |
+| CP-151 | Quitar la oferta en pantalla (CU-19 paso 6) | Galletitas en oferta | "Quitar oferta" | Sale de las vigentes; en la base queda sin oferta y sin precio de oferta | Correcto | Aprobada |
+| CP-152 | Ofertas para el Empleado en pantalla | Sesión de `vendedor` | Recorrer el menú, ir a `/offers` y pedir la API | Sin la opción en el menú, la dirección vuelve al inicio y la API responde `403` | Correcto | Aprobada |
+
 ## 9.3 Incidencias detectadas
 
 | Fase | Incidencia | Solución |
@@ -258,6 +283,7 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | 6 | Después de tocar "Agregar" o de dar de alta un producto, el cursor quedaba fuera del buscador y la siguiente lectura del lector se perdía | El cursor vuelve al buscador cada vez que se agrega un producto |
 | 6 | Un código inexistente mostraba dos avisos: el del lector y el de la búsqueda | Queda solo el del lector, que tiene el botón para darlo de alta |
 | 6 | Los buscadores y filtros mostraban el foco en negro | Toman el mismo estilo que los formularios |
+| 7 | Los paneles de a dos se estiraban a la altura del más alto, y el más corto quedaba vacío abajo | Cada panel toma el alto de su contenido |
 
 En la fase 3 no se registraron incidencias: los casos pasaron en el primer intento.
 
@@ -266,6 +292,6 @@ En la fase 3 no se registraron incidencias: los casos pasaron en el primer inten
 | Nivel | Casos | Aprobados |
 |---|---|---|
 | Base de datos | 15 | 15 |
-| Backend automático | 73 | 73 |
-| Sistema completo | 49 | 49 |
-| **Total** | **137** | **137** |
+| Backend automático | 82 | 82 |
+| Sistema completo | 55 | 55 |
+| **Total** | **152** | **152** |

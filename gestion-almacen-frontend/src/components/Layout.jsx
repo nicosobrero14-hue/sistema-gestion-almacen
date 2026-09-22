@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
+import logo from '../assets/logo.png'
 
 // Estructura comun a todas las pantallas: menu a la izquierda y contenido a la derecha.
 export default function Layout({ user, onLogout }) {
@@ -10,11 +11,9 @@ export default function Layout({ user, onLogout }) {
     <div className="layout">
       <aside className="sidebar">
         <div className="brand">
-          <span className="brand-icon" aria-hidden="true">📦</span>
-          <div>
-            <strong>Gestión de Almacén</strong>
-            <small>Control de stock</small>
-          </div>
+          <img src={logo} alt="Logo del Sistema de Gestión de Almacén" className="brand-logo" />
+          <strong>Gestión de Almacén</strong>
+          <small>Control de stock</small>
         </div>
 
         <nav aria-label="Menú principal">
@@ -24,6 +23,8 @@ export default function Layout({ user, onLogout }) {
           {isAdmin && <NavLink to="/sales" className={linkClass} end>Historial de ventas</NavLink>}
           <NavLink to="/products" className={linkClass}>Productos</NavLink>
           <NavLink to="/stock" className={linkClass}>Stock</NavLink>
+          {/* RF-10: las ofertas las decide el administrador. */}
+          {isAdmin && <NavLink to="/offers" className={linkClass}>Ofertas</NavLink>}
           <NavLink to="/suppliers" className={linkClass}>Proveedores</NavLink>
           {/* El empleado no gestiona usuarios (RF-11), asi que ni ve la opcion. Igual quien lo controla es el backend. */}
           {isAdmin && <NavLink to="/users" className={linkClass}>Usuarios</NavLink>}
