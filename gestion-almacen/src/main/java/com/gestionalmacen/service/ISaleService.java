@@ -20,6 +20,7 @@ public interface ISaleService {
 	// Da de baja el cobro y cancela la venta (CU-10 exc. 5a).
 	Sale cancelPayment(Long id);
 
-	// Historial (CU-16): las ventas entre dos fechas, incluidas las dos. Empleado y producto vacios no filtran.
-	List<Sale> getSales(LocalDate from, LocalDate to, String username, String product);
+	// Historial (CU-16): las ventas entre dos fechas, incluidas las dos.
+	// Empleado, producto y numero de operacion vacios no filtran.
+	List<Sale> getSales(LocalDate from, LocalDate to, String username, String product, String reference);
 }

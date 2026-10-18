@@ -81,6 +81,19 @@ class SaleHistoryApiTests {
 				.andExpect(jsonPath("$[0].username").value("admin"));
 	}
 
+	// CU-10: el numero de operacion encuentra la venta de un cobro del reporte de MercadoPago.
+	@Test
+	void filtersByOperationNumber() throws Exception {
+		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY).param("reference", "ORD-PRUEBA"))
+				.andExpect(status().isOk())
+				// Las dos ventas de la preparacion son en efectivo, asi que no tienen numero de operacion.
+				.andExpect(jsonPath("$.length()").value(0));
+
+		// Sin filtro siguen apareciendo las dos.
+		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY))
+				.andExpect(jsonPath("$.length()").value(2));
+	}
+
 	// CU-16 exc. 3a: no hay ventas en el periodo.
 	@Test
 	void anotherPeriodHasNoSales() throws Exception {

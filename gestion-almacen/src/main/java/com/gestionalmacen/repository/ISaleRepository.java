@@ -15,7 +15,8 @@ import com.gestionalmacen.entity.Sale;
 public interface ISaleRepository extends JpaRepository<Sale, Long> {
 
 	// Historial (CU-16): las ventas del periodo, de la mas nueva a la mas vieja.
-	// Empleado y producto son opcionales: vacios, no filtran. El producto se busca en los renglones de la venta.
+	// Empleado, producto y numero de operacion son opcionales: vacios, no filtran.
+	// El producto se busca en los renglones de la venta, y el numero de operacion en sus pagos (CU-10).
 	// JOIN FETCH: trae los renglones y el pago en la misma consulta, en lugar de hacer una consulta por venta.
 	// Dos ventas del mismo segundo se ordenan por numero: la base guarda la hora sin fracciones de segundo.
 	@Query("""
@@ -27,8 +28,12 @@ public interface ISaleRepository extends JpaRepository<Sale, Long> {
 			  AND (:product = '' OR EXISTS (
 			        SELECT d FROM SaleDetail d
 			        WHERE d.sale = s AND LOWER(d.productName) LIKE LOWER(CONCAT('%', :product, '%'))))
+			  AND (:reference = '' OR EXISTS (
+			        SELECT p FROM Payment p
+			        WHERE p.sale = s AND LOWER(p.externalReference) LIKE LOWER(CONCAT('%', :reference, '%'))))
 			ORDER BY s.dateTime DESC, s.id DESC
 			""")
 	List<Sale> search(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
-			@Param("username") String username, @Param("product") String product);
+			@Param("username") String username, @Param("product") String product,
+			@Param("reference") String reference);
 }

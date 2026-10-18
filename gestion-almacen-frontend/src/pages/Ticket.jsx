@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { findSale } from '../api/sales'
 import Message from '../components/Message'
-import { formatDateTime, formatPrice, formatTicketNumber, PAYMENT_METHODS } from '../utils/format'
+import { formatDateTime, formatPrice, formatTicketNumber, PAYMENT_METHODS, SALE_STATUS } from '../utils/format'
 
 // Ticket de una venta (RF-06 / CU-14). Se arma con los datos guardados de la venta, asi se puede volver a abrir.
 // Imprimir usa la impresora que elija el usuario, por ejemplo la de tickets (CU-15).
@@ -47,6 +47,9 @@ export default function Ticket() {
 
       <Message type="error" text={error} onClose={() => setError('')} />
       <Message type="success" text={success} onClose={() => setSuccess('')} />
+      {/* Una venta que no llego a cobrarse no es un comprobante: no se descuento stock ni entro dinero. */}
+      <Message type="warning" text={sale && sale.status !== 'CONFIRMADA'
+        && `Esta venta no está cobrada: ${SALE_STATUS[sale.status]}. No es un comprobante válido.`} />
 
       {sale && (
         <div className="ticket">
@@ -85,10 +88,18 @@ export default function Ticket() {
               <span>{formatPrice(sale.total)}</span>
             </div>
             {sale.payments.map((payment) => (
-              <div key={payment.id} className="ticket-line">
-                <span>Pago: {PAYMENT_METHODS[payment.method]}</span>
-                <span>{formatPrice(payment.amount)}</span>
-              </div>
+              <Fragment key={payment.id}>
+                <div className="ticket-line">
+                  <span>Pago: {PAYMENT_METHODS[payment.method]}</span>
+                  <span>{formatPrice(payment.amount)}</span>
+                </div>
+                {/* CU-10: el numero del cobro sale impreso, para poder cruzarlo con el reporte de MercadoPago. */}
+                {payment.externalReference && (
+                  <div className="ticket-line">
+                    <span>Operación N° {payment.externalReference}</span>
+                  </div>
+                )}
+              </Fragment>
             ))}
           </div>
 

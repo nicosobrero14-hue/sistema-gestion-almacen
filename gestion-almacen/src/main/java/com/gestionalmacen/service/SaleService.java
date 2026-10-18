@@ -203,12 +203,13 @@ public class SaleService implements ISaleService {
 	}
 
 	@Override
-	public List<Sale> getSales(LocalDate from, LocalDate to, String username, String product) {
+	public List<Sale> getSales(LocalDate from, LocalDate to, String username, String product, String reference) {
 		if (from.isAfter(to)) {
 			throw new BusinessRuleException("La fecha desde no puede ser posterior a la fecha hasta.");
 		}
 		// "Hasta" incluye todo ese dia: se busca hasta el comienzo del dia siguiente.
-		return saleRepository.search(from.atStartOfDay(), to.plusDays(1).atStartOfDay(), username.trim(), product.trim());
+		return saleRepository.search(from.atStartOfDay(), to.plusDays(1).atStartOfDay(), username.trim(),
+				product.trim(), reference.trim());
 	}
 
 	// El producto tiene que estar activo y tener stock suficiente (CU-07 exc. 5a, CU-08 exc. 4a).

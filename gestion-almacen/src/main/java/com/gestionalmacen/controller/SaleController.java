@@ -61,7 +61,8 @@ public class SaleController {
 	public List<Sale> getSales(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
 			@RequestParam(defaultValue = "") String username,
-			@RequestParam(defaultValue = "") String product) {
-		return saleService.getSales(from, to, username, product);
+			@RequestParam(defaultValue = "") String product,
+			@RequestParam(defaultValue = "") String reference) {
+		return saleService.getSales(from, to, username, product, reference);
 	}
 }

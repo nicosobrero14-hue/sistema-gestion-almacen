@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { findProductByBarcode, getProducts } from '../api/products'
-import { saveSale } from '../api/sales'
+import { cancelPayment, checkPayment, saveSale } from '../api/sales'
 import Message from '../components/Message'
 import TextField from '../components/TextField'
 import { isBarcode } from '../utils/barcode'
@@ -27,6 +27,8 @@ export default function NewSale({ isAdmin }) {
   const [discount, setDiscount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('EFECTIVO')
   const [cashReceived, setCashReceived] = useState('')
+  // Venta esperando que el cliente pague con MercadoPago (CU-10). null = no hay ninguna esperando.
+  const [waitingSaleId, setWaitingSaleId] = useState(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -50,6 +52,29 @@ export default function NewSale({ isAdmin }) {
     }, 300)
     return () => clearTimeout(timer)
   }, [search])
+
+  // CU-10 pasos 5 y 6: mientras el cobro esta abierto se le pregunta a MercadoPago cada dos segundos.
+  // El servidor es el que decide: esta pantalla solo mira como quedo la venta.
+  useEffect(() => {
+    if (waitingSaleId === null) return
+    const timer = setInterval(async () => {
+      let sale
+      try {
+        sale = await checkPayment(waitingSaleId)
+      } catch (e) {
+        return // un error puntual de red no corta la espera: se vuelve a preguntar
+      }
+      if (sale.status === 'CONFIRMADA') {
+        setWaitingSaleId(null)
+        navigate(`/sales/${sale.id}`, { state: { created: true } })
+      } else if (sale.status === 'CANCELADA') {
+        setWaitingSaleId(null)
+        setSaving(false)
+        setError('El cobro venció o se canceló. Puede intentar de nuevo o cobrar de otra forma.')
+      }
+    }, 2000)
+    return () => clearInterval(timer)
+  }, [waitingSaleId])
 
   // Agrega una unidad. Si el producto ya esta en el carrito, suma una mas a su renglon (CU-08).
   const addToCart = (product) => {
@@ -130,12 +155,55 @@ export default function NewSale({ isAdmin }) {
         discount: discount === '' ? null : Number(discount),
         paymentMethod,
       })
+      // Con MercadoPago la venta todavia no esta cobrada: queda esperando y el stock no se toco (CU-10).
+      if (sale.status === 'PENDIENTE_PAGO') {
+        setWaitingSaleId(sale.id)
+        return
+      }
       // CU-11 paso 7: la venta quedo registrada. Se muestra el ticket, y el carrito se vacia al salir de esta pantalla.
       navigate(`/sales/${sale.id}`, { state: { created: true } })
     } catch (e) {
       setError(e.message)
       setSaving(false)
     }
+  }
+
+  // CU-10 exc. 5a: el cliente se arrepiente o no llega a pagar.
+  const cancelCharge = async () => {
+    try {
+      await cancelPayment(waitingSaleId)
+    } catch (e) {
+      // Puede haber pagado justo mientras se cancelaba: si quedo confirmada, se va al ticket.
+      const sale = await checkPayment(waitingSaleId).catch(() => null)
+      if (sale?.status === 'CONFIRMADA') {
+        setWaitingSaleId(null)
+        navigate(`/sales/${sale.id}`, { state: { created: true } })
+        return
+      }
+      setError(e.message)
+    }
+    setWaitingSaleId(null)
+    setSaving(false)
+  }
+
+  // Mientras se espera el pago no se puede hacer otra cosa: la pantalla muestra solo el cobro.
+  if (waitingSaleId !== null) {
+    return (
+      <>
+        <h1>Nueva venta</h1>
+        <p className="subtitle">Cobro con MercadoPago.</p>
+
+        <div className="panel waiting-payment">
+          <h2>Esperando el pago</h2>
+          <strong className="card-value">{formatPrice(total)}</strong>
+          <p>El cliente tiene que escanear el código QR del mostrador y pagar desde su teléfono.</p>
+          <p className="help">La venta se confirma sola apenas entra el pago.</p>
+          <button type="button" className="button button-secondary" onClick={cancelCharge}>
+            Cancelar el cobro
+          </button>
+        </div>
+      </>
+    )
   }
 
   return (
@@ -283,6 +351,11 @@ export default function NewSale({ isAdmin }) {
                   onChange={(event) => setPaymentMethod(event.target.value)} />
                 Transferencia
               </label>
+              <label className="checkbox">
+                <input type="radio" name="paymentMethod" value="MERCADOPAGO" checked={paymentMethod === 'MERCADOPAGO'}
+                  onChange={(event) => setPaymentMethod(event.target.value)} />
+                MercadoPago
+              </label>
             </fieldset>
 
             {paymentMethod === 'EFECTIVO' && (
@@ -293,6 +366,11 @@ export default function NewSale({ isAdmin }) {
 
             {paymentMethod === 'TRANSFERENCIA' && (
               <p className="help">Confirme la venta cuando la transferencia figure acreditada.</p>
+            )}
+
+            {/* CU-10: el cobro lo genera MercadoPago sobre el QR que esta pegado en el mostrador. */}
+            {paymentMethod === 'MERCADOPAGO' && (
+              <p className="help">Al confirmar se genera el cobro y el cliente paga escaneando el QR del mostrador.</p>
             )}
 
             {/* Deshabilitado mientras guarda: evita que un doble clic registre la venta dos veces. */}

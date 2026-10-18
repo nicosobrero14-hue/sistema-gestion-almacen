@@ -709,6 +709,28 @@ a.button {
   font-size: 22px;
 }
 
+/* Pantalla de espera del cobro con MercadoPago (CU-10). */
+.waiting-payment {
+  max-width: 460px;
+  margin: 24px auto;
+  padding: 28px 24px;
+  text-align: center;
+}
+
+.waiting-payment .card-value {
+  display: block;
+  margin: 12px 0 18px;
+  font-size: 34px;
+}
+
+.waiting-payment p {
+  margin: 0 0 10px;
+}
+
+.waiting-payment .button {
+  margin-top: 14px;
+}
+
 .payment-methods {
   display: flex;
   gap: 20px;

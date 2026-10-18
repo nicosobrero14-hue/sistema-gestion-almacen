@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { getSales } from '../api/sales'
 import { getUsers } from '../api/users'
 import Message from '../components/Message'
-import { formatDateTime, formatPrice, formatTicketNumber, PAYMENT_METHODS } from '../utils/format'
+import { formatDateTime, formatPrice, formatTicketNumber, PAYMENT_METHODS, SALE_STATUS } from '../utils/format'
 
 // Fecha en el formato de los campos de fecha y de la API: 2026-09-21
 const toIsoDate = (date) =>
@@ -29,6 +29,7 @@ export default function SalesHistory() {
   const to = searchParams.get('to') ?? DEFAULT_TO
   const username = searchParams.get('username') ?? ''
   const product = searchParams.get('product') ?? ''
+  const reference = searchParams.get('reference') ?? ''
 
   const [sales, setSales] = useState([])
   const [users, setUsers] = useState([])
@@ -44,7 +45,7 @@ export default function SalesHistory() {
   // CU-16 paso 4: vuelve a buscar cuando cambia un filtro. Espera 300 ms a que se termine de escribir.
   useEffect(() => {
     const timer = setTimeout(() => {
-      getSales({ from, to, username, product })
+      getSales({ from, to, username, product, reference })
         .then((data) => {
           setSales(data)
           setError('')
@@ -55,7 +56,7 @@ export default function SalesHistory() {
         })
     }, 300)
     return () => clearTimeout(timer)
-  }, [from, to, username, product])
+  }, [from, to, username, product, reference])
 
   // Guarda el filtro en la direccion. Un campo vacio vuelve al valor por defecto.
   const changeFilter = (event) => {
@@ -69,8 +70,10 @@ export default function SalesHistory() {
   }
 
   // CU-16 paso 6: total recaudado en el periodo, y cuanto por cada forma de pago.
-  const total = sales.reduce((sum, sale) => sum + Number(sale.total), 0)
-  const totalByMethod = (method) => sales
+  // Solo cuentan las confirmadas: una venta cancelada aparece en la lista pero no entro a la caja.
+  const charged = sales.filter((sale) => sale.status === 'CONFIRMADA')
+  const total = charged.reduce((sum, sale) => sum + Number(sale.total), 0)
+  const totalByMethod = (method) => charged
     .flatMap((sale) => sale.payments)
     .filter((payment) => payment.method === method)
     .reduce((sum, payment) => sum + Number(payment.amount), 0)
@@ -108,14 +111,23 @@ export default function SalesHistory() {
           onChange={changeFilter}
           aria-label="Filtrar por producto"
         />
+        {/* CU-10: para encontrar la venta de un cobro que figura en el reporte de MercadoPago. */}
+        <input
+          type="search"
+          name="reference"
+          placeholder="N° de operación..."
+          value={reference}
+          onChange={changeFilter}
+          aria-label="Filtrar por número de operación"
+        />
       </div>
 
       <Message type="error" text={error} onClose={() => setError('')} />
 
       <div className="cards">
         <div className="card">
-          <span className="card-label">Ventas</span>
-          <strong className="card-value">{sales.length}</strong>
+          <span className="card-label">Ventas cobradas</span>
+          <strong className="card-value">{charged.length}</strong>
         </div>
         <div className="card">
           <span className="card-label">Total recaudado</span>
@@ -149,11 +161,22 @@ export default function SalesHistory() {
             <tbody>
               {sales.map((sale) => (
                 <tr key={sale.id}>
-                  <td>{formatTicketNumber(sale.id)}</td>
+                  <td>
+                    {formatTicketNumber(sale.id)}
+                    {/* Lo normal es que este cobrada: solo se marca la que no lo esta. */}
+                    {sale.status !== 'CONFIRMADA' && (
+                      <div><span className="chip chip-inactive">{SALE_STATUS[sale.status]}</span></div>
+                    )}
+                  </td>
                   <td className="nowrap">{formatDateTime(sale.dateTime)}</td>
                   <td>{sale.username}</td>
                   <td>{productsText(sale)}</td>
-                  <td>{sale.payments.map((payment) => PAYMENT_METHODS[payment.method]).join(', ')}</td>
+                  <td>
+                    {sale.payments.map((payment) => PAYMENT_METHODS[payment.method]).join(', ')}
+                    {sale.payments.filter((payment) => payment.externalReference).map((payment) => (
+                      <div key={payment.id}><small className="help">N° {payment.externalReference}</small></div>
+                    ))}
+                  </td>
                   <td className="right">{formatPrice(sale.total)}</td>
                   {/* CU-16 paso 5: el detalle de la venta es su ticket. */}
                   <td className="actions">
