@@ -42,7 +42,20 @@ public class SaleController {
 		return saleService.findSale(id);
 	}
 
-	//3- historial de ventas entre dos fechas, por empleado o por producto (CU-16). Solo el administrador
+	//3- estado del cobro: le pregunta a MercadoPago y resuelve la venta si ya se definio (CU-10)
+	// La pantalla de la venta la llama cada pocos segundos mientras el cliente paga.
+	@GetMapping("/{id}/payment")
+	public Sale checkPayment(@PathVariable Long id) {
+		return saleService.checkPayment(id);
+	}
+
+	//4- dar de baja el cobro: el cliente ya no puede pagarlo (CU-10 exc. 5a)
+	@PostMapping("/{id}/payment/cancel")
+	public Sale cancelPayment(@PathVariable Long id) {
+		return saleService.cancelPayment(id);
+	}
+
+	//5- historial de ventas entre dos fechas, por empleado o por producto (CU-16). Solo el administrador
 	// Las fechas llegan como 2026-09-21.
 	@GetMapping
 	public List<Sale> getSales(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,

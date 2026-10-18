@@ -14,6 +14,12 @@ public interface ISaleService {
 
 	Sale findSale(Long id);
 
+	// Le pregunta a MercadoPago como viene el cobro y resuelve la venta si ya se definio (CU-10).
+	Sale checkPayment(Long id);
+
+	// Da de baja el cobro y cancela la venta (CU-10 exc. 5a).
+	Sale cancelPayment(Long id);
+
 	// Historial (CU-16): las ventas entre dos fechas, incluidas las dos. Empleado y producto vacios no filtran.
 	List<Sale> getSales(LocalDate from, LocalDate to, String username, String product);
 }
