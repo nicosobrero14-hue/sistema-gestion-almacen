@@ -55,10 +55,21 @@ public class SaleService implements ISaleService {
 	public Sale saveSale(SaleDTO saleDTO) {
 		User user = userService.getSessionUser();
 
+		Sale sale = this.buildSale(saleDTO, user);
+		// Guarda la venta con sus renglones y su pago. Desde aca la venta ya tiene su numero.
+		saleRepository.save(sale);
+
+		// En efectivo y por transferencia el cobro ya esta hecho, asi que se confirma en el acto (CU-09).
+		this.confirmSale(sale, user);
+		return sale;
+	}
+
+	// Arma la venta en memoria: los renglones, los totales y el pago. Todavia no toca el stock.
+	private Sale buildSale(SaleDTO saleDTO, User user) {
 		Sale sale = new Sale();
 		sale.setUser(user);
 		sale.setUsername(user.getUsername());
-		sale.setStatus(SaleStatus.CONFIRMADA);
+		sale.setStatus(SaleStatus.PENDIENTE_PAGO);
 
 		//1- arma los renglones con el precio de hoy y controla el stock de cada producto
 		BigDecimal subtotal = BigDecimal.ZERO;
@@ -86,19 +97,25 @@ public class SaleService implements ISaleService {
 		sale.setDiscount(discount);
 		sale.setTotal(subtotal.subtract(discount));
 
-		//3- el pago: en efectivo o por transferencia se cobra en el momento, asi que queda aprobado (CU-09)
+		//3- el pago queda pendiente hasta que se confirme el cobro (CU-09)
 		Payment payment = new Payment();
 		payment.setSale(sale);
 		payment.setMethod(saleDTO.getPaymentMethod());
 		payment.setAmount(sale.getTotal());
-		payment.setStatus(PaymentStatus.APROBADO);
-		payment.setConfirmedAt(LocalDateTime.now());
+		payment.setStatus(PaymentStatus.PENDIENTE);
 		sale.getPayments().add(payment);
+		return sale;
+	}
 
-		// Guarda la venta con sus renglones y su pago. Desde aca la venta ya tiene su numero.
-		saleRepository.save(sale);
+	// Da el cobro por hecho: aprueba el pago, descuenta el stock y deja un movimiento por producto (CU-12).
+	// Lo llama la venta en efectivo o por transferencia apenas se registra.
+	private void confirmSale(Sale sale, User user) {
+		sale.setStatus(SaleStatus.CONFIRMADA);
+		for (Payment payment : sale.getPayments()) {
+			payment.setStatus(PaymentStatus.APROBADO);
+			payment.setConfirmedAt(LocalDateTime.now());
+		}
 
-		//4- descuenta el stock y deja un movimiento por producto, con el numero de venta (CU-12)
 		for (SaleDetail detail : sale.getDetails()) {
 			Product product = detail.getProduct();
 			int previousStock = product.getStock();
@@ -110,7 +127,6 @@ public class SaleService implements ISaleService {
 			movement.setSale(sale);
 			movementRepository.save(movement);
 		}
-		return sale;
 	}
 
 	@Override
