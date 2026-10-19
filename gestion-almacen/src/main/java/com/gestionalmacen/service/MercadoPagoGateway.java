@@ -3,12 +3,16 @@ package com.gestionalmacen.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
@@ -25,6 +29,7 @@ import com.gestionalmacen.exception.BusinessRuleException;
 @Profile("!test")
 public class MercadoPagoGateway implements IPaymentGateway {
 
+	private static final Logger log = LoggerFactory.getLogger(MercadoPagoGateway.class);
 	private static final String API = "https://api.mercadopago.com/v1/orders";
 	private static final ParameterizedTypeReference<Map<String, Object>> RESPUESTA = new ParameterizedTypeReference<>() {
 	};
@@ -117,12 +122,17 @@ public class MercadoPagoGateway implements IPaymentGateway {
 				.build();
 	}
 
-	// Si MercadoPago no responde o rechaza el pedido, el cajero tiene que ver un mensaje util
-	// y no un error 500. El detalle queda en el log del manejador global.
-	private Map<String, Object> pedir(java.util.function.Supplier<Map<String, Object>> llamada) {
+	// Si MercadoPago no responde o rechaza el pedido, el cajero tiene que ver un mensaje util y no un
+	// error 500. El detalle va al log: sin eso, un rechazo de MercadoPago no se puede diagnosticar.
+	private Map<String, Object> pedir(Supplier<Map<String, Object>> llamada) {
 		try {
 			return llamada.get();
+		} catch (HttpStatusCodeException e) {
+			// Respondio, pero rechazando. Casi siempre es configuracion: credenciales o permisos de la cuenta.
+			log.error("MercadoPago rechazo el pedido con {}: {}", e.getStatusCode(), e.getResponseBodyAsString());
+			throw new BusinessRuleException("MercadoPago rechazó el cobro. Revise la configuración o cobre de otra forma.");
 		} catch (RestClientException e) {
+			log.error("No hubo respuesta de MercadoPago", e);
 			throw new BusinessRuleException("No se pudo contactar a MercadoPago. Intente de nuevo o cobre de otra forma.");
 		}
 	}
