@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS ventas (
     id_venta   BIGINT        NOT NULL AUTO_INCREMENT,
     fecha_hora DATETIME      NOT NULL,
     id_usuario BIGINT        NULL,
+    nombre_empleado VARCHAR(120) NOT NULL DEFAULT '',  -- copia: es lo que se muestra en el ticket
     username   VARCHAR(50)   NOT NULL,            -- copia: quién hizo la venta
     subtotal   DECIMAL(10,2) NOT NULL,            -- suma de las líneas
     descuento  DECIMAL(10,2) NOT NULL DEFAULT 0,

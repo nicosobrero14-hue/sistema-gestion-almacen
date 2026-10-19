@@ -57,7 +57,7 @@ export default function Ticket() {
             <strong>Comprobante de venta</strong>
             <span>Ticket N° {formatTicketNumber(sale.id)}</span>
             <span>{formatDateTime(sale.dateTime)}</span>
-            <span>Atendió: {sale.username}</span>
+            <span>Atendió: {sale.employeeName || sale.username}</span>
           </div>
 
           <div className="ticket-lines">

@@ -23,6 +23,16 @@ ALTER TABLE detalle_venta
     ADD COLUMN unidad_venta VARCHAR(10) NOT NULL DEFAULT 'UNIDAD' AFTER precio_unitario,
     ADD CONSTRAINT ck_detalle_unidad CHECK (unidad_venta IN ('UNIDAD', 'KG'));
 
+-- El ticket y el historial muestran el nombre del empleado, no su usuario.
+-- Las ventas ya registradas se completan con el nombre que figura en usuarios.
+ALTER TABLE ventas
+    ADD COLUMN nombre_empleado VARCHAR(120) NOT NULL DEFAULT '' AFTER id_usuario;
+
+UPDATE ventas v
+    JOIN usuarios u ON u.id_usuario = v.id_usuario
+    SET v.nombre_empleado = CONCAT(u.nombre, ' ', u.apellido)
+    WHERE v.nombre_empleado = '';
+
 ALTER TABLE movimientos_stock
     MODIFY stock_anterior DECIMAL(10,3) NOT NULL,
     MODIFY stock_nuevo    DECIMAL(10,3) NOT NULL;

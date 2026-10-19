@@ -169,7 +169,7 @@ export default function SalesHistory() {
                     )}
                   </td>
                   <td className="nowrap">{formatDateTime(sale.dateTime)}</td>
-                  <td>{sale.username}</td>
+                  <td>{sale.employeeName || sale.username}</td>
                   <td>{productsText(sale)}</td>
                   <td>
                     {sale.payments.map((payment) => PAYMENT_METHODS[payment.method]).join(', ')}
