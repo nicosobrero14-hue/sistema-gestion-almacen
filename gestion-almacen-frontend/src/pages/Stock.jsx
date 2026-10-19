@@ -4,6 +4,7 @@ import { getProducts } from '../api/products'
 import Message from '../components/Message'
 import StockAdjustmentForm from './StockAdjustmentForm'
 import StockMovements from './StockMovements'
+import { formatQuantity } from '../utils/format'
 
 // Pantalla de stock (RF-02 / CU-04): stock actual y minimo de cada producto, ajuste manual y movimientos.
 export default function Stock() {
