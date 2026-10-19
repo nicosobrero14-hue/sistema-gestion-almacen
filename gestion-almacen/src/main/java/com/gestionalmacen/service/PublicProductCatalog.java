@@ -12,7 +12,7 @@ import org.springframework.web.client.RestClientException;
 
 import com.gestionalmacen.dto.ProductSuggestionDTO;
 
-// Catalogo publico de productos: se consulta el codigo de barras para sugerir los datos
+// Catalogos publicos de productos: se consulta el codigo de barras para sugerir los datos
 // de un producto que el comercio todavia no tiene cargado (CU-03).
 //
 // Es una base abierta y gratuita, sin credenciales. La cobertura es parcial: los productos
@@ -21,19 +21,37 @@ import com.gestionalmacen.dto.ProductSuggestionDTO;
 // @Profile("!test"): las pruebas usan un catalogo falso y no dependen de internet.
 @Service
 @Profile("!test")
-public class OpenFoodFactsCatalog implements IProductCatalog {
+public class PublicProductCatalog implements IProductCatalog {
 
-	private static final Logger log = LoggerFactory.getLogger(OpenFoodFactsCatalog.class);
-	private static final String API = "https://world.openfoodfacts.org";
+	private static final Logger log = LoggerFactory.getLogger(PublicProductCatalog.class);
+	// Las bases del mismo proyecto, una por rubro. Un almacen vende de todas: la de alimentos
+	// no conoce un desodorante y la de cosmetica no conoce una yerba. Se consultan en orden
+	// y gana la primera que lo tenga.
+	private static final String[] BASES = {
+			"https://world.openfoodfacts.org",    // alimentos y bebidas
+			"https://world.openbeautyfacts.org",  // higiene y cosmetica
+			"https://world.openproductsfacts.org", // el resto
+			"https://world.openpetfoodfacts.org", // alimento para mascotas
+	};
 	private static final ParameterizedTypeReference<Map<String, Object>> RESPUESTA = new ParameterizedTypeReference<>() {
 	};
 
 	@Override
 	public ProductSuggestionDTO findByBarcode(String barcode) {
+		for (String base : BASES) {
+			ProductSuggestionDTO suggestion = this.search(base, barcode);
+			if (suggestion != null) {
+				return suggestion;
+			}
+		}
+		return null;
+	}
+
+	private ProductSuggestionDTO search(String base, String barcode) {
 		Map<String, Object> respuesta;
 		try {
 			respuesta = RestClient.builder()
-					.baseUrl(API)
+					.baseUrl(base)
 					// El catalogo pide identificar a quien consulta.
 					.defaultHeader("User-Agent", "SistemaGestionAlmacen/1.0 (proyecto academico)")
 					.build()
@@ -42,8 +60,8 @@ public class OpenFoodFactsCatalog implements IProductCatalog {
 					.retrieve()
 					.body(RESPUESTA);
 		} catch (RestClientException e) {
-			// Sin internet o con el catalogo caido se carga a mano, como siempre.
-			log.warn("No se pudo consultar el catalogo de productos: {}", e.getMessage());
+			// Sin internet o con una base caida se sigue con la que viene, y si no se carga a mano.
+			log.warn("No se pudo consultar {}: {}", base, e.getMessage());
 			return null;
 		}
 
