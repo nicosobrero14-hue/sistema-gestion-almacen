@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { activateProduct, deactivateProduct, findProductByBarcode, getProducts } from '../api/products'
 import Message from '../components/Message'
 import { isBarcode } from '../utils/barcode'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatProductPrice, formatQuantity } from '../utils/format'
 import ProductForm from './ProductForm'
 
 // Pantalla del catalogo de productos (RF-01 / CU-02, CU-20).
@@ -73,7 +73,7 @@ export default function Products({ isAdmin }) {
       if (product.active) {
         // CU-02 exc. 3b: si todavia tiene stock, se avisa antes de darlo de baja.
         const question = product.stock > 0
-          ? `"${product.name}" todavía tiene ${product.stock} unidades en stock. ¿Darlo de baja igual?`
+          ? `"${product.name}" todavía tiene ${formatQuantity(product.stock, product.saleUnit)} en stock. ¿Darlo de baja igual?`
           : `¿Dar de baja "${product.name}"?`
         if (!window.confirm(question)) return
         await deactivateProduct(product.id)
@@ -149,17 +149,19 @@ export default function Products({ isAdmin }) {
                   <td className="right">
                     {product.onOffer ? (
                       <span className="offer-price">
-                        <s>{formatPrice(product.price)}</s> {formatPrice(product.offerPrice)}
+                        <s>{formatProductPrice(product.price, product.saleUnit)}</s>{' '}
+                        {formatProductPrice(product.offerPrice, product.saleUnit)}
                       </span>
                     ) : (
-                      formatPrice(product.price)
+                      formatProductPrice(product.price, product.saleUnit)
                     )}
                   </td>
                   {/* Stock bajo: color y simbolo, para que se entienda sin distinguir colores (RNF-03). */}
                   <td className={product.lowStock ? 'right low-stock' : 'right'}>
-                    {product.stock} {product.lowStock && <span title="Stock por debajo del mínimo">⚠</span>}
+                    {formatQuantity(product.stock, product.saleUnit)}{' '}
+                    {product.lowStock && <span title="Stock por debajo del mínimo">⚠</span>}
                   </td>
-                  <td className="right">{product.minimumStock}</td>
+                  <td className="right">{formatQuantity(product.minimumStock, product.saleUnit)}</td>
                   <td>{product.supplier?.name ?? '—'}</td>
                   <td>
                     <span className={product.active ? 'chip chip-active' : 'chip chip-inactive'}>

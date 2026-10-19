@@ -5,7 +5,7 @@ import { cancelPayment, checkPayment, saveSale } from '../api/sales'
 import Message from '../components/Message'
 import TextField from '../components/TextField'
 import { isBarcode } from '../utils/barcode'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatQuantity } from '../utils/format'
 import ProductForm from './ProductForm'
 
 // El error de un renglon del carrito, o null si la cantidad esta bien (CU-08 exc. 3a y 4a).
@@ -83,7 +83,7 @@ export default function NewSale({ isAdmin }) {
 
     // CU-07 exc. 5a: no se puede superar el stock disponible.
     if (quantity > product.stock) {
-      setError(`Solo hay ${product.stock} unidades de "${product.name}".`)
+      setError(`Solo hay ${formatQuantity(product.stock, product.saleUnit)} de "${product.name}".`)
       return
     }
 
@@ -263,7 +263,9 @@ export default function NewSale({ isAdmin }) {
                         formatPrice(product.salePrice)
                       )}
                     </td>
-                    <td className={product.lowStock ? 'right low-stock' : 'right'}>{product.stock}</td>
+                    <td className={product.lowStock ? 'right low-stock' : 'right'}>
+                      {formatQuantity(product.stock, product.saleUnit)}
+                    </td>
                     <td className="actions">
                       <button type="button" className="button button-small" onClick={() => addToCart(product)}
                         disabled={product.stock === 0}>
@@ -303,6 +305,7 @@ export default function NewSale({ isAdmin }) {
                         type="number"
                         min="1"
                         max={line.product.stock}
+                        step={line.product.saleUnit === 'KG' ? '0.001' : '1'}
                         className={quantityError(line) ? 'quantity has-error' : 'quantity'}
                         value={line.quantity}
                         onChange={(event) => changeQuantity(line.product.id, event.target.value)}

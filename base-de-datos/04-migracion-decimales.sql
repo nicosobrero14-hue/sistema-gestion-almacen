@@ -19,7 +19,9 @@ ALTER TABLE productos
     ADD CONSTRAINT ck_productos_unidad CHECK (unidad_venta IN ('UNIDAD', 'KG'));
 
 ALTER TABLE detalle_venta
-    MODIFY cantidad DECIMAL(10,3) NOT NULL;
+    MODIFY cantidad DECIMAL(10,3) NOT NULL,
+    ADD COLUMN unidad_venta VARCHAR(10) NOT NULL DEFAULT 'UNIDAD' AFTER precio_unitario,
+    ADD CONSTRAINT ck_detalle_unidad CHECK (unidad_venta IN ('UNIDAD', 'KG'));
 
 ALTER TABLE movimientos_stock
     MODIFY stock_anterior DECIMAL(10,3) NOT NULL,

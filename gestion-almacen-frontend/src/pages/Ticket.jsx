@@ -2,7 +2,7 @@ import { Fragment, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { findSale } from '../api/sales'
 import Message from '../components/Message'
-import { formatDateTime, formatPrice, formatTicketNumber, PAYMENT_METHODS, SALE_STATUS } from '../utils/format'
+import { formatDateTime, formatPrice, formatTicketNumber, PAYMENT_METHODS, SALE_STATUS, formatQuantity, formatProductPrice } from '../utils/format'
 
 // Ticket de una venta (RF-06 / CU-14). Se arma con los datos guardados de la venta, asi se puede volver a abrir.
 // Imprimir usa la impresora que elija el usuario, por ejemplo la de tickets (CU-15).
@@ -63,9 +63,9 @@ export default function Ticket() {
           <div className="ticket-lines">
             {sale.details.map((detail) => (
               <div key={detail.id} className="ticket-line">
-                <span>{detail.quantity} x {detail.productName}</span>
+                <span>{formatQuantity(detail.quantity, detail.saleUnit)} x {detail.productName}</span>
                 <span className="ticket-amounts">
-                  <small>{formatPrice(detail.unitPrice)} c/u</small>
+                  <small>{formatProductPrice(detail.unitPrice, detail.saleUnit)}{detail.saleUnit === 'KG' ? '' : ' c/u'}</small>
                   {formatPrice(detail.subtotal)}
                 </span>
               </div>

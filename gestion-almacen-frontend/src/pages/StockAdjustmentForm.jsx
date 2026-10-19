@@ -3,6 +3,7 @@ import { adjustStock } from '../api/stock'
 import Message from '../components/Message'
 import Modal from '../components/Modal'
 import TextField from '../components/TextField'
+import { formatQuantity } from '../utils/format'
 
 // Un campo vacio viaja como null, asi el backend avisa que es obligatorio en vez de recibir un cero.
 const toNumber = (value) => (value === '' ? null : Number(value))
@@ -18,7 +19,8 @@ export default function StockAdjustmentForm({ product, onSaved, onCancel }) {
 
   // Muestra cuanto sube o baja el stock mientras se escribe, para evitar errores de tipeo.
   const difference = data.newStock === '' ? null : Number(data.newStock) - product.stock
-  const differenceText = difference === null ? null : `Diferencia: ${difference > 0 ? '+' : ''}${difference}`
+  const differenceText = difference === null ? null
+    : `Diferencia: ${difference > 0 ? '+' : ''}${formatQuantity(difference, product.saleUnit)}`
 
   const onSubmit = async (event) => {
     event.preventDefault()
@@ -40,14 +42,15 @@ export default function StockAdjustmentForm({ product, onSaved, onCancel }) {
   return (
     <Modal title={`Ajustar stock: ${product.name}`} onClose={onCancel}>
       <p className="stock-summary">
-        Stock actual: <strong>{product.stock}</strong>
+        Stock actual: <strong>{formatQuantity(product.stock, product.saleUnit)}</strong>
         <span>Mínimo: <strong>{product.minimumStock}</strong></span>
       </p>
 
       <Message text={error} onClose={() => setError('')} />
 
       <form onSubmit={onSubmit} noValidate>
-        <TextField name="newStock" label="Stock nuevo" type="number" min="0" value={data.newStock}
+        <TextField name="newStock" label={'Stock nuevo' + (product.saleUnit === 'KG' ? ' en kg' : '')}
+          type="number" min="0" step={product.saleUnit === 'KG' ? '0.001' : '1'} value={data.newStock}
           onChange={onChange} error={errors.newStock} required autoFocus
           help={differenceText ?? 'La cantidad que hay ahora en el comercio'} />
 

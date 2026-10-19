@@ -3,7 +3,7 @@ import { putOnOffer } from '../api/offers'
 import Message from '../components/Message'
 import Modal from '../components/Modal'
 import TextField from '../components/TextField'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatQuantity } from '../utils/format'
 
 // Poner un producto en oferta con su precio especial (CU-19 paso 4).
 export default function OfferForm({ product, onSaved, onCancel }) {
@@ -36,7 +36,7 @@ export default function OfferForm({ product, onSaved, onCancel }) {
     <Modal title={`Poner en oferta: ${product.name}`} onClose={onCancel}>
       <p className="stock-summary">
         Precio normal: <strong>{formatPrice(product.price)}</strong>
-        <span>Stock: <strong>{product.stock}</strong></span>
+        <span>Stock: <strong>{formatQuantity(product.stock, product.saleUnit)}</strong></span>
       </p>
 
       <Message text={error} onClose={() => setError('')} />

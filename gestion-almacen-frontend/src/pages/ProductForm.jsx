@@ -4,6 +4,7 @@ import { getSuppliers } from '../api/suppliers'
 import Message from '../components/Message'
 import Modal from '../components/Modal'
 import TextField from '../components/TextField'
+import { SALE_UNITS } from '../utils/format'
 
 const EMPTY = {
   name: '',
@@ -11,6 +12,7 @@ const EMPTY = {
   price: '',
   stock: 0,
   minimumStock: 0,
+  saleUnit: 'UNIDAD',
   barcode: '',
   expirationDate: '',
   onOffer: false,
@@ -28,6 +30,8 @@ const toNumber = (value) => (value === '' ? null : Number(value))
 // onSaved recibe el mensaje y el producto guardado.
 export default function ProductForm({ product, barcode = '', isAdmin, onSaved, onCancel }) {
   const canEditPrice = isAdmin || !product
+  // Por peso cambian las etiquetas y los campos admiten decimales.
+  const porPeso = data.saleUnit === 'KG'
 
   const [data, setData] = useState(
     product ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '' } : { ...EMPTY, barcode },
@@ -97,19 +101,34 @@ export default function ProductForm({ product, barcode = '', isAdmin, onSaved, o
           error={errors.description} maxLength={255} />
 
         <div className="fields-row">
-          <TextField name="price" label="Precio" type="number" step="0.01" min="0" value={data.price}
-            onChange={onChange} error={errors.price} required disabled={!canEditPrice}
+          {/* RF-12: define si el precio es por unidad o por kilo, y como se carga en una venta. */}
+          <div className="field">
+            <label htmlFor="saleUnit">Unidad de venta</label>
+            <select id="saleUnit" name="saleUnit" value={data.saleUnit} onChange={onChange}>
+              {Object.keys(SALE_UNITS).map((unit) => (
+                <option key={unit} value={unit}>{SALE_UNITS[unit]}</option>
+              ))}
+            </select>
+            <small className="help">Por kilo: se pesa al venderlo</small>
+          </div>
+          <TextField name="price" label={porPeso ? 'Precio por kilo' : 'Precio'} type="number" step="0.01" min="0"
+            value={data.price} onChange={onChange} error={errors.price} required disabled={!canEditPrice}
             help={canEditPrice ? null : 'Solo el administrador modifica precios'} />
+        </div>
+
+        <div className="fields-row">
           <TextField name="barcode" label="Código de barras" value={data.barcode} onChange={onChange}
             error={errors.barcode} maxLength={64} help="Opcional" />
         </div>
 
         <div className="fields-row">
           {/* El stock se carga solo en el alta. Despues se ajusta desde la pantalla de stock. */}
-          <TextField name="stock" label={product ? 'Stock actual' : 'Stock inicial'} type="number" min="0" value={data.stock}
+          <TextField name="stock" label={(product ? 'Stock actual' : 'Stock inicial') + (porPeso ? ' en kg' : '')}
+            type="number" min="0" step={porPeso ? '0.001' : '1'} value={data.stock}
             onChange={onChange} error={errors.stock} required disabled={Boolean(product)}
             help={product ? 'Se ajusta desde la pantalla de stock' : null} />
-          <TextField name="minimumStock" label="Stock mínimo" type="number" min="0" value={data.minimumStock}
+          <TextField name="minimumStock" label={'Stock mínimo' + (porPeso ? ' en kg' : '')}
+            type="number" min="0" step={porPeso ? '0.001' : '1'} value={data.minimumStock}
             onChange={onChange} error={errors.minimumStock} required help="Umbral de la alerta de stock bajo" />
         </div>
 

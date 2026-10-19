@@ -40,7 +40,7 @@ export default function Stock() {
     setWarning('')
     // CU-04 paso 7: si el stock quedo en el minimo o por debajo, se avisa que ya figura en las alertas.
     if (product.lowStock) {
-      setWarning(`El stock de "${product.name}" quedó en ${product.stock}, por debajo del mínimo de ${product.minimumStock}. Ya figura en las alertas del panel principal.`)
+      setWarning(`El stock de "${product.name}" quedó en ${formatQuantity(product.stock, product.saleUnit)}, por debajo del mínimo de ${formatQuantity(product.minimumStock, product.saleUnit)}. Ya figura en las alertas del panel principal.`)
     } else {
       setSuccess(`El stock de "${product.name}" quedó en ${product.stock}.`)
     }
@@ -93,9 +93,10 @@ export default function Stock() {
                   <td>{product.name}</td>
                   <td>{product.barcode ?? '—'}</td>
                   <td className={product.lowStock ? 'right low-stock' : 'right'}>
-                    {product.stock} {product.lowStock && <span title="Stock por debajo del mínimo">⚠</span>}
+                    {formatQuantity(product.stock, product.saleUnit)}{' '}
+                    {product.lowStock && <span title="Stock por debajo del mínimo">⚠</span>}
                   </td>
-                  <td className="right">{product.minimumStock}</td>
+                  <td className="right">{formatQuantity(product.minimumStock, product.saleUnit)}</td>
                   <td>
                     <span className={product.lowStock ? 'chip chip-warning' : 'chip chip-active'}>
                       {product.lowStock ? 'Stock bajo' : 'Normal'}
