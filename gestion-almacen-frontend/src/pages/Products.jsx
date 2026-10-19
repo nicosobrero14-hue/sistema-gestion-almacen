@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { activateProduct, deactivateProduct, findProductByBarcode, getProducts } from '../api/products'
+import { activateProduct, deactivateProduct, findProductByBarcode, getProducts, suggestProduct } from '../api/products'
 import Message from '../components/Message'
 import { isBarcode } from '../utils/barcode'
 import { formatPrice, formatProductPrice, formatQuantity } from '../utils/format'
@@ -24,6 +24,8 @@ export default function Products({ isAdmin }) {
 
   // Codigo leido que no corresponde a ningun producto (CU-03 paso 6).
   const [missingBarcode, setMissingBarcode] = useState('')
+  // Datos que sugiere el catalogo publico para ese codigo, si lo conoce.
+  const [suggestion, setSuggestion] = useState(null)
 
   const load = () => {
     getProducts(search, activeOnly)
@@ -42,15 +44,17 @@ export default function Products({ isAdmin }) {
     setFormOpen(true)
   }
 
-  // Un alta comun empieza con el formulario vacio, sin el codigo de un escaneo anterior.
+  // Un alta comun empieza con el formulario vacio, sin el codigo ni la sugerencia de un escaneo anterior.
   const newProduct = () => {
     setMissingBarcode('')
+    setSuggestion(null)
     openForm(null)
   }
 
   const onSaved = (message) => {
     setFormOpen(false)
     setMissingBarcode('')
+    setSuggestion(null)
     setSuccess(message)
     load()
   }
@@ -59,12 +63,19 @@ export default function Products({ isAdmin }) {
   const onSearchKeyDown = async (event) => {
     if (event.key !== 'Enter' || !isBarcode(search)) return
     setMissingBarcode('')
+    setSuggestion(null)
     try {
       openForm(await findProductByBarcode(search.trim()))
     } catch (e) {
-      // CU-03 paso 6: si el codigo no existe, se ofrece darlo de alta.
-      if (e.status === 404) setMissingBarcode(search.trim())
-      else setError(e.message)
+      if (e.status !== 404) {
+        setError(e.message)
+        return
+      }
+      // CU-03 paso 6: si el codigo no existe, se ofrece darlo de alta y se le piden
+      // al catalogo publico los datos del producto. Que no los tenga es normal.
+      const code = search.trim()
+      setMissingBarcode(code)
+      suggestProduct(code).then(setSuggestion).catch(() => setSuggestion(null))
     }
   }
 
@@ -117,8 +128,10 @@ export default function Products({ isAdmin }) {
 
       <Message type="error" text={error} onClose={() => setError('')} />
       <Message type="success" text={success} onClose={() => setSuccess('')} />
-      <Message type="warning" text={missingBarcode && `No hay ningún producto con el código ${missingBarcode}.`}
-        onClose={() => setMissingBarcode('')}>
+      <Message type="warning" text={missingBarcode && (suggestion
+        ? `No hay ningún producto con el código ${missingBarcode}. Según el catálogo público es "${suggestion.name}".`
+        : `No hay ningún producto con el código ${missingBarcode}.`)}
+        onClose={() => { setMissingBarcode(''); setSuggestion(null) }}>
         <button type="button" className="button button-small" onClick={() => openForm(null)}>
           Dar de alta con ese código
         </button>
@@ -184,7 +197,8 @@ export default function Products({ isAdmin }) {
       )}
 
       {formOpen && (
-        <ProductForm product={selected} barcode={missingBarcode} isAdmin={isAdmin} onSaved={onSaved}
+        <ProductForm product={selected} barcode={missingBarcode} suggestedName={suggestion?.name ?? ''}
+          isAdmin={isAdmin} onSaved={onSaved}
           onCancel={() => setFormOpen(false)} />
       )}
     </>

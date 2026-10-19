@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { findProductByBarcode, getProducts } from '../api/products'
+import { findProductByBarcode, getProducts, suggestProduct } from '../api/products'
 import { cancelPayment, checkPayment, saveSale } from '../api/sales'
 import Message from '../components/Message'
 import TextField from '../components/TextField'
@@ -35,6 +35,8 @@ export default function NewSale({ isAdmin }) {
   // Codigo leido que no corresponde a ningun producto, y el formulario para darlo de alta (CU-03 paso 6).
   const [missingBarcode, setMissingBarcode] = useState('')
   const [productFormOpen, setProductFormOpen] = useState(false)
+  // Datos que sugiere el catalogo publico para ese codigo, si lo conoce.
+  const [suggestion, setSuggestion] = useState(null)
 
   // El buscador vuelve a tener el foco despues de cada producto agregado: el lector escribe donde esta el foco.
   const searchRef = useRef(null)
@@ -115,9 +117,15 @@ export default function NewSale({ isAdmin }) {
       addToCart(product)
       setSearch('') // el buscador queda listo para el proximo producto
     } catch (e) {
-      // CU-03 paso 6: si el codigo no existe, se ofrece darlo de alta.
-      if (e.status === 404) setMissingBarcode(search.trim())
-      else setError(e.message)
+      if (e.status !== 404) {
+        setError(e.message)
+        return
+      }
+      // CU-03 paso 6: si el codigo no existe, se ofrece darlo de alta y se le piden
+      // al catalogo publico los datos del producto. Que no los tenga es normal.
+      const code = search.trim()
+      setMissingBarcode(code)
+      suggestProduct(code).then(setSuggestion).catch(() => setSuggestion(null))
     }
   }
 
@@ -125,6 +133,7 @@ export default function NewSale({ isAdmin }) {
   const onProductCreated = (message, product) => {
     setProductFormOpen(false)
     setMissingBarcode('')
+    setSuggestion(null)
     setSearch('')
     addToCart(product)
   }
@@ -212,8 +221,10 @@ export default function NewSale({ isAdmin }) {
       <p className="subtitle">Busque los productos por nombre o código, o léalos con el lector, y agréguelos al carrito.</p>
 
       <Message type="error" text={error} onClose={() => setError('')} />
-      <Message type="warning" text={missingBarcode && `No hay ningún producto con el código ${missingBarcode}.`}
-        onClose={() => setMissingBarcode('')}>
+      <Message type="warning" text={missingBarcode && (suggestion
+        ? `No hay ningún producto con el código ${missingBarcode}. Según el catálogo público es "${suggestion.name}".`
+        : `No hay ningún producto con el código ${missingBarcode}.`)}
+        onClose={() => { setMissingBarcode(''); setSuggestion(null) }}>
         <button type="button" className="button button-small" onClick={() => setProductFormOpen(true)}>
           Dar de alta con ese código
         </button>
@@ -385,8 +396,8 @@ export default function NewSale({ isAdmin }) {
       </div>
 
       {productFormOpen && (
-        <ProductForm product={null} barcode={missingBarcode} isAdmin={isAdmin} onSaved={onProductCreated}
-          onCancel={() => setProductFormOpen(false)} />
+        <ProductForm product={null} barcode={missingBarcode} suggestedName={suggestion?.name ?? ''}
+          isAdmin={isAdmin} onSaved={onProductCreated} onCancel={() => setProductFormOpen(false)} />
       )}
     </>
   )

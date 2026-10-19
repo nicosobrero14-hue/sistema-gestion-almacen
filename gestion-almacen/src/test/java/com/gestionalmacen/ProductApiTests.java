@@ -38,11 +38,45 @@ class ProductApiTests {
 	@Autowired
 	private IUserRepository userRepository;
 
+	// El catalogo publico de prueba: desde aca se simula que conoce o no un codigo.
+	@Autowired
+	private FakeProductCatalog catalog;
+
 	// Los usuarios de la sesion tienen que existir en la base: el alta registra quien cargo el stock.
 	@BeforeEach
 	void loadUsers() {
+		catalog.reset();
 		userRepository.save(user("admin", Role.ADMIN));
 		userRepository.save(user("vendedor", Role.EMPLEADO));
+	}
+
+	// ---------- CU-03 paso 6: datos sugeridos para un codigo desconocido ----------
+
+	@Test
+	void suggestsTheProductDataFromThePublicCatalog() throws Exception {
+		catalog.add("7791813444411", "Seven Up 1.5 lts");
+
+		mvc.perform(get("/api/products/suggestion/7791813444411"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.barcode").value("7791813444411"))
+				.andExpect(jsonPath("$.name").value("Seven Up 1.5 lts"));
+	}
+
+	// Que el catalogo no conozca el codigo es lo normal: se carga a mano y listo.
+	@Test
+	void answersNotFoundWhenThePublicCatalogDoesNotKnowTheCode() throws Exception {
+		mvc.perform(get("/api/products/suggestion/9999999999999"))
+				.andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.message").value("No hay datos públicos para el código 9999999999999"));
+	}
+
+	// La sugerencia no crea nada: el producto sigue sin existir hasta que alguien lo guarde.
+	@Test
+	void theSuggestionDoesNotCreateTheProduct() throws Exception {
+		catalog.add("7791813444411", "Seven Up 1.5 lts");
+		mvc.perform(get("/api/products/suggestion/7791813444411")).andExpect(status().isOk());
+
+		mvc.perform(get("/api/products/barcode/7791813444411")).andExpect(status().isNotFound());
 	}
 
 	@Test

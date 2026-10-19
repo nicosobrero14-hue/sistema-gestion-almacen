@@ -27,12 +27,15 @@ const toNumber = (value) => (value === '' ? null : Number(value))
 // CU-19 y CU-20: el empleado pone el precio en el alta, pero despues solo el administrador lo cambia.
 // Las ofertas son siempre del administrador. El backend controla lo mismo.
 // barcode: en un alta, el codigo que leyo el lector y no existia (CU-03 paso 6).
+// suggestedName: el nombre que sugirio el catalogo publico para ese codigo, si lo conocia.
 // onSaved recibe el mensaje y el producto guardado.
-export default function ProductForm({ product, barcode = '', isAdmin, onSaved, onCancel }) {
+export default function ProductForm({ product, barcode = '', suggestedName = '', isAdmin, onSaved, onCancel }) {
   const canEditPrice = isAdmin || !product
 
   const [data, setData] = useState(
-    product ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '' } : { ...EMPTY, barcode },
+    product
+      ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '' }
+      : { ...EMPTY, barcode, name: suggestedName },
   )
   // Por peso cambian las etiquetas y los campos admiten decimales.
   const porPeso = data.saleUnit === 'KG'
@@ -96,6 +99,7 @@ export default function ProductForm({ product, barcode = '', isAdmin, onSaved, o
 
       <form onSubmit={onSubmit} noValidate>
         <TextField name="name" label="Nombre" value={data.name} onChange={onChange}
+          help={suggestedName && !product ? 'Sugerido por el catálogo público: revíselo antes de guardar' : null}
           error={errors.name} required maxLength={120} autoFocus />
 
         <TextField name="description" label="Descripción" value={data.description} onChange={onChange}

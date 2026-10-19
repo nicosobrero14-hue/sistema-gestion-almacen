@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestionalmacen.dto.ProductDTO;
+import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.MovementType;
 import com.gestionalmacen.entity.Product;
 import com.gestionalmacen.entity.StockMovement;
@@ -35,6 +36,10 @@ public class ProductService implements IProductService {
 	@Autowired
 	private IUserService userService;
 
+	// Catalogo publico de productos. En las pruebas es uno falso (CU-03).
+	@Autowired
+	private IProductCatalog productCatalog;
+
 	@Override
 	public List<Product> getProducts(String search, boolean activeOnly) {
 		return productRepository.search(search.trim(), activeOnly);
@@ -50,6 +55,16 @@ public class ProductService implements IProductService {
 	public Product findProductByBarcode(String barcode) {
 		return productRepository.findByBarcode(barcode.trim())
 				.orElseThrow(() -> new NotFoundException("No hay ningún producto con el código " + barcode.trim()));
+	}
+
+	// CU-03 paso 6: antes de cargarlo a mano, se consulta el codigo en un catalogo publico.
+	@Override
+	public ProductSuggestionDTO suggestProduct(String barcode) {
+		ProductSuggestionDTO suggestion = productCatalog.findByBarcode(barcode.trim());
+		if (suggestion == null) {
+			throw new NotFoundException("No hay datos públicos para el código " + barcode.trim());
+		}
+		return suggestion;
 	}
 
 	// @Transactional: el producto y su movimiento se guardan juntos. Si uno falla, no se guarda ninguno.
