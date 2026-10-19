@@ -180,16 +180,17 @@ public class SaleService implements ISaleService {
 
 		for (SaleDetail detail : sale.getDetails()) {
 			Product product = detail.getProduct();
-			int previousStock = product.getStock();
+			BigDecimal previousStock = product.getStock();
 			// Con un pago digital pasa tiempo entre que se genera el cobro y que entra el dinero. Hoy el
 			// comercio tiene una sola caja, asi que nadie puede vender en el medio, pero si el stock no
 			// alcanzara no se puede dejar negativo: la base lo rechaza y el cobro ya se hizo.
-			int missing = Math.max(0, detail.getQuantity() - previousStock);
-			product.setStock(previousStock - detail.getQuantity() + missing);
+			BigDecimal missing = detail.getQuantity().subtract(previousStock).max(BigDecimal.ZERO);
+			product.setStock(previousStock.subtract(detail.getQuantity()).add(missing));
 			productRepository.save(product);
 
 			String reason = "Venta N° " + sale.getId()
-					+ (missing > 0 ? " (faltaban " + missing + " unidades al cobrar)" : "");
+					+ (missing.signum() > 0 ? " (faltaban " + missing.stripTrailingZeros().toPlainString()
+							+ " al cobrar)" : "");
 			StockMovement movement = new StockMovement(product, user, MovementType.VENTA, previousStock, reason);
 			movement.setSale(sale);
 			movementRepository.save(movement);
@@ -213,13 +214,13 @@ public class SaleService implements ISaleService {
 	}
 
 	// El producto tiene que estar activo y tener stock suficiente (CU-07 exc. 5a, CU-08 exc. 4a).
-	private Product findProductToSell(Long productId, int quantity) {
+	private Product findProductToSell(Long productId, BigDecimal quantity) {
 		Product product = productService.findProduct(productId);
 
 		if (!product.isActive()) {
 			throw new BusinessRuleException("El producto " + product.getName() + " está dado de baja.");
 		}
-		if (quantity > product.getStock()) {
+		if (quantity.compareTo(product.getStock()) > 0) {
 			throw new BusinessRuleException("No hay stock suficiente de " + product.getName()
 					+ ". Disponible: " + product.getStock() + ".");
 		}

@@ -72,7 +72,7 @@ public class ProductService implements IProductService {
 
 		// RF-02: el stock inicial tambien queda registrado como movimiento.
 		movementRepository.save(new StockMovement(product, userService.getSessionUser(),
-				MovementType.CARGA_INICIAL, 0, "Alta del producto"));
+				MovementType.CARGA_INICIAL, BigDecimal.ZERO, "Alta del producto"));
 		return product;
 	}
 
@@ -119,6 +119,7 @@ public class ProductService implements IProductService {
 		product.setDescription(productDTO.getDescription());
 		product.setPrice(productDTO.getPrice());
 		product.setMinimumStock(productDTO.getMinimumStock());
+		product.setSaleUnit(productDTO.getSaleUnit());
 		product.setBarcode(productDTO.getBarcode());
 		product.setExpirationDate(productDTO.getExpirationDate());
 		product.setOnOffer(productDTO.isOnOffer());

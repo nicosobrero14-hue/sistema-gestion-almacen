@@ -60,8 +60,11 @@ CREATE TABLE IF NOT EXISTS productos (
     nombre            VARCHAR(120)  NOT NULL,
     descripcion       VARCHAR(255)  NULL,
     precio            DECIMAL(10,2) NOT NULL,            -- DECIMAL y no coma flotante: es dinero
-    stock_actual      INT           NOT NULL DEFAULT 0,
-    stock_minimo      INT           NOT NULL DEFAULT 0,  -- umbral de la alerta de stock bajo
+    -- DECIMAL y no entero: los productos que se venden por peso tienen stock fraccionado
+    stock_actual      DECIMAL(10,3) NOT NULL DEFAULT 0,
+    stock_minimo      DECIMAL(10,3) NOT NULL DEFAULT 0,  -- umbral de la alerta de stock bajo
+    -- Como se vende el producto. Define si "precio" es por unidad o por kilo
+    unidad_venta      VARCHAR(10)   NOT NULL DEFAULT 'UNIDAD',
     codigo_barras     VARCHAR(64)   NULL,                -- opcional: no todo producto tiene código
     fecha_vencimiento DATE          NULL,                -- solo perecederos
     en_oferta         TINYINT(1)    NOT NULL DEFAULT 0,
@@ -80,6 +83,7 @@ CREATE TABLE IF NOT EXISTS productos (
 
     CONSTRAINT ck_productos_precio CHECK (precio > 0),
     CONSTRAINT ck_productos_stock  CHECK (stock_actual >= 0 AND stock_minimo >= 0),
+    CONSTRAINT ck_productos_unidad CHECK (unidad_venta IN ('UNIDAD', 'KG')),
     CONSTRAINT ck_productos_oferta CHECK (en_oferta = 0 OR (precio_oferta IS NOT NULL AND precio_oferta < precio)),
 
     INDEX idx_productos_nombre (nombre),
@@ -126,7 +130,7 @@ CREATE TABLE IF NOT EXISTS detalle_venta (
     id_producto     BIGINT        NULL,
     nombre_producto VARCHAR(120)  NOT NULL,
     precio_unitario DECIMAL(10,2) NOT NULL,
-    cantidad        INT           NOT NULL,
+    cantidad        DECIMAL(10,3) NOT NULL,          -- fraccionada en los productos que se venden por peso
 
     PRIMARY KEY (id_detalle),
 
@@ -189,8 +193,8 @@ CREATE TABLE IF NOT EXISTS movimientos_stock (
     username        VARCHAR(50)  NOT NULL,        -- copia
     id_venta        BIGINT       NULL,            -- solo en los movimientos originados por una venta
     tipo            VARCHAR(20)  NOT NULL,
-    stock_anterior  INT          NOT NULL,
-    stock_nuevo     INT          NOT NULL,
+    stock_anterior  DECIMAL(10,3) NOT NULL,
+    stock_nuevo     DECIMAL(10,3) NOT NULL,
     motivo          VARCHAR(255) NOT NULL,
     fecha_hora      DATETIME     NOT NULL,
 
