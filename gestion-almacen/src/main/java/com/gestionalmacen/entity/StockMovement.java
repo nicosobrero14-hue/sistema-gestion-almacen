@@ -1,5 +1,6 @@
 package com.gestionalmacen.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -62,11 +63,11 @@ public class StockMovement {
 	@Column(name = "tipo", nullable = false, length = 20)
 	private MovementType type;
 
-	@Column(name = "stock_anterior", nullable = false)
-	private int previousStock;
+	@Column(name = "stock_anterior", nullable = false, precision = 10, scale = 3)
+	private BigDecimal previousStock;
 
-	@Column(name = "stock_nuevo", nullable = false)
-	private int newStock;
+	@Column(name = "stock_nuevo", nullable = false, precision = 10, scale = 3)
+	private BigDecimal newStock;
 
 	@Column(name = "motivo", nullable = false, length = 255)
 	private String reason;
@@ -75,7 +76,7 @@ public class StockMovement {
 	private LocalDateTime dateTime;
 
 	// Arma el movimiento a partir del producto ya actualizado: su stock de ahora es el stock nuevo.
-	public StockMovement(Product product, User user, MovementType type, int previousStock, String reason) {
+	public StockMovement(Product product, User user, MovementType type, BigDecimal previousStock, String reason) {
 		this.product = product;
 		this.productName = product.getName();
 		this.user = user;

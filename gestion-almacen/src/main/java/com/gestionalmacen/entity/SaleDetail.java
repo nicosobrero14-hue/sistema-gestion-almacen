@@ -1,6 +1,7 @@
 package com.gestionalmacen.entity;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -48,11 +49,12 @@ public class SaleDetail {
 	@Column(name = "precio_unitario", nullable = false, precision = 10, scale = 2)
 	private BigDecimal unitPrice;
 
-	@Column(name = "cantidad", nullable = false)
-	private int quantity;
+	// Fraccionada en los productos que se venden por peso: 0,120 son 120 gramos (RF-12).
+	@Column(name = "cantidad", nullable = false, precision = 10, scale = 3)
+	private BigDecimal quantity;
 
 	// Arma el renglon con el nombre y el precio que tiene el producto en este momento.
-	public SaleDetail(Sale sale, Product product, int quantity) {
+	public SaleDetail(Sale sale, Product product, BigDecimal quantity) {
 		this.sale = sale;
 		this.product = product;
 		this.productName = product.getName();
@@ -61,7 +63,9 @@ public class SaleDetail {
 	}
 
 	// No es una columna, se calcula. En el JSON sale como "subtotal".
+	// Se redondea a dos decimales: por peso el producto casi nunca da un importe exacto,
+	// y la regla de redondeo tiene que ser siempre la misma o la caja no cierra.
 	public BigDecimal getSubtotal() {
-		return unitPrice.multiply(BigDecimal.valueOf(quantity));
+		return unitPrice.multiply(quantity).setScale(2, RoundingMode.HALF_UP);
 	}
 }

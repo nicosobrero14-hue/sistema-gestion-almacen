@@ -1,5 +1,6 @@
 package com.gestionalmacen.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -42,11 +43,12 @@ public class StockService implements IStockService {
 			throw new BusinessRuleException("El producto " + product.getName() + " está dado de baja.");
 		}
 		// Un ajuste que no cambia nada solo ensuciaria el historial.
-		if (adjustmentDTO.getNewStock() == product.getStock()) {
+		// compareTo y no equals: 5 y 5,000 son el mismo stock aunque se escriban distinto.
+		if (adjustmentDTO.getNewStock().compareTo(product.getStock()) == 0) {
 			throw new BusinessRuleException("El stock nuevo es igual al actual.");
 		}
 
-		int previousStock = product.getStock();
+		BigDecimal previousStock = product.getStock();
 		product.setStock(adjustmentDTO.getNewStock());
 		productRepository.save(product);
 

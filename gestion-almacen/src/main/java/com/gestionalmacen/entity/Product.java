@@ -6,6 +6,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -39,12 +41,18 @@ public class Product {
 	@Column(name = "precio", nullable = false, precision = 10, scale = 2)
 	private BigDecimal price;
 
-	@Column(name = "stock_actual", nullable = false)
-	private int stock;
+	// DECIMAL y no entero: lo que se vende por peso tiene stock fraccionado (RF-12).
+	@Column(name = "stock_actual", nullable = false, precision = 10, scale = 3)
+	private BigDecimal stock;
 
 	// Umbral de la alerta de stock bajo (RF-09).
-	@Column(name = "stock_minimo", nullable = false)
-	private int minimumStock;
+	@Column(name = "stock_minimo", nullable = false, precision = 10, scale = 3)
+	private BigDecimal minimumStock;
+
+	// Define si "precio" es por unidad o por kilo, y como se carga el producto en una venta (RF-12).
+	@Enumerated(EnumType.STRING)
+	@Column(name = "unidad_venta", nullable = false, length = 10)
+	private SaleUnit saleUnit = SaleUnit.UNIDAD;
 
 	@Column(name = "codigo_barras", length = 64, unique = true)
 	private String barcode;
@@ -78,7 +86,7 @@ public class Product {
 
 	// No es una columna, se calcula. En el JSON sale como "lowStock".
 	public boolean isLowStock() {
-		return stock <= minimumStock;
+		return stock.compareTo(minimumStock) <= 0;
 	}
 
 	// El precio que se cobra: el de oferta si esta en oferta. En el JSON sale como "salePrice".

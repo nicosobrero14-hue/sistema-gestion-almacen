@@ -3,6 +3,8 @@ package com.gestionalmacen.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import com.gestionalmacen.entity.SaleUnit;
+
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Min;
@@ -31,13 +33,19 @@ public class ProductDTO {
 	private BigDecimal price;
 
 	// Solo se usa en el alta. Despues el stock se ajusta desde la pantalla de stock.
+	// Decimal: lo que se vende por peso tiene stock fraccionado (RF-12).
 	@NotNull(message = "El stock es obligatorio")
-	@Min(value = 0, message = "El stock no puede ser negativo")
-	private Integer stock;
+	@DecimalMin(value = "0", message = "El stock no puede ser negativo")
+	@Digits(integer = 7, fraction = 3, message = "El stock admite hasta 3 decimales")
+	private BigDecimal stock;
 
 	@NotNull(message = "El stock mínimo es obligatorio")
-	@Min(value = 0, message = "El stock mínimo no puede ser negativo")
-	private Integer minimumStock;
+	@DecimalMin(value = "0", message = "El stock mínimo no puede ser negativo")
+	@Digits(integer = 7, fraction = 3, message = "El stock mínimo admite hasta 3 decimales")
+	private BigDecimal minimumStock;
+
+	// Como se vende: por unidad o por kilo. Si no viene, por unidad.
+	private SaleUnit saleUnit = SaleUnit.UNIDAD;
 
 	@Size(max = 64, message = "El código de barras no puede superar los 64 caracteres")
 	private String barcode;
