@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { activateProduct, deactivateProduct, findProductByBarcode, getProducts, suggestProduct } from '../api/products'
 import Message from '../components/Message'
@@ -9,6 +9,8 @@ import ProductForm from './ProductForm'
 // Pantalla del catalogo de productos (RF-01 / CU-02, CU-20).
 // isAdmin: el formulario bloquea el precio y la oferta si quien lo usa es empleado.
 export default function Products({ isAdmin }) {
+  // El lector escribe donde este el cursor: el buscador lo tiene desde que se abre la pantalla.
+  const searchRef = useRef(null)
   // Las alertas del panel abren esta pantalla con el producto ya buscado: /products?search=Leche
   const [searchParams] = useSearchParams()
 
@@ -51,21 +53,25 @@ export default function Products({ isAdmin }) {
     openForm(null)
   }
 
+  const volverAlBuscador = () => searchRef.current?.focus()
+
   const onSaved = (message) => {
     setFormOpen(false)
     setMissingBarcode('')
     setSuggestion(null)
     setSuccess(message)
     load()
+    volverAlBuscador()
   }
 
-  // CU-03 paso 5: en el catalogo, el codigo leido abre la ficha del producto.
+  // CU-03 paso 5: el codigo leido filtra el listado y deja el producto a la vista con su precio.
+  // No abre ninguna ficha: el catalogo funciona como consulta rapida de precios en el mostrador.
   const onSearchKeyDown = async (event) => {
     if (event.key !== 'Enter' || !isBarcode(search)) return
     setMissingBarcode('')
     setSuggestion(null)
     try {
-      openForm(await findProductByBarcode(search.trim()))
+      await findProductByBarcode(search.trim()) // existe: el listado ya lo esta mostrando
     } catch (e) {
       if (e.status !== 404) {
         setError(e.message)
@@ -119,6 +125,8 @@ export default function Products({ isAdmin }) {
           onChange={(event) => setSearch(event.target.value)}
           onKeyDown={onSearchKeyDown}
           aria-label="Buscar productos"
+          autoFocus
+          ref={searchRef}
         />
         <label className="checkbox">
           <input type="checkbox" checked={activeOnly} onChange={(event) => setActiveOnly(event.target.checked)} />
@@ -199,7 +207,7 @@ export default function Products({ isAdmin }) {
       {formOpen && (
         <ProductForm product={selected} barcode={missingBarcode} suggestedName={suggestion?.name ?? ''}
           isAdmin={isAdmin} onSaved={onSaved}
-          onCancel={() => setFormOpen(false)} />
+          onCancel={() => { setFormOpen(false); volverAlBuscador() }} />
       )}
     </>
   )

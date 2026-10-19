@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getProducts } from '../api/products'
 import Message from '../components/Message'
@@ -8,6 +8,8 @@ import { formatQuantity } from '../utils/format'
 
 // Pantalla de stock (RF-02 / CU-04): stock actual y minimo de cada producto, ajuste manual y movimientos.
 export default function Stock() {
+  // El lector escribe donde este el cursor: el buscador lo tiene desde que se abre la pantalla.
+  const searchRef = useRef(null)
   // Las alertas del panel abren esta pantalla con el producto ya buscado: /stock?search=Leche
   const [searchParams] = useSearchParams()
 
@@ -37,6 +39,7 @@ export default function Stock() {
 
   const onAdjusted = (product) => {
     setAdjusting(null)
+    searchRef.current?.focus()
     setSuccess('')
     setWarning('')
     // CU-04 paso 7: si el stock quedo en el minimo o por debajo, se avisa que ya figura en las alertas.
@@ -62,6 +65,8 @@ export default function Stock() {
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           aria-label="Buscar productos"
+          autoFocus
+          ref={searchRef}
         />
         <label className="checkbox">
           <input type="checkbox" checked={lowStockOnly} onChange={(event) => setLowStockOnly(event.target.checked)} />
@@ -119,10 +124,12 @@ export default function Stock() {
       )}
 
       {adjusting && (
-        <StockAdjustmentForm product={adjusting} onSaved={onAdjusted} onCancel={() => setAdjusting(null)} />
+        <StockAdjustmentForm product={adjusting} onSaved={onAdjusted}
+          onCancel={() => { setAdjusting(null); searchRef.current?.focus() }} />
       )}
 
-      {viewing && <StockMovements product={viewing} onClose={() => setViewing(null)} />}
+      {viewing && <StockMovements product={viewing}
+        onClose={() => { setViewing(null); searchRef.current?.focus() }} />}
     </>
   )
 }
