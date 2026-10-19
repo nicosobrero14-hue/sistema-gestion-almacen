@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { editProduct, saveProduct } from '../api/products'
+import { editProduct, saveProduct, suggestProduct } from '../api/products'
 import { getSuppliers } from '../api/suppliers'
 import Message from '../components/Message'
 import Modal from '../components/Modal'
 import TextField from '../components/TextField'
+import { isBarcode } from '../utils/barcode'
 import { SALE_UNITS } from '../utils/format'
 
 const EMPTY = {
@@ -39,6 +40,24 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
   )
   // Por peso cambian las etiquetas y los campos admiten decimales.
   const porPeso = data.saleUnit === 'KG'
+  // Si el nombre lo sugirio el catalogo publico, se avisa para que se revise.
+  const [suggested, setSuggested] = useState(Boolean(suggestedName))
+
+  // CU-03: el lector escribe donde este el cursor, y lo normal es que sea el nombre.
+  // Si lo que entro es un codigo de barras, se lo pasa a su campo y se piden los datos.
+  const onNameKeyDown = async (event) => {
+    if (event.key !== 'Enter' || !isBarcode(data.name)) return
+    event.preventDefault() // Enter en un formulario lo enviaria
+    const code = data.name.trim()
+    setData((actual) => ({ ...actual, name: '', barcode: code }))
+    try {
+      const found = await suggestProduct(code)
+      setData((actual) => ({ ...actual, name: found.name }))
+      setSuggested(true)
+    } catch (e) {
+      setSuggested(false) // que el catalogo no lo conozca es normal: se escribe a mano
+    }
+  }
 
   const [suppliers, setSuppliers] = useState([])
   const [errors, setErrors] = useState({})
@@ -99,7 +118,8 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
 
       <form onSubmit={onSubmit} noValidate>
         <TextField name="name" label="Nombre" value={data.name} onChange={onChange}
-          help={suggestedName && !product ? 'Sugerido por el catálogo público: revíselo antes de guardar' : null}
+          onKeyDown={product ? undefined : onNameKeyDown}
+          help={suggested && !product ? 'Sugerido por el catálogo público: revíselo antes de guardar' : null}
           error={errors.name} required maxLength={120} autoFocus />
 
         <TextField name="description" label="Descripción" value={data.description} onChange={onChange}
