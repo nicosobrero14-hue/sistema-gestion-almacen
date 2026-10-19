@@ -1,5 +1,13 @@
-# Copiar este archivo como application-local.properties y completar con los datos del MySQL propio.
+# Copiar este archivo como application-local.properties y completar con los datos propios.
 # El archivo real no se sube al repositorio.
 
 spring.datasource.username=root
 spring.datasource.password=tu_clave_de_mysql
+
+# Cobro con MercadoPago (RF-05 / CU-10). Salen de Tus integraciones > Datos de integracion.
+# Durante el desarrollo van las credenciales de prueba: los cobros son simulados.
+mercadopago.access-token=APP_USR-tu_access_token
+mercadopago.user-id=tu_user_id
+# Sucursal y caja creadas en la cuenta. Sin estos datos no se pueden generar cobros.
+mercadopago.store-id=tu_store_id
+mercadopago.pos-external-id=ALMACEN01CAJA01

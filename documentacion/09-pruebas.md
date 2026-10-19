@@ -265,6 +265,23 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | CP-151 | Quitar la oferta en pantalla (CU-19 paso 6) | Galletitas en oferta | "Quitar oferta" | Sale de las vigentes; en la base queda sin oferta y sin precio de oferta | Correcto | Aprobada |
 | CP-152 | Ofertas para el Empleado en pantalla | Sesión de `vendedor` | Recorrer el menú, ir a `/offers` y pedir la API | Sin la opción en el menú, la dirección vuelve al inicio y la API responde `403` | Correcto | Aprobada |
 
+### Cobro con MercadoPago
+
+Las pruebas automáticas usan una pasarela falsa, así no dependen de internet ni de credenciales.
+Las de sistema se hicieron contra la cuenta de prueba real de MercadoPago.
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-153 | Venta con MercadoPago (CU-10) | Yerba con 28 unidades | `POST /api/sales` con `MERCADOPAGO` | `201`: venta `PENDIENTE_PAGO`, pago `PENDIENTE` con su referencia, y el cobro abierto en la caja | Correcto | Aprobada |
+| CP-154 | El stock no se toca al generar el cobro | Lo anterior | Consultar el producto | Sigue con 28 unidades | Correcto | Aprobada |
+| CP-155 | Consultar un cobro que nadie pagó | Lo anterior | `GET /api/sales/{id}/payment` | La venta sigue en `PENDIENTE_PAGO` | Correcto | Aprobada |
+| CP-156 | Cancelar el cobro (CU-10 exc. 5a) | Cobro abierto | `POST /api/sales/{id}/payment/cancel` | Venta `CANCELADA`, pago `CANCELADO`, stock en 28 | Correcto | Aprobada |
+| CP-157 | **Pago real con la cuenta de prueba** | Venta de $6.500 con dos productos esperando el pago | Escanear el QR del mostrador y pagar desde la aplicación | La venta pasa sola a `CONFIRMADA`, el pago a `APROBADO` y se descuenta el stock de los dos productos | Correcto: yerba de 28 a 27 y leche de 6 a 5, con un movimiento por producto | Aprobada |
+| CP-158 | Cobro no configurado (CU-10 exc. 1a) | Sin la caja en la configuración | Venta con `MERCADOPAGO` | `409` con un mensaje que ofrece cobrar de otra forma, y ninguna venta registrada | Correcto: 8 ventas antes y 8 después | Aprobada |
+| CP-159 | Filtro por la referencia del cobro | Ventas del día | `GET /api/sales?...&reference=` | Solo la venta de ese cobro, con los totales por forma de pago recalculados | Correcto | Aprobada |
+| CP-160 | La pantalla espera el pago | Carrito con yerba, MercadoPago elegido | Confirmar la venta | Aparece "Esperando el pago" con el monto y el botón para cancelar | Correcto | Aprobada |
+| CP-161 | Las ventas canceladas no suman a la caja | Historial con ventas confirmadas y canceladas | Abrir el historial | Las canceladas aparecen marcadas y el total recaudado solo cuenta las confirmadas | Correcto | Aprobada |
+
 ## 9.3 Incidencias detectadas
 
 | Fase | Incidencia | Solución |
@@ -284,6 +301,11 @@ que aparecieron durante las pruebas están en el punto 9.3.
 | 6 | Un código inexistente mostraba dos avisos: el del lector y el de la búsqueda | Queda solo el del lector, que tiene el botón para darlo de alta |
 | 6 | Los buscadores y filtros mostraban el foco en negro | Toman el mismo estilo que los formularios |
 | 7 | Los paneles de a dos se estiraban a la altura del más alto, y el más corto quedaba vacío abajo | Cada panel toma el alto de su contenido |
+| 8 | **La Orders API de MercadoPago, que es la que documenta el fabricante para el cobro con QR, responde `403` en todos sus endpoints para la cuenta del comercio.** Falla igual en modo estático, en dinámico y hasta sin el bloque de QR, sin llegar a validar el cuerpo del pedido | Se comprobó que el token sí funciona en otros endpoints, así que el bloqueo es de esa API y no de las credenciales. Se pasó a la API Instore, anterior y todavía vigente, que sí está habilitada y resuelve el mismo circuito. Quedó documentado en el código por qué no se sigue la documentación oficial. CP-153 y CP-157 verifican que el cobro funciona |
+| 8 | Al crear la caja desde el panel de MercadoPago quedaba sin identificador externo y en modo no integrado, con lo que el sistema no podía cargarle cobros | El panel no permite configurar esos dos campos. Se corrigieron por API, y el manual de instalación indica crear la caja por API en lugar del panel |
+| 8 | El manejo de errores mostraba siempre "no se pudo contactar a MercadoPago", incluso cuando MercadoPago había respondido rechazando el pedido, y descartaba el motivo | Se distinguen los dos casos y el detalle de la respuesta queda en el log del servidor. Sin eso, un rechazo por permisos no se puede diagnosticar |
+| 8 | El total recaudado del historial contaba las ventas canceladas como si se hubieran cobrado | Los totales cuentan solo las confirmadas, y la tarjeta pasó a llamarse "Ventas cobradas". CP-161 lo verifica |
+| 8 | La columna de estado hacía que la tabla del historial no entrara en una pantalla de 1280 píxeles | El estado va debajo del número de ticket y solo aparece cuando la venta no está cobrada, que es el único caso que hay que mirar |
 
 En la fase 3 no se registraron incidencias: los casos pasaron en el primer intento.
 
@@ -292,6 +314,6 @@ En la fase 3 no se registraron incidencias: los casos pasaron en el primer inten
 | Nivel | Casos | Aprobados |
 |---|---|---|
 | Base de datos | 15 | 15 |
-| Backend automático | 82 | 82 |
-| Sistema completo | 55 | 55 |
-| **Total** | **152** | **152** |
+| Backend automático | 91 | 91 |
+| Sistema completo | 64 | 64 |
+| **Total** | **170** | **170** |

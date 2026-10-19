@@ -305,7 +305,9 @@ copias: el movimiento se sigue leyendo igual aunque el producto cambie de nombre
 |---|---|---|
 | `POST` | `/api/sales` | Confirma una venta (CU-11) → `201` |
 | `GET` | `/api/sales/{id}` | Trae una venta con sus renglones y su pago. Es lo que muestra el ticket (CU-14) |
-| `GET` | `/api/sales?from=2026-09-01&to=2026-09-30&username=&product=` | Historial (CU-16). **Solo Administrador** |
+| `GET` | `/api/sales/{id}/payment` | Estado del cobro con MercadoPago, y lo resuelve si ya se definió (CU-10) |
+| `POST` | `/api/sales/{id}/payment/cancel` | Da de baja el cobro (CU-10 exc. 5a) |
+| `GET` | `/api/sales?from=2026-09-01&to=2026-09-30&username=&product=&reference=` | Historial (CU-16). **Solo Administrador** |
 
 Confirmar una venta y ver su ticket lo pueden hacer el Empleado y el Administrador. El historial es
 solo del Administrador: al Empleado le responde `403`.
@@ -326,7 +328,7 @@ solo del Administrador: al Empleado le responde `403`.
 - `items` es el carrito: qué productos y cuántos. **El precio no viaja**: lo pone el servidor con el
   precio de venta de cada producto en ese momento.
 - `discount` es un descuento en pesos sobre el total. Es opcional.
-- `paymentMethod` admite `EFECTIVO` o `TRANSFERENCIA`.
+- `paymentMethod` admite `EFECTIVO`, `TRANSFERENCIA` o `MERCADOPAGO`.
 
 **Lo que sale:**
 
@@ -345,6 +347,7 @@ solo del Administrador: al Empleado le responde `403`.
   ],
   "payments": [
     { "id": 1, "method": "EFECTIVO", "amount": 16000.00, "status": "APROBADO",
+      "externalReference": null,
       "dateTime": "2026-09-21T17:51:52", "confirmedAt": "2026-09-21T17:51:52" }
   ]
 }
@@ -379,11 +382,26 @@ Si algo falla, no se guarda nada y el stock queda como estaba.
 
 **Devuelve `404` si:** un producto o la venta pedida no existe.
 
+**El cobro con MercadoPago (CU-10).** Con `paymentMethod` en `MERCADOPAGO` la respuesta cambia: la
+venta vuelve con `status` en `PENDIENTE_PAGO`, su pago en `PENDIENTE` y `externalReference` con la
+referencia del cobro. **El stock no se descontó todavía.** A partir de ahí:
+
+- `GET /api/sales/{id}/payment` le pregunta a MercadoPago cómo viene el cobro y devuelve la venta
+  ya resuelta si se definió: `CONFIRMADA` si el dinero entró, `CANCELADA` si venció o se dio de
+  baja, o `PENDIENTE_PAGO` si todavía se está esperando. Es lo que la pantalla consulta cada dos
+  segundos. Preguntar por una venta ya resuelta no cambia nada y devuelve su estado.
+- `POST /api/sales/{id}/payment/cancel` da de baja el cobro. Devuelve `409` si la venta ya no está
+  esperando un pago, porque un cobro acreditado no se cancela.
+- Si MercadoPago rechaza el pedido o no responde, los dos devuelven `409` con un mensaje para el
+  cajero, y el detalle queda en el log del servidor. La venta no se registra a medias.
+
 **El historial:**
 
 - `from` y `to` son obligatorias, con el formato `2026-09-21`. `to` incluye todo ese día.
 - `username` filtra por el empleado que hizo la venta. Vacío, no filtra.
 - `product` busca ese texto en el nombre de los productos vendidos. Vacío, no filtra.
+- `reference` busca ese texto en la referencia del cobro. Vacío, no filtra. Sirve para encontrar la
+  venta de un movimiento del reporte de MercadoPago (CU-10).
 - Devuelve las ventas completas, con sus renglones y su pago, de la más nueva a la más vieja.
 
 Devuelve `400` si falta una fecha o está mal escrita, y `409` si `from` es posterior a `to`.

@@ -25,7 +25,6 @@
 | **Git** | Control de versiones | Permite trabajar por ramas y volver atrás cualquier cambio | Todo el proyecto |
 | **GitHub** | Repositorio remoto | Guarda el proyecto fuera de la máquina y ordena los cambios con pull requests | Todo el proyecto |
 | **GitHub Projects** | Seguimiento de tareas | Tablero Kanban integrado con los issues del propio repositorio | Gestión |
-| **GitHub Actions** | Integración continua | Corre las pruebas en cada cambio subido, así un error no queda escondido | Gestión |
 | **Markdown** | Documentación | Se versiona junto al código y se lee tanto en GitHub como en texto plano | Documentación |
 
 ## 3.2 Cómo se integran en el trabajo diario
@@ -39,7 +38,7 @@ El flujo de una funcionalidad, de principio a fin:
 4. Se escriben las **pruebas** con JUnit y MockMvc, que corren sobre **H2**.
 5. **Maven** compila y ejecuta todas las pruebas.
 6. Se prueba en el navegador y se saca la **captura de pantalla** para la documentación.
-7. Se sube la rama y se abre un **pull request**. **GitHub Actions** vuelve a correr las pruebas.
+7. Se sube la rama y se abre un **pull request** con el detalle del cambio.
 8. Se integra el cambio y el issue se cierra solo.
 
 ## 3.3 Qué quedó afuera y por qué
@@ -49,4 +48,5 @@ El flujo de una funcionalidad, de principio a fin:
 | Docker | El sistema se instala en la computadora del comercio. Un contenedor agrega una capa que el comerciante no va a poder mantener |
 | JWT | Se usa sesión con cookie. El motivo está explicado en el documento de arquitectura |
 | MapStruct | Para siete entidades, escribir la conversión a mano es más corto que configurar la herramienta |
+| GitHub Actions | Las pruebas se corren con Maven antes de abrir cada pull request. Automatizarlas en el servidor no agrega nada en un proyecto de una sola persona |
 | TypeScript | Suma tipado al frontend, pero también configuración y tiempo de aprendizaje. Se priorizó terminar la funcionalidad |

@@ -56,6 +56,11 @@ public class Payment {
 	@Column(name = "fecha_confirmacion")
 	private LocalDateTime confirmedAt;
 
+	// Identificador del cobro en MercadoPago (CU-10). Unico en la base: el mismo cobro
+	// no puede quedar registrado en dos ventas.
+	@Column(name = "referencia_externa", length = 100, unique = true)
+	private String externalReference;
+
 	@PrePersist
 	private void onCreate() {
 		dateTime = LocalDateTime.now();

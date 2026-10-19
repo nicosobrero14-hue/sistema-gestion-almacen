@@ -31,4 +31,11 @@ export const formatTicketNumber = (id) => String(id).padStart(6, '0')
 export const PAYMENT_METHODS = {
   EFECTIVO: 'Efectivo',
   TRANSFERENCIA: 'Transferencia',
+  MERCADOPAGO: 'MercadoPago',
+}
+
+export const SALE_STATUS = {
+  PENDIENTE_PAGO: 'Esperando pago',
+  CONFIRMADA: 'Confirmada',
+  CANCELADA: 'Cancelada',
 }
