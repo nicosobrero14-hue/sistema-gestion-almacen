@@ -8,5 +8,6 @@ spring.datasource.password=tu_clave_de_mysql
 # Durante el desarrollo van las credenciales de prueba: los cobros son simulados.
 mercadopago.access-token=APP_USR-tu_access_token
 mercadopago.user-id=tu_user_id
-# Identificador de la caja, el mismo que se uso al crearla. Sin esto no se pueden generar cobros.
+# Sucursal y caja creadas en la cuenta. Sin estos datos no se pueden generar cobros.
+mercadopago.store-id=tu_store_id
 mercadopago.pos-external-id=ALMACEN01CAJA01
