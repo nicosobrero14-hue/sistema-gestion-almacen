@@ -30,12 +30,13 @@ const toNumber = (value) => (value === '' ? null : Number(value))
 // onSaved recibe el mensaje y el producto guardado.
 export default function ProductForm({ product, barcode = '', isAdmin, onSaved, onCancel }) {
   const canEditPrice = isAdmin || !product
-  // Por peso cambian las etiquetas y los campos admiten decimales.
-  const porPeso = data.saleUnit === 'KG'
 
   const [data, setData] = useState(
     product ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '' } : { ...EMPTY, barcode },
   )
+  // Por peso cambian las etiquetas y los campos admiten decimales.
+  const porPeso = data.saleUnit === 'KG'
+
   const [suppliers, setSuppliers] = useState([])
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
