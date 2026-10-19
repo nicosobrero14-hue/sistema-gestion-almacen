@@ -86,9 +86,11 @@ Una venta con MercadoPago puede tener más de un intento: el QR que venció y el
 pagó (CU-10). Con una columna en `ventas` habría que pisar el dato anterior; con una tabla, queda el
 rastro de los dos.
 
-`referencia_externa` es el identificador del pago en MercadoPago y tiene restricción de unicidad. Si
-MercadoPago avisa dos veces del mismo pago, la segunda notificación no puede registrarse por
-duplicado.
+`referencia_externa` es la referencia con la que el cobro se identifica frente a MercadoPago, y
+tiene restricción de unicidad: el mismo cobro no puede quedar registrado en dos ventas. En la
+implementación se guarda ahí el número de venta, que es el valor que el sistema le envía a
+MercadoPago como `external_reference` y con el que después consulta si el pago entró. Admite nulos
+porque en efectivo no hay ninguna referencia que anotar.
 
 ### Los estados se guardan como texto con restricción, no como número
 
@@ -272,7 +274,7 @@ de barras, pero no dos con el mismo.
 | metodo | VARCHAR(20) | No | EFECTIVO, TRANSFERENCIA o MERCADOPAGO |
 | monto | DECIMAL(10,2) | No | Importe del pago |
 | estado | VARCHAR(20) | No | PENDIENTE, APROBADO, RECHAZADO o CANCELADO |
-| referencia_externa | VARCHAR(100) | Sí | Identificador del pago en MercadoPago. Único |
+| referencia_externa | VARCHAR(100) | Sí | Referencia del cobro frente a MercadoPago. Única |
 | fecha_hora | DATETIME | No | Cuándo se generó el pago |
 | fecha_confirmacion | DATETIME | Sí | Cuándo se acreditó |
 
