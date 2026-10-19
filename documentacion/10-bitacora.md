@@ -469,5 +469,79 @@ fase 0.
 ### Estado al cerrar la parte de ofertas
 
 Todos los requisitos funcionales del análisis están implementados, salvo MercadoPago (CU-10), que
-se definirá en el issue #29. Queda el cierre: el manual de usuario, la planilla final de pruebas,
-las conclusiones y la presentación.
+se resolvió en la fase 8.
+
+## Fase 8 — Cobro con MercadoPago
+
+**18 de octubre de 2026**
+
+### Qué se hizo
+
+1. La forma de pago MercadoPago: la venta nace pendiente y el cobro se abre sobre la caja del
+   comercio, cuyo código QR está impreso en el mostrador.
+2. La confirmación automática: el sistema consulta el cobro y, cuando el dinero entra, confirma la
+   venta y descuenta el stock.
+3. La baja del cobro cuando el cliente no paga, dejando la venta cancelada y el stock intacto.
+4. La pantalla de espera, el número del cobro en el ticket y el filtro del historial.
+5. 9 pruebas automáticas nuevas: 91 en total.
+
+### Decisiones
+
+**La venta se parte en dos momentos.** Antes `saveSale` registraba, aprobaba el pago y descontaba
+el stock de corrido. Ahora armar la venta y confirmarla son pasos separados, porque con un pago
+digital los separa el tiempo que tarda el cliente. Ese cambio se hizo primero y solo, sin tocar el
+comportamiento, con las 82 pruebas existentes como red.
+
+**El stock se descuenta al cobrar, no antes.** Lo pide la excepción 4a de CU-11 y es lo correcto:
+un cliente que no paga no puede dejar el stock mal. El riesgo opuesto, que entre el pago y la
+confirmación alguien venda la última unidad, no existe acá: hay una sola caja y el cajero está
+esperando frente al cliente. Igual el sistema no deja el stock negativo y lo registra en el
+movimiento si llegara a pasar.
+
+**El sistema pregunta en vez de esperar un aviso.** MercadoPago notifica los pagos haciendo un
+pedido a una dirección pública con certificado, y la computadora del comercio no lo es. Exponerla
+implicaría redirección de puertos y dominio propio, una configuración frágil para un mostrador. El
+sistema consulta mientras el cobro está abierto: el resultado para el usuario es el mismo.
+
+**La pasarela está detrás de una interfaz.** Las pruebas usan una implementación falsa, así las 91
+corren sin internet y sin credenciales. Es lo que permitió construir y probar casi todo el cobro
+antes de tener la cuenta configurada.
+
+### Cómo se verificó
+
+- Con las pruebas automáticas: 91 en verde, 9 de esta fase.
+- Contra la cuenta de prueba real de MercadoPago: la venta queda pendiente sin tocar el stock, el
+  cobro se cancela y el stock sigue intacto, y el sistema sin configurar responde con un mensaje
+  útil sin registrar una venta a medias.
+- **Con un pago de verdad**: se generó una venta de $6.500 con dos productos, se escaneó el código
+  del mostrador desde la aplicación con la cuenta de prueba compradora y se pagó. La venta pasó
+  sola a confirmada y el stock se descontó recién ahí: yerba de 28 a 27 y leche de 6 a 5, con un
+  movimiento por producto.
+
+![Pantalla esperando el pago](imagenes/fase-8-esperando-pago.png)
+
+### Un problema que apareció
+
+La documentación de MercadoPago indica usar la Orders API para el cobro con QR, y esa API responde
+403 en **todos** sus endpoints para la cuenta del comercio. Se descartó que fuera un problema de
+credenciales o de datos: el mismo token funciona en otros endpoints, y el 403 aparece igual en modo
+estático, en dinámico y hasta enviando un pedido sin el bloque de QR, sin llegar a validar el
+cuerpo. Es un bloqueo de esa API para esa cuenta.
+
+La salida fue la API Instore, anterior pero todavía vigente, que sí está habilitada y resuelve el
+mismo circuito. Tiene tres diferencias que quedaron anotadas en el código: crear el cobro no
+devuelve identificador, así que se usa el número de venta como referencia; consultar la orden
+también está bloqueado, así que el estado se obtiene buscando un pago aprobado con esa referencia;
+y la dirección del pedido lleva la sucursal.
+
+Antes aparecieron dos obstáculos menores. La caja creada desde el panel quedaba sin identificador
+externo y en modo no integrado, y el panel no permite configurar ninguno de los dos: hubo que
+corregirla por API. Y el manejo de errores decía siempre "no se pudo contactar a MercadoPago",
+incluso cuando MercadoPago había respondido rechazando, y descartaba el motivo; ahora distingue los
+dos casos y deja el detalle en el log, que es lo que permitió diagnosticar todo lo anterior.
+
+### Estado al cerrar la fase
+
+Los once requisitos funcionales del análisis están implementados. Queda el diseño de interfaz, la
+venta por peso con la balanza y el cierre: el manual de usuario, la planilla final de pruebas, las
+conclusiones y la presentación.

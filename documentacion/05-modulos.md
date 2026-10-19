@@ -275,9 +275,8 @@ la derecha se arma el carrito, se elige la forma de pago y se confirma.
   lo que paga no alcanza, lo marca y no deja confirmar.
 - **Transferencia.** Se confirma cuando la transferencia figura acreditada en la cuenta del
   comercio.
-
-MercadoPago (CU-10) no está incluido en esta fase. La base de datos ya tiene lo necesario para
-sumarlo: el estado de pago pendiente y la referencia del pago externo.
+- **MercadoPago.** El cliente paga escaneando el código QR del mostrador. Está explicado en la
+  sección 5.13.
 
 **Qué pasa al confirmar (CU-11 a CU-13):** el servidor vuelve a controlar todo, porque el stock
 pudo cambiar mientras se armaba el carrito. Si está bien, en una sola transacción:
@@ -428,7 +427,58 @@ Al guardar, el producto pasa a las ofertas vigentes y en la venta se cobra al pr
 
 ![Oferta quitada](imagenes/fase-7-oferta-quitada.png)
 
-## 5.13 Decisiones de esta etapa
+## 5.13 Cobro con MercadoPago
+
+El comercio tiene pegado en el mostrador un código QR impreso que nunca cambia. Ese código
+pertenece a una **caja** dada de alta en la cuenta de MercadoPago del comercio, y lo que cambia en
+cada venta es la **orden** que el sistema carga sobre esa caja. Es el mismo mecanismo que usan las
+estaciones de servicio: el cartel es siempre el mismo y el monto aparece en el teléfono del cliente.
+
+**El circuito (CU-10):**
+
+1. El empleado arma el carrito, elige MercadoPago y confirma.
+2. El sistema registra la venta **en estado pendiente** y le pide a MercadoPago que abra un cobro
+   por ese importe sobre la caja del comercio. **El stock no se toca.**
+3. La pantalla queda esperando y muestra el monto.
+
+![Forma de pago MercadoPago](imagenes/fase-8-venta-mercadopago.png)
+
+![Pantalla esperando el pago](imagenes/fase-8-esperando-pago.png)
+
+4. El cliente escanea el código del mostrador y su aplicación le muestra el importe ya cargado, con
+   el detalle de lo que está pagando.
+5. Mientras tanto el sistema le pregunta a MercadoPago cada dos segundos si el pago entró.
+6. Cuando entra, la venta pasa a confirmada: **recién ahí se descuenta el stock**, se registran los
+   movimientos y se emite el ticket, donde figura el número del cobro.
+
+![Ticket de una venta cobrada con MercadoPago](imagenes/fase-8-ticket.png)
+
+**Si el cliente no paga (CU-10 exc. 5a).** El empleado da de baja el cobro desde la misma pantalla.
+La venta queda cancelada, el stock nunca se tocó y el carrito sigue armado para cobrar de otra
+forma. La venta cancelada igual queda registrada: es el rastro de que el cobro se intentó.
+
+![Cobro cancelado, con el carrito intacto](imagenes/fase-8-cobro-cancelado.png)
+
+**En el historial.** El número del cobro se muestra debajo de la forma de pago y se puede filtrar
+por él, que es el camino inverso: se parte de un movimiento del reporte de MercadoPago y se busca a
+qué venta corresponde. Las ventas que no se cobraron aparecen marcadas, y **los totales cuentan
+solo las confirmadas**: una venta cancelada no entró a la caja.
+
+![Historial con el número del cobro](imagenes/fase-8-historial.png)
+
+**Sin conexión o sin configurar.** El sistema avisa que el cobro digital no está disponible y
+sugiere cobrar en efectivo o por transferencia, tal como prevé la excepción 1a del caso de uso. La
+venta no queda a medias: si el cobro no se puede abrir, no se registra nada.
+
+**Las credenciales** viven en el archivo de configuración local, junto a la clave de MySQL, y no se
+suben al repositorio. Son cuatro datos: el token de acceso, la cuenta que recibe el dinero, la
+sucursal y la caja. Pasar de las credenciales de prueba a las del comercio es cambiar esas líneas;
+el código no se toca.
+
+**Lo que queda fuera.** Las devoluciones, que el comercio resuelve desde la aplicación de
+MercadoPago, y el cobro partido entre dos formas de pago. La tabla de pagos soporta las dos cosas.
+
+## 5.14 Decisiones de esta etapa
 
 **No hay borrado definitivo.** Proveedores, productos y usuarios se dan de baja y se reactivan,
 pero no se borran. Un producto dado de baja sigue apareciendo en las ventas pasadas, y un usuario
@@ -464,6 +514,22 @@ vendió, aunque después haya cambiado o se haya dado de baja.
 **Un Enter con números es una lectura del lector.** El lector no se distingue de un teclado. En
 lugar de configurar algo especial, se usa lo que hace siempre: números y Enter. Así funciona con
 cualquier lector USB.
+
+**La venta con MercadoPago nace pendiente y el stock se descuenta al cobrar.** Es lo que pide la
+excepción 4a de CU-11, y además es lo correcto: si se descontara al generar el cobro, un cliente
+que no paga dejaría el stock mal. El riesgo opuesto —que entre el pago y la confirmación alguien
+venda la última unidad— no existe en este comercio, que tiene una sola caja y un solo cajero
+esperando frente al cliente. Aun así el sistema no deja el stock negativo y deja constancia en el
+movimiento si eso llegara a pasar.
+
+**El cobro se sigue consultando, no esperando un aviso.** MercadoPago avisa de los pagos haciendo
+un pedido a una dirección pública, y la computadora del comercio no lo es. En lugar de exponerla,
+el sistema pregunta mientras el cobro está abierto. El efecto para el usuario es el mismo y no
+agrega ninguna configuración de red.
+
+**El cobro digital no condiciona a la venta.** Si MercadoPago no responde o no está configurado, el
+sistema lo dice y ofrece las otras formas de pago. Así se cumple RNF-04: el comercio sigue
+vendiendo aunque se caiga internet.
 
 **La oferta con precio mayor al normal no se puede confirmar.** CU-19 exc. 4a dice que el sistema
 advierte y pide confirmar o corregir. Se dejó solo la opción de corregir: una "oferta" más cara que
