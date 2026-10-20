@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -168,6 +169,52 @@ class ProductImageApiTests {
 		mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json))
 				.andExpect(status().isCreated())
 				.andExpect(jsonPath("$.image").doesNotExist());
+	}
+
+	// CU-22: un producto que ya estaba cargado tambien puede pedir la foto al catalogo.
+	// Como la descarga sale a internet, aca se comprueba lo que se puede sin red: que el
+	// enlace viaje en la modificacion y que uno de afuera de los catalogos no se descargue.
+	@Test
+	void doesNotDownloadAnImageFromOutsideTheCatalogsWhenEditing() throws Exception {
+		long id = this.createProduct();
+		String json = product() + ",\"imageUrl\":\"http://localhost:8080/api/users\"}";
+
+		mvc.perform(put("/api/products/{id}", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON).content(json))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.image").doesNotExist());
+	}
+
+	// Si la descarga no sale bien, el producto no puede quedarse sin la foto que ya tenia.
+	@Test
+	void keepsThePreviousImageWhenTheDownloadFails() throws Exception {
+		long id = this.createProduct();
+		mvc.perform(multipart("/api/products/{id}/image", id)
+				.file(image("foto.jpg", MediaType.IMAGE_JPEG_VALUE)).with(csrf()))
+				.andExpect(status().isOk());
+
+		// Un enlace que no es de los catalogos: no se descarga nada.
+		String json = product() + ",\"imageUrl\":\"http://localhost:8080/api/users\"}";
+		mvc.perform(put("/api/products/{id}", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON).content(json))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.image").value("producto-" + id + ".jpg"));
+
+		assertTrue(Files.exists(this.file("producto-" + id + ".jpg")), "la foto anterior tiene que seguir estando");
+	}
+
+	// Modificar un producto sin pedir foto no toca la que ya tenia.
+	@Test
+	void anEditWithoutAPhotoLeavesTheOneItHad() throws Exception {
+		long id = this.createProduct();
+		mvc.perform(multipart("/api/products/{id}/image", id)
+				.file(image("foto.jpg", MediaType.IMAGE_JPEG_VALUE)).with(csrf()))
+				.andExpect(status().isOk());
+
+		mvc.perform(put("/api/products/{id}", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON).content(product() + "}"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.image").value("producto-" + id + ".jpg"));
 	}
 
 	@Test

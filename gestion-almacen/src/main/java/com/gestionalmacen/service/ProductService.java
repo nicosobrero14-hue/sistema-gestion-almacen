@@ -114,6 +114,13 @@ public class ProductService implements IProductService {
 		}
 
 		this.copyData(productDTO, product);
+
+		// CU-22: la foto que se pidio traer del catalogo publico. Solo se reemplaza si la descarga
+		// funciono: si el catalogo no responde, la que ya tenia el producto sigue estando.
+		String downloaded = imageService.download(id, productDTO.getImageUrl());
+		if (downloaded != null) {
+			product.setImage(downloaded);
+		}
 		return productRepository.save(product);
 	}
 

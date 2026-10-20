@@ -52,7 +52,8 @@ public class ProductDTO {
 
 	private LocalDate expirationDate;
 
-	// Solo en el alta: el enlace a la foto que sugirio el catalogo publico (CU-03 paso 6).
+	// El enlace a la foto que sugirio el catalogo publico, al escanear el codigo en el alta
+	// (CU-03 paso 6) o al pedirla desde la ficha de un producto ya cargado (CU-22).
 	// El sistema la descarga y guarda el archivo; el enlace no se guarda en ningun lado.
 	@Size(max = 500, message = "El enlace de la imagen es demasiado largo")
 	private String imageUrl;

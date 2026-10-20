@@ -42,7 +42,7 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
 
   const [data, setData] = useState(
     product
-      ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '' }
+      ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '', imageUrl: '' }
       : { ...EMPTY, barcode, name: suggestedName, imageUrl: suggestedImage },
   )
 
@@ -64,8 +64,37 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
     return () => URL.revokeObjectURL(temporal)
   }, [file])
 
-  // Que foto se muestra: la que se acaba de elegir, la que ya tenia, o la que sugirio el catalogo.
-  const preview = filePreview || (removeImage ? '' : productImageUrl(data.image) || data.imageUrl)
+  // Que foto se muestra, en orden: la que se acaba de elegir del disco, la que se trajo del
+  // catalogo y todavia no se guardo, y por ultimo la que el producto ya tenia.
+  const preview = filePreview || data.imageUrl || (removeImage ? '' : productImageUrl(data.image))
+
+  // CU-22: traer la foto del catalogo publico para un producto que ya estaba cargado.
+  // Lee el codigo del formulario y no el guardado: si el producto no tenia, alcanza con escribirlo.
+  const [buscandoFoto, setBuscandoFoto] = useState(false)
+  // El aviso va al lado de la foto y no arriba del formulario: el boton esta abajo de todo
+  // y un mensaje arriba de la pantalla puede no llegar a verse.
+  const [avisoFoto, setAvisoFoto] = useState('')
+
+  const traerDelCatalogo = async () => {
+    const code = data.barcode.trim()
+    setAvisoFoto('')
+    setBuscandoFoto(true)
+    try {
+      const found = await suggestProduct(code)
+      if (!found.imageUrl) {
+        setAvisoFoto('La ficha del catálogo público no tiene foto para ese producto.')
+        return
+      }
+      // Reemplaza lo que hubiera elegido antes: la foto que se ve es la que se va a guardar.
+      setFile(null)
+      setRemoveImage(false)
+      setData((actual) => ({ ...actual, imageUrl: found.imageUrl }))
+    } catch (e) {
+      setAvisoFoto(e.status === 404 ? `El catálogo público no conoce el código ${code}.` : e.message)
+    } finally {
+      setBuscandoFoto(false)
+    }
+  }
   // Por peso cambian las etiquetas y los campos admiten decimales.
   const porPeso = data.saleUnit === 'KG'
   // Si el nombre lo sugirio el catalogo publico, se avisa para que se revise.
@@ -101,11 +130,13 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
       return
     }
     setError('')
+    setAvisoFoto('')
     setRemoveImage(false)
     setFile(elegido)
   }
 
   const quitarFoto = () => {
+    setAvisoFoto('')
     setFile(null)
     setRemoveImage(true)
     // Tambien se descarta la que sugirio el catalogo, o se descargaria igual al guardar.
@@ -144,8 +175,8 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
       minimumStock: toNumber(data.minimumStock),
       barcode: data.barcode || null,
       expirationDate: data.expirationDate || null,
-      // Solo en el alta: el backend descarga esa foto y guarda el archivo (CU-03 paso 6).
-      imageUrl: product ? null : data.imageUrl || null,
+      // El backend descarga esa foto y guarda el archivo, en el alta y al modificar (CU-22).
+      imageUrl: data.imageUrl || null,
       onOffer: data.onOffer,
       offerPrice: data.onOffer ? toNumber(data.offerPrice) : null,
       supplierId: toNumber(data.supplierId),
@@ -162,6 +193,11 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
         else if (removeImage && product?.image) await deleteProductImage(saved.id)
       } catch (e) {
         aviso += ` La foto no se pudo guardar: ${e.message}`
+      }
+
+      // Se pidio una foto del catalogo y el producto quedo sin ninguna: no se pudo traer.
+      if (data.imageUrl && !file && !saved.image) {
+        aviso += ' No se pudo traer la foto del catálogo público.'
       }
       onSaved(aviso, saved)
     } catch (e) {
@@ -212,16 +248,29 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
           <div>
             <label htmlFor="image">Foto del producto</label>
             <input id="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={onFileChange} />
-            <small className="help">
-              {data.imageUrl && !file && !data.image
-                ? 'La trajo el catálogo público al leer el código. Se guarda junto con el producto.'
-                : 'JPG, PNG o WEBP de hasta 2 MB. Mejor con fondo claro y el producto centrado.'}
-            </small>
-            {preview && (
-              <button type="button" className="button button-small button-secondary" onClick={quitarFoto}>
-                Quitar foto
-              </button>
-            )}
+            {avisoFoto
+              ? <small className="field-error">{avisoFoto}</small>
+              : (
+                <small className="help">
+                  {data.imageUrl && !file
+                    ? 'La trajo el catálogo público. Se guarda al confirmar el formulario.'
+                    : 'JPG, PNG o WEBP de hasta 2 MB. Mejor con fondo claro y el producto centrado.'}
+                </small>
+              )}
+            <div className="image-actions">
+              {/* Sin código de barras no hay nada que buscar en el catálogo. */}
+              {data.barcode.trim() && (
+                <button type="button" className="button button-small" onClick={traerDelCatalogo}
+                  disabled={buscandoFoto}>
+                  {buscandoFoto ? 'Buscando...' : 'Traer del catálogo'}
+                </button>
+              )}
+              {preview && (
+                <button type="button" className="button button-small button-secondary" onClick={quitarFoto}>
+                  Quitar foto
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

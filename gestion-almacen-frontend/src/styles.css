@@ -938,9 +938,17 @@ a.button {
   font-size: 14px;
 }
 
-.image-field .help {
+.image-field .help,
+.image-field .field-error {
   display: block;
   margin-bottom: 8px;
+}
+
+/* Traer del catálogo y quitar la foto, uno al lado del otro. */
+.image-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* ---------- Logo de fondo ---------- */
