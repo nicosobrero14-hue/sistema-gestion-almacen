@@ -40,17 +40,22 @@ INSERT INTO proveedores (nombre, apellido, email, telefono, direccion, activo, f
 --    - uno con el stock por debajo del mínimo, que dispara la alerta
 --    - uno en oferta
 --    - uno dado de baja
+--
+--  La columna imagen guarda el nombre del archivo, y ese nombre sale del id del producto.
+--  Como los id los asigna la base en el orden de este INSERT, las filas no se pueden mover
+--  de lugar sin que cada producto quede con la foto de otro. Los archivos están en
+--  imagenes-de-prueba/ y hay que copiarlos a la carpeta de imágenes del servidor.
 -- ----------------------------------------------------------------------------
 INSERT INTO productos
-    (nombre, descripcion, precio, stock_actual, stock_minimo, codigo_barras, fecha_vencimiento, en_oferta, precio_oferta, activo, fecha_alta, id_proveedor) VALUES
-('Yerba Mate 1kg',       'Yerba mate elaborada con palo',   4850.00, 40, 10, '7790010001234', NULL,         0, NULL,    1, NOW(), 1),
-('Leche entera 1L',      'Leche entera larga vida',         1650.00,  8, 20, '7790742001122', '2026-10-15', 0, NULL,    1, NOW(), 2),
-('Fideos guiseros 500g', 'Fideos tipo mostachol',           1200.00, 60, 15, '7790040998877', '2027-03-01', 0, NULL,    1, NOW(), 1),
-('Aceite girasol 900ml', 'Aceite de girasol común',         3400.00, 25, 10, '7790070445566', '2027-01-20', 1, 2990.00, 1, NOW(), 1),
-('Azúcar 1kg',           'Azúcar común tipo A',             1890.00, 30, 10, NULL,            NULL,         0, NULL,    1, NOW(), 3),
-('Galletitas surtidas',  'Paquete surtido 400g',            2250.00, 12,  8, '7790580112233', '2026-11-30', 0, NULL,    1, NOW(), NULL),
-('Gaseosa cola 2.25L',   'Gaseosa sabor cola',              3100.00, 45, 12, '7790895667788', '2026-12-05', 0, NULL,    1, NOW(), 1),
-('Jabón en polvo 800g',  'Jabón en polvo para ropa blanca', 5600.00,  5,  5, '7791290334455', NULL,         0, NULL,    0, NOW(), 3);
+    (nombre, descripcion, precio, stock_actual, stock_minimo, codigo_barras, fecha_vencimiento, en_oferta, precio_oferta, activo, fecha_alta, id_proveedor, imagen) VALUES
+('Yerba Mate 1kg',       'Yerba mate elaborada con palo',   4850.00, 40, 10, '7790010001234', NULL,         0, NULL,    1, NOW(), 1,    'producto-1.png'),
+('Leche entera 1L',      'Leche entera larga vida',         1650.00,  8, 20, '7790742001122', '2026-10-15', 0, NULL,    1, NOW(), 2,    'producto-2.png'),
+('Fideos guiseros 500g', 'Fideos tipo mostachol',           1200.00, 60, 15, '7790040998877', '2027-03-01', 0, NULL,    1, NOW(), 1,    'producto-3.png'),
+('Aceite girasol 900ml', 'Aceite de girasol común',         3400.00, 25, 10, '7790070445566', '2027-01-20', 1, 2990.00, 1, NOW(), 1,    'producto-4.png'),
+('Azúcar 1kg',           'Azúcar común tipo A',             1890.00, 30, 10, NULL,            NULL,         0, NULL,    1, NOW(), 3,    'producto-5.png'),
+('Galletitas surtidas',  'Paquete surtido 400g',            2250.00, 12,  8, '7790580112233', '2026-11-30', 0, NULL,    1, NOW(), NULL, 'producto-6.png'),
+('Gaseosa cola 2.25L',   'Gaseosa sabor cola',              3100.00, 45, 12, '7790895667788', '2026-12-05', 0, NULL,    1, NOW(), 1,    'producto-7.png'),
+('Jabón en polvo 800g',  'Jabón en polvo para ropa blanca', 5600.00,  5,  5, '7791290334455', NULL,         0, NULL,    0, NOW(), 3,    'producto-8.png');
 
 
 -- ----------------------------------------------------------------------------

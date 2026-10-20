@@ -16,6 +16,9 @@ dist/
 npm-debug.log*
 .vite/
 
+# Dibujos en crudo de las ilustraciones: los rehace herramientas/dibujar-ilustraciones.py
+herramientas/crudo/
+
 # ---------- Entornos de desarrollo ----------
 .classpath
 .project
