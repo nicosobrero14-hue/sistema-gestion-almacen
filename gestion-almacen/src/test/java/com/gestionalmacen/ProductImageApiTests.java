@@ -148,6 +148,28 @@ class ProductImageApiTests {
 		assertFalse(Files.exists(this.file("producto-" + id + ".jpg")), "el archivo tiene que borrarse");
 	}
 
+	// ---------- CU-03 paso 6: la foto que sugiere el catalogo publico ----------
+
+	@Test
+	void theSuggestionCarriesTheLinkToThePhoto() throws Exception {
+		catalog.add("7791813444411", "Seven Up 1.5 lts", "https://images.openfoodfacts.org/images/7up.jpg");
+
+		mvc.perform(get("/api/products/suggestion/7791813444411"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.imageUrl").value("https://images.openfoodfacts.org/images/7up.jpg"));
+	}
+
+	// El enlace llega desde el navegador: si se descargara cualquier direccion, se podria hacer
+	// que el servidor pida paginas de la red interna del comercio.
+	@Test
+	void doesNotDownloadAnImageFromOutsideTheCatalogs() throws Exception {
+		String json = product() + ",\"imageUrl\":\"http://localhost:8080/api/users\"}";
+
+		mvc.perform(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(json))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.image").doesNotExist());
+	}
+
 	@Test
 	void aNewProductStartsWithoutImage() throws Exception {
 		mvc.perform(get("/api/products/{id}", this.createProduct()))

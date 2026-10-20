@@ -90,6 +90,10 @@ public class ProductService implements IProductService {
 		this.copyData(productDTO, product);
 		productRepository.save(product);
 
+		// La foto que sugirio el catalogo se descarga ahora, con el producto ya guardado: el nombre
+		// del archivo sale de su id. Si no se pudo traer, el producto queda sin foto y se carga despues.
+		product.setImage(imageService.download(product.getId(), productDTO.getImageUrl()));
+
 		// RF-02: el stock inicial tambien queda registrado como movimiento.
 		movementRepository.save(new StockMovement(product, userService.getSessionUser(),
 				MovementType.CARGA_INICIAL, BigDecimal.ZERO, "Alta del producto"));
