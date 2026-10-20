@@ -891,6 +891,58 @@ a.button {
   flex: 1;
 }
 
+/* ---------- Foto de los productos (CU-21) ---------- */
+
+/* contain y fondo blanco: la foto se ve entera y no recortada, aunque no sea cuadrada. */
+.product-image {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.product-image-large {
+  width: 140px;
+  height: 140px;
+}
+
+/* Sin foto: la inicial del producto, para que la fila no quede con un hueco. */
+.product-image-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-background);
+  color: var(--color-muted);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.product-image-large.product-image-empty {
+  font-size: 48px;
+}
+
+/* La foto a la izquierda y el selector de archivo al lado. */
+.image-field {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.image-field input[type='file'] {
+  display: block;
+  margin: 6px 0;
+  font: inherit;
+  font-size: 14px;
+}
+
+.image-field .help {
+  display: block;
+  margin-bottom: 8px;
+}
+
 /* ---------- Logo de fondo ---------- */
 
 /* El logo en version clara, bien tenue, detras del contenido de todas las pantallas.

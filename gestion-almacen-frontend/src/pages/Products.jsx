@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { activateProduct, deactivateProduct, findProductByBarcode, getProducts, suggestProduct } from '../api/products'
+import {
+  activateProduct, deactivateProduct, findProductByBarcode, getProducts, productImageUrl, suggestProduct,
+} from '../api/products'
 import Message from '../components/Message'
+import ProductImage from '../components/ProductImage'
 import { isBarcode } from '../utils/barcode'
 import { formatPrice, formatProductPrice, formatQuantity } from '../utils/format'
 import ProductForm from './ProductForm'
@@ -152,6 +155,7 @@ export default function Products({ isAdmin }) {
           <table className="table">
             <thead>
               <tr>
+                <th>Foto</th>
                 <th>Producto</th>
                 <th>Código</th>
                 <th className="right">Precio</th>
@@ -165,6 +169,7 @@ export default function Products({ isAdmin }) {
             <tbody>
               {products.map((product) => (
                 <tr key={product.id} className={product.active ? '' : 'inactive-row'}>
+                  <td><ProductImage src={productImageUrl(product.image)} name={product.name} /></td>
                   <td>{product.name}</td>
                   <td>{product.barcode ?? '—'}</td>
                   <td className="right">
@@ -206,7 +211,7 @@ export default function Products({ isAdmin }) {
 
       {formOpen && (
         <ProductForm product={selected} barcode={missingBarcode} suggestedName={suggestion?.name ?? ''}
-          isAdmin={isAdmin} onSaved={onSaved}
+          suggestedImage={suggestion?.imageUrl ?? ''} isAdmin={isAdmin} onSaved={onSaved}
           onCancel={() => { setFormOpen(false); volverAlBuscador() }} />
       )}
     </>

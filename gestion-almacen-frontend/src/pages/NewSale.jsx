@@ -397,7 +397,8 @@ export default function NewSale({ isAdmin }) {
 
       {productFormOpen && (
         <ProductForm product={null} barcode={missingBarcode} suggestedName={suggestion?.name ?? ''}
-          isAdmin={isAdmin} onSaved={onProductCreated} onCancel={() => setProductFormOpen(false)} />
+          suggestedImage={suggestion?.imageUrl ?? ''} isAdmin={isAdmin} onSaved={onProductCreated}
+          onCancel={() => setProductFormOpen(false)} />
       )}
     </>
   )

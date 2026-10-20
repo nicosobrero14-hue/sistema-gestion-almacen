@@ -20,3 +20,15 @@ export const editProduct = (id, product) => client.put(`/products/${id}`, produc
 export const deactivateProduct = (id) => client.patch(`/products/${id}/deactivate`)
 
 export const activateProduct = (id) => client.patch(`/products/${id}/activate`)
+
+// CU-21: la foto del producto. Va aparte del alta porque el nombre del archivo sale de su id.
+export const uploadProductImage = (id, file) => {
+  const body = new FormData()
+  body.append('file', file)
+  return client.post(`/products/${id}/image`, body).then((response) => response.data)
+}
+
+export const deleteProductImage = (id) => client.delete(`/products/${id}/image`)
+
+// La direccion desde la que el backend sirve la foto. Vacio si el producto todavia no tiene.
+export const productImageUrl = (image) => (image ? `/imagenes/${image}` : '')
