@@ -42,7 +42,16 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
 
   const [data, setData] = useState(
     product
-      ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '', imageUrl: '' }
+      // Las columnas que la base admite vacias llegan en null, y el formulario las trata como
+      // texto: sin esto, abrir un producto sin codigo de barras rompe la pantalla.
+      ? {
+        ...product,
+        supplierId: product.supplier?.id ?? '',
+        offerPrice: product.offerPrice ?? '',
+        barcode: product.barcode ?? '',
+        description: product.description ?? '',
+        imageUrl: '',
+      }
       : { ...EMPTY, barcode, name: suggestedName, imageUrl: suggestedImage },
   )
 
