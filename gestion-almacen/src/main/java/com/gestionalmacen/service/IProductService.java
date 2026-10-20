@@ -2,6 +2,8 @@ package com.gestionalmacen.service;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import com.gestionalmacen.dto.ProductDTO;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.Product;
@@ -23,6 +25,11 @@ public interface IProductService {
 	Product saveProduct(ProductDTO productDTO, boolean isAdmin);
 
 	Product editProduct(Long id, ProductDTO productDTO, boolean isAdmin);
+
+	// CU-21: la foto del producto. La puede cargar cualquiera que pueda editarlo.
+	Product saveImage(Long id, MultipartFile file);
+
+	void deleteImage(Long id);
 
 	void deactivateProduct(Long id);
 

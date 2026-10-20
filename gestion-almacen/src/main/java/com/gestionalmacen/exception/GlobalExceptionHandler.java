@@ -18,6 +18,7 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import com.gestionalmacen.dto.ErrorDTO;
 
@@ -78,6 +79,13 @@ public class GlobalExceptionHandler {
 	public ResponseEntity<ErrorDTO> badParameter(Exception ex) {
 		return ResponseEntity.badRequest()
 				.body(new ErrorDTO("Falta un dato de la búsqueda o tiene un formato inválido."));
+	}
+
+	//409- la imagen que se quiso subir pesa mas de lo que admite el servidor (CU-21)
+	// Lo corta el servidor antes de llegar al controlador, asi que el mensaje se arma aca.
+	@ExceptionHandler(MaxUploadSizeExceededException.class)
+	public ResponseEntity<ErrorDTO> fileTooLarge(MaxUploadSizeExceededException ex) {
+		return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorDTO("La imagen no puede superar los 2 MB."));
 	}
 
 	//409- choca con una restriccion de la base (por ejemplo, dos altas a la vez con el mismo codigo)

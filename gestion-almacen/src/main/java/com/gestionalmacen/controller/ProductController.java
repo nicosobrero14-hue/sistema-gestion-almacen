@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.gestionalmacen.dto.ProductDTO;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
@@ -71,14 +73,28 @@ public class ProductController {
 		return productService.editProduct(id, productDTO, request.isUserInRole("ADMIN"));
 	}
 
-	//7- dar de baja: deja de aparecer, pero no se borra
+	//7- cargar la foto del producto (CU-21). Va aparte del alta: el nombre del archivo sale del id
+	// del producto, asi que recien se puede guardar cuando el producto existe
+	@PostMapping("/{id}/image")
+	public Product saveImage(@PathVariable Long id, @RequestParam MultipartFile file) {
+		return productService.saveImage(id, file);
+	}
+
+	//8- quitar la foto
+	@DeleteMapping("/{id}/image")
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	public void deleteImage(@PathVariable Long id) {
+		productService.deleteImage(id);
+	}
+
+	//9- dar de baja: deja de aparecer, pero no se borra
 	@PatchMapping("/{id}/deactivate")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deactivateProduct(@PathVariable Long id) {
 		productService.deactivateProduct(id);
 	}
 
-	//8- reactivar un producto dado de baja
+	//10- reactivar un producto dado de baja
 	@PatchMapping("/{id}/activate")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void activateProduct(@PathVariable Long id) {

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.gestionalmacen.dto.ProductDTO;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
@@ -39,6 +40,10 @@ public class ProductService implements IProductService {
 	// Catalogo publico de productos. En las pruebas es uno falso (CU-03).
 	@Autowired
 	private IProductCatalog productCatalog;
+
+	// Guarda y trae las fotos de los productos (CU-21).
+	@Autowired
+	private IProductImageService imageService;
 
 	@Override
 	public List<Product> getProducts(String search, boolean activeOnly) {
@@ -106,6 +111,22 @@ public class ProductService implements IProductService {
 
 		this.copyData(productDTO, product);
 		return productRepository.save(product);
+	}
+
+	// CU-21: el archivo se guarda en el servidor y en el producto queda solo su nombre.
+	@Override
+	public Product saveImage(Long id, MultipartFile file) {
+		Product product = this.findProduct(id);
+		product.setImage(imageService.save(id, file));
+		return productRepository.save(product);
+	}
+
+	@Override
+	public void deleteImage(Long id) {
+		Product product = this.findProduct(id);
+		imageService.delete(id);
+		product.setImage(null);
+		productRepository.save(product);
 	}
 
 	@Override
