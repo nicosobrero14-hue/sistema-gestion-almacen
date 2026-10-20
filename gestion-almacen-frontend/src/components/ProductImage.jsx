@@ -1,4 +1,4 @@
-// Foto de un producto (RF-12 / CU-21).
+// Foto de un producto (RF-14 / CU-22).
 // Sin foto muestra un recuadro con la inicial: ningun comercio carga las imagenes de todo
 // el catalogo el primer dia, asi que la fila tiene que verse bien igual.
 // src: la direccion de la imagen, ya armada por quien lo usa. Vacio es "todavia no tiene".

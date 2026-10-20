@@ -2,7 +2,7 @@ package com.gestionalmacen.service;
 
 import org.springframework.web.multipart.MultipartFile;
 
-// Imagen de un producto (RF-12 / CU-21). El archivo vive en una carpeta del servidor y en la base
+// Imagen de un producto (RF-14 / CU-22). El archivo vive en una carpeta del servidor y en la base
 // queda solo su nombre.
 public interface IProductImageService {
 

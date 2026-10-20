@@ -206,7 +206,7 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
             error={errors.barcode} maxLength={64} help="Opcional" />
         </div>
 
-        {/* CU-21: la foto con la que el producto se reconoce de un vistazo en la pantalla de venta. */}
+        {/* CU-22: la foto con la que el producto se reconoce de un vistazo en la pantalla de venta. */}
         <div className="image-field">
           <ProductImage src={preview} name={data.name} large />
           <div>

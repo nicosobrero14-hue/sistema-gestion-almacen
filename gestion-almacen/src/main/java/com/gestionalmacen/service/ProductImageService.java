@@ -20,7 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.gestionalmacen.exception.BusinessRuleException;
 
-// Guarda, trae y borra la imagen de un producto (RF-12 / CU-21).
+// Guarda, trae y borra la imagen de un producto (RF-14 / CU-22).
 //
 // El archivo se guarda en una carpeta del servidor y en la base queda solo el nombre: un BLOB
 // engorda los respaldos y servir un archivo estatico es mas rapido que sacar el binario de la base.

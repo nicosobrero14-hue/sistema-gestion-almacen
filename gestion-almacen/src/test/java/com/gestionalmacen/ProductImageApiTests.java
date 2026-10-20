@@ -35,7 +35,7 @@ import com.gestionalmacen.entity.User;
 import com.gestionalmacen.repository.IUserRepository;
 import com.jayway.jsonpath.JsonPath;
 
-// Imagen de un producto: carga, reemplazo y baja (RF-12 / CU-21), y la foto que sugiere
+// Imagen de un producto: carga, reemplazo y baja (RF-14 / CU-22), y la foto que sugiere
 // el catalogo publico al escanear un codigo (CU-03 paso 6).
 @SpringBootTest
 @ActiveProfiles("test")

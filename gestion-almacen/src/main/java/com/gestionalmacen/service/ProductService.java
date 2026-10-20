@@ -41,7 +41,7 @@ public class ProductService implements IProductService {
 	@Autowired
 	private IProductCatalog productCatalog;
 
-	// Guarda y trae las fotos de los productos (CU-21).
+	// Guarda y trae las fotos de los productos (CU-22).
 	@Autowired
 	private IProductImageService imageService;
 
@@ -117,7 +117,7 @@ public class ProductService implements IProductService {
 		return productRepository.save(product);
 	}
 
-	// CU-21: el archivo se guarda en el servidor y en el producto queda solo su nombre.
+	// CU-22: el archivo se guarda en el servidor y en el producto queda solo su nombre.
 	@Override
 	public Product saveImage(Long id, MultipartFile file) {
 		Product product = this.findProduct(id);

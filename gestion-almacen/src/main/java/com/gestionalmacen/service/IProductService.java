@@ -26,7 +26,7 @@ public interface IProductService {
 
 	Product editProduct(Long id, ProductDTO productDTO, boolean isAdmin);
 
-	// CU-21: la foto del producto. La puede cargar cualquiera que pueda editarlo.
+	// CU-22: la foto del producto. La puede cargar cualquiera que pueda editarlo.
 	Product saveImage(Long id, MultipartFile file);
 
 	void deleteImage(Long id);

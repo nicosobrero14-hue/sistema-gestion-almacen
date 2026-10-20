@@ -81,7 +81,7 @@ public class GlobalExceptionHandler {
 				.body(new ErrorDTO("Falta un dato de la búsqueda o tiene un formato inválido."));
 	}
 
-	//409- la imagen que se quiso subir pesa mas de lo que admite el servidor (CU-21)
+	//409- la imagen que se quiso subir pesa mas de lo que admite el servidor (CU-22)
 	// Lo corta el servidor antes de llegar al controlador, asi que el mensaje se arma aca.
 	@ExceptionHandler(MaxUploadSizeExceededException.class)
 	public ResponseEntity<ErrorDTO> fileTooLarge(MaxUploadSizeExceededException ex) {

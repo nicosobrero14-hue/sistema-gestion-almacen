@@ -8,7 +8,7 @@ import org.springframework.http.CacheControl;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-// Deja servir las fotos de los productos como archivos (RF-12 / CU-21).
+// Deja servir las fotos de los productos como archivos (RF-14 / CU-22).
 // Van fuera del proyecto, en una carpeta del servidor: son datos del comercio, no codigo.
 @Configuration
 public class WebConfig implements WebMvcConfigurer {

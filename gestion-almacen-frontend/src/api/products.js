@@ -21,7 +21,7 @@ export const deactivateProduct = (id) => client.patch(`/products/${id}/deactivat
 
 export const activateProduct = (id) => client.patch(`/products/${id}/activate`)
 
-// CU-21: la foto del producto. Va aparte del alta porque el nombre del archivo sale de su id.
+// CU-22: la foto del producto. Va aparte del alta porque el nombre del archivo sale de su id.
 export const uploadProductImage = (id, file) => {
   const body = new FormData()
   body.append('file', file)

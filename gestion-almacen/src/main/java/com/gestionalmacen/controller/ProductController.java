@@ -73,7 +73,7 @@ public class ProductController {
 		return productService.editProduct(id, productDTO, request.isUserInRole("ADMIN"));
 	}
 
-	//7- cargar la foto del producto (CU-21). Va aparte del alta: el nombre del archivo sale del id
+	//7- cargar la foto del producto (CU-22). Va aparte del alta: el nombre del archivo sale del id
 	// del producto, asi que recien se puede guardar cuando el producto existe
 	@PostMapping("/{id}/image")
 	public Product saveImage(@PathVariable Long id, @RequestParam MultipartFile file) {

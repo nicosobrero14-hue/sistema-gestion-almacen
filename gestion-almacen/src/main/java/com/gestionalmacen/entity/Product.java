@@ -58,7 +58,7 @@ public class Product {
 	private String barcode;
 
 	// Nombre del archivo de la imagen, no la imagen: guardar binarios en la base engorda los
-	// respaldos y servir un archivo estatico es mas rapido (RF-12). Puede no tener.
+	// respaldos y servir un archivo estatico es mas rapido (RF-14). Puede no tener.
 	@Column(name = "imagen", length = 255)
 	private String image;
 
