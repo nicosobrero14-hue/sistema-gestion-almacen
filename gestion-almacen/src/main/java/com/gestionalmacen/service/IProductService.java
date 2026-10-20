@@ -15,6 +15,9 @@ public interface IProductService {
 
 	Product findProduct(Long id);
 
+	// Los productos sin codigo de barras, que son los que no se pueden escanear (RF-14 / CU-07).
+	List<Product> getProductsWithoutBarcode();
+
 	// Busca por el codigo exacto, como lo manda el lector de codigo de barras (CU-03).
 	Product findProductByBarcode(String barcode);
 

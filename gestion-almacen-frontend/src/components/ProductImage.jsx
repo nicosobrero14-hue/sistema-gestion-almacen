@@ -9,5 +9,6 @@ export default function ProductImage({ src, name, large = false }) {
     // aria-hidden: la inicial no aporta nada a quien usa un lector de pantalla, el nombre ya esta al lado.
     return <span className={`${size} product-image-empty`} aria-hidden="true">{(name ?? '?').trim().charAt(0).toUpperCase()}</span>
   }
-  return <img className={size} src={src} alt={`Foto de ${name}`} />
+  // loading lazy: en la grilla de la venta hay muchas fotos y solo se bajan las que se ven.
+  return <img className={size} src={src} alt={`Foto de ${name}`} loading="lazy" />
 }

@@ -79,6 +79,34 @@ class ProductApiTests {
 		mvc.perform(get("/api/products/barcode/7791813444411")).andExpect(status().isNotFound());
 	}
 
+	// ---------- RF-14 / CU-07: los que no se pueden escanear ----------
+
+	// La grilla de la pantalla de venta muestra justo los que no tienen codigo: fruta, verdura
+	// y todo lo que se vende suelto. Lo que tiene codigo se lee con el lector.
+	@Test
+	void listsOnlyTheProductsWithoutABarcode() throws Exception {
+		create("/api/products", product("Yerba 1kg", "4850.00", 40, 10, "7790010001234", null));
+		create("/api/products", product("Lechuga", "1200.00", 5, 1, null, null));
+		create("/api/products", product("Banana", "2300.00", 8, 2, null, null));
+
+		mvc.perform(get("/api/products/without-barcode"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(2))
+				.andExpect(jsonPath("$[0].name").value("Banana"))  // alfabetico: el mostrador los busca por nombre
+				.andExpect(jsonPath("$[1].name").value("Lechuga"));
+	}
+
+	// Un producto dado de baja no se puede vender, asi que tampoco aparece en la grilla.
+	@Test
+	void theGridLeavesOutProductsThatAreDeactivated() throws Exception {
+		long id = create("/api/products", product("Lechuga", "1200.00", 5, 1, null, null));
+		mvc.perform(patch("/api/products/{id}/deactivate", id).with(csrf())).andExpect(status().isNoContent());
+
+		mvc.perform(get("/api/products/without-barcode"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(0));
+	}
+
 	@Test
 	void createsAProductWithItsSupplier() throws Exception {
 		long supplierId = create("/api/suppliers", "{\"name\":\"Distribuidora Sur\"}");

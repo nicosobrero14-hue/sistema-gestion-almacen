@@ -5,6 +5,10 @@ import client from './client'
 export const getProducts = (search, activeOnly) =>
   client.get('/products', { params: { search, activeOnly } }).then((response) => response.data)
 
+// Los que no se pueden escanear: fruta, verdura y todo lo que se vende suelto (RF-14 / CU-07).
+export const getProductsWithoutBarcode = () =>
+  client.get('/products/without-barcode').then((response) => response.data)
+
 // Codigo exacto, como lo manda el lector de codigo de barras (CU-03).
 // CU-03 paso 6: datos sugeridos desde un catalogo publico para un codigo que no esta en el comercio.
 export const suggestProduct = (barcode) =>

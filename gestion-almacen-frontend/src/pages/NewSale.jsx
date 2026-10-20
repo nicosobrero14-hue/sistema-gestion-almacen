@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { findProductByBarcode, getProducts, suggestProduct } from '../api/products'
+import {
+  findProductByBarcode, getProducts, getProductsWithoutBarcode, productImageUrl, suggestProduct,
+} from '../api/products'
 import { cancelPayment, checkPayment, saveSale } from '../api/sales'
 import Message from '../components/Message'
+import ProductImage from '../components/ProductImage'
 import TextField from '../components/TextField'
 import { isBarcode } from '../utils/barcode'
-import { formatPrice, formatQuantity } from '../utils/format'
+import { formatPrice, formatProductPrice, formatQuantity } from '../utils/format'
 import ProductForm from './ProductForm'
 
 // El error de un renglon del carrito, o null si la cantidad esta bien (CU-08 exc. 3a y 4a).
@@ -23,6 +26,18 @@ export default function NewSale({ isAdmin }) {
 
   const [search, setSearch] = useState('')
   const [results, setResults] = useState(null) // null = todavia no se busco nada
+
+  // RF-14 / CU-07: sin buscar nada, la pantalla muestra los productos que no se pueden escanear
+  // (fruta, verdura, fiambre). Lo que tiene codigo de barras se lee con el lector.
+  const [withoutBarcode, setWithoutBarcode] = useState(null) // null = todavia no cargo
+  // Tarjetas con la foto o la tabla de siempre. Se recuerda: despues de cada venta la pantalla
+  // se arma de nuevo y volver a cambiarla cada vez seria molesto.
+  const [view, setView] = useState(() => localStorage.getItem('vista-venta') ?? 'tarjetas')
+
+  const changeView = (nueva) => {
+    setView(nueva)
+    localStorage.setItem('vista-venta', nueva)
+  }
   const [cart, setCart] = useState([]) // renglones: { product, quantity }
   const [discount, setDiscount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('EFECTIVO')
@@ -40,6 +55,12 @@ export default function NewSale({ isAdmin }) {
 
   // El buscador vuelve a tener el foco despues de cada producto agregado: el lector escribe donde esta el foco.
   const searchRef = useRef(null)
+
+  useEffect(() => {
+    getProductsWithoutBarcode()
+      .then(setWithoutBarcode)
+      .catch((e) => setError(e.message))
+  }, [])
 
   // Busca mientras se escribe, 300 ms despues de la ultima tecla. Solo productos activos.
   useEffect(() => {
@@ -103,6 +124,11 @@ export default function NewSale({ isAdmin }) {
   }
 
   const removeFromCart = (productId) => setCart(cart.filter((line) => line.product.id !== productId))
+
+  // Que productos se ven. Sin texto en el buscador, los que no se pueden escanear; con texto, lo
+  // que devolvio la busqueda, que mira todo el catalogo. null en los dos casos es "todavia no llego".
+  const searching = search.trim() !== ''
+  const shown = searching ? results : withoutBarcode
 
   // CU-03 paso 4: en una venta, el codigo leido agrega el producto al carrito.
   const onSearchKeyDown = async (event) => {
@@ -232,7 +258,20 @@ export default function NewSale({ isAdmin }) {
 
       <div className="sale-layout">
         <section className="panel">
-          <h2>Productos</h2>
+          <div className="panel-header">
+            <h2>Productos</h2>
+            {/* La lista entra mas productos en la pantalla y le sirve a quien ya se sabe el catalogo. */}
+            <div className="view-toggle">
+              <button type="button" className={view === 'tarjetas' ? 'active' : ''}
+                onClick={() => changeView('tarjetas')} aria-pressed={view === 'tarjetas'}>
+                Tarjetas
+              </button>
+              <button type="button" className={view === 'lista' ? 'active' : ''}
+                onClick={() => changeView('lista')} aria-pressed={view === 'lista'}>
+                Lista
+              </button>
+            </div>
+          </div>
           <div className="filters">
             <input
               type="search"
@@ -246,12 +285,44 @@ export default function NewSale({ isAdmin }) {
             />
           </div>
 
-          {/* CU-07 exc. 3a: el producto buscado no existe. Si lo leyo el lector, ya lo dice el aviso de arriba. */}
-          {results !== null && results.length === 0 && !missingBarcode && (
-            <p className="notice">No hay ningún producto con ese nombre o código.</p>
+          {!searching && shown !== null && shown.length > 0 && (
+            <p className="help">Los que no tienen código de barras. El resto se lee con el lector o se busca por nombre.</p>
           )}
 
-          {results !== null && results.length > 0 && (
+          {/* CU-07 exc. 3a: el producto buscado no existe. Si lo leyo el lector, ya lo dice el aviso de arriba. */}
+          {shown !== null && shown.length === 0 && !missingBarcode && (
+            <p className="notice">
+              {searching
+                ? 'No hay ningún producto con ese nombre o código.'
+                : 'Todos los productos tienen código de barras: léalos con el lector o búsquelos por nombre.'}
+            </p>
+          )}
+
+          {shown !== null && shown.length > 0 && (view === 'tarjetas' ? (
+            // RF-14: elegir el producto mirandolo, que es la unica forma comoda para lo que se vende suelto.
+            <div className="product-grid">
+              {shown.map((product) => (
+                <button key={product.id} type="button" className="product-card"
+                  onClick={() => addToCart(product)} disabled={product.stock === 0}>
+                  <ProductImage src={productImageUrl(product.image)} name={product.name} large />
+                  <span className="product-card-name">{product.name}</span>
+                  <span className="product-card-price">
+                    {product.onOffer ? (
+                      <span className="offer-price">
+                        <s>{formatProductPrice(product.price, product.saleUnit)}</s>{' '}
+                        {formatProductPrice(product.salePrice, product.saleUnit)}
+                      </span>
+                    ) : (
+                      formatProductPrice(product.salePrice, product.saleUnit)
+                    )}
+                  </span>
+                  <span className={product.lowStock ? 'product-card-stock low-stock' : 'product-card-stock'}>
+                    {product.stock === 0 ? 'Sin stock' : `${formatQuantity(product.stock, product.saleUnit)} disponibles`}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
             <table className="table">
               <thead>
                 <tr>
@@ -262,16 +333,17 @@ export default function NewSale({ isAdmin }) {
                 </tr>
               </thead>
               <tbody>
-                {results.map((product) => (
+                {shown.map((product) => (
                   <tr key={product.id}>
                     <td>{product.name}</td>
                     <td className="right">
                       {product.onOffer ? (
                         <span className="offer-price">
-                          <s>{formatPrice(product.price)}</s> {formatPrice(product.salePrice)}
+                          <s>{formatProductPrice(product.price, product.saleUnit)}</s>{' '}
+                          {formatProductPrice(product.salePrice, product.saleUnit)}
                         </span>
                       ) : (
-                        formatPrice(product.salePrice)
+                        formatProductPrice(product.salePrice, product.saleUnit)
                       )}
                     </td>
                     <td className={product.lowStock ? 'right low-stock' : 'right'}>
@@ -287,7 +359,7 @@ export default function NewSale({ isAdmin }) {
                 ))}
               </tbody>
             </table>
-          )}
+          ))}
         </section>
 
         <section className="panel">

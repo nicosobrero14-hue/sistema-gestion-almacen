@@ -51,6 +51,11 @@ public class ProductService implements IProductService {
 	}
 
 	@Override
+	public List<Product> getProductsWithoutBarcode() {
+		return productRepository.findByActiveTrueAndBarcodeIsNullOrderByName();
+	}
+
+	@Override
 	public Product findProduct(Long id) {
 		return productRepository.findById(id)
 				.orElseThrow(() -> new NotFoundException("No existe el producto con id " + id));
