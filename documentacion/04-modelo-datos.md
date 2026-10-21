@@ -45,6 +45,32 @@ números en binario y no pueden representar exactamente valores como 0,10. El er
 número suelto, pero se acumula al sumar un carrito y termina en un total que no cierra contra lo que
 se cobró.
 
+### Las cantidades son decimales, no enteras
+
+Un almacén no vende solo cosas que se cuentan. El fiambre, el queso y la verdura se venden por
+peso, y 120 gramos no entran en un número entero. Las cinco columnas de cantidad del sistema
+—el stock y el mínimo del producto, la cantidad del renglón de venta, y el stock anterior y nuevo
+de cada movimiento— son `DECIMAL(10,3)`.
+
+Tres decimales y no dos porque es lo que entrega una balanza de mostrador y es lo que hace falta
+para los gramos. Decimal y no coma flotante por la misma razón que el dinero: una cantidad que se
+suma y se resta muchas veces no puede ir arrastrando error.
+
+La columna `unidad_venta` es la que le da sentido al número. Dice si el producto se cuenta o se
+pesa, y con eso el sistema sabe si el precio es por unidad o por kilo y cómo mostrar la cantidad.
+Se guarda también en el renglón de la venta, por la misma razón que el nombre y el precio: si
+mañana el producto se reclasifica, la venta vieja tiene que seguir diciendo lo que decía.
+
+### La foto se guarda como archivo, y en la base solo su nombre
+
+La columna `imagen` guarda el nombre del archivo, no el binario. Un BLOB engorda cada respaldo de
+la base, y servir una imagen desde la base es más lento que servir un archivo estático.
+
+Los archivos viven en una carpeta del servidor que se configura aparte, fuera del proyecto, porque
+son datos del comercio y no código. El nombre del archivo se arma con el id del producto
+(`producto-7.jpg`) y nunca con el nombre que manda quien lo sube: un nombre con `..` podría
+escribir fuera de la carpeta.
+
 ### El detalle de la venta guarda una copia del nombre y del precio
 
 `detalle_venta` no se limita a apuntar al producto: copia el nombre y el precio que tenía en el
@@ -171,10 +197,11 @@ Además de lo que valida la aplicación, la base rechaza por su cuenta los datos
 | `ck_productos_precio` | Un precio en cero o negativo |
 | `ck_productos_stock` | Stock actual o mínimo negativos |
 | `ck_productos_oferta` | Marcar un producto en oferta sin precio especial, o con un precio de oferta mayor o igual al normal |
+| `ck_productos_unidad`, `ck_detalle_unidad` | Una unidad de venta que no sea UNIDAD o KG |
 | `ck_usuarios_rol` | Un rol que no sea ADMIN o EMPLEADO |
 | `ck_ventas_estado` | Un estado de venta inventado |
 | `ck_ventas_importes` | Importes negativos o un descuento mayor al subtotal |
-| `ck_detalle_cantidad` | Vender cero o menos unidades |
+| `ck_detalle_cantidad` | Vender una cantidad de cero o negativa |
 | `ck_pagos_metodo`, `ck_pagos_estado` | Un método o un estado de pago que no existe |
 | `ck_movimientos_tipo` | Un tipo de movimiento fuera de los tres previstos |
 | `uq_usuarios_username` | Dos usuarios con el mismo nombre de usuario |
@@ -218,9 +245,11 @@ de barras, pero no dos con el mismo.
 | nombre | VARCHAR(120) | No | Nombre del producto |
 | descripcion | VARCHAR(255) | Sí | Detalle adicional |
 | precio | DECIMAL(10,2) | No | Precio de venta. Mayor a cero |
-| stock_actual | INT | No | Unidades disponibles |
-| stock_minimo | INT | No | Umbral que dispara la alerta de stock bajo |
+| stock_actual | DECIMAL(10,3) | No | Cantidad disponible. En unidades o en kilos, según `unidad_venta` |
+| stock_minimo | DECIMAL(10,3) | No | Umbral que dispara la alerta de stock bajo |
+| unidad_venta | VARCHAR(10) | No | UNIDAD o KG. Define si el precio es por unidad o por kilo |
 | codigo_barras | VARCHAR(64) | Sí | Código del envase. Único |
+| imagen | VARCHAR(255) | Sí | Nombre del archivo de la foto. No la foto |
 | fecha_vencimiento | DATE | Sí | Solo productos perecederos |
 | en_oferta | TINYINT(1) | No | 1 si está en oferta |
 | precio_oferta | DECIMAL(10,2) | Sí | Precio especial. Obligatorio si está en oferta y menor al normal |
@@ -249,6 +278,7 @@ de barras, pero no dos con el mismo.
 | fecha_hora | DATETIME | No | Cuándo se hizo la venta |
 | id_usuario | BIGINT | Sí | Usuario que la registró |
 | username | VARCHAR(50) | No | Copia del nombre de usuario al momento de la venta |
+| nombre_empleado | VARCHAR(120) | No | Copia del nombre y apellido de quien vendió. Es lo que sale en el ticket |
 | subtotal | DECIMAL(10,2) | No | Suma de los renglones |
 | descuento | DECIMAL(10,2) | No | Descuento sobre el total. Cero si no hubo |
 | total | DECIMAL(10,2) | No | Subtotal menos descuento. Es lo que se cobró |
@@ -262,8 +292,9 @@ de barras, pero no dos con el mismo.
 | id_venta | BIGINT | No | Venta a la que pertenece |
 | id_producto | BIGINT | Sí | Producto vendido. Queda nulo si el producto se borra |
 | nombre_producto | VARCHAR(120) | No | Copia del nombre al momento de la venta |
-| precio_unitario | DECIMAL(10,2) | No | Copia del precio cobrado por unidad |
-| cantidad | INT | No | Unidades vendidas. Mayor a cero |
+| precio_unitario | DECIMAL(10,2) | No | Copia del precio cobrado por unidad o por kilo |
+| cantidad | DECIMAL(10,3) | No | Cantidad vendida. Mayor a cero |
+| unidad_venta | VARCHAR(10) | No | Copia de cómo se vendía el producto en ese momento |
 
 ### pagos
 
@@ -289,8 +320,8 @@ de barras, pero no dos con el mismo.
 | username | VARCHAR(50) | No | Copia del nombre de usuario |
 | id_venta | BIGINT | Sí | Venta que lo originó, si vino de una venta |
 | tipo | VARCHAR(20) | No | CARGA_INICIAL, AJUSTE_MANUAL o VENTA |
-| stock_anterior | INT | No | Stock antes del movimiento |
-| stock_nuevo | INT | No | Stock después del movimiento |
+| stock_anterior | DECIMAL(10,3) | No | Stock antes del movimiento |
+| stock_nuevo | DECIMAL(10,3) | No | Stock después del movimiento |
 | motivo | VARCHAR(255) | No | Por qué se movió el stock |
 | fecha_hora | DATETIME | No | Cuándo ocurrió |
 

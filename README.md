@@ -46,6 +46,17 @@ El desarrollo avanza por fases. Cada una deja una funcionalidad completa, probad
 | 6 | Historial de ventas y lector de código de barras | Terminada |
 | 7 | Sugerencias de ofertas | Terminada |
 | 8 | Cobro con MercadoPago | Terminada |
+| 9 | Cantidades decimales y venta por peso | Terminada |
+| 13 | Imágenes de productos y venta visual | Terminada |
+| 10 | Venta por peso con la balanza | Pendiente |
+| 11 | Diseño de interfaz | Pendiente |
+| 12 | Paginación y ordenamiento | Pendiente |
+| 14 | Cierre: diagramas, manual y conclusiones | Pendiente |
+
+Las fases 9 y 13 se hicieron antes que la 10, la 11 y la 12. Los decimales porque no tiene sentido
+conectar una balanza a un sistema donde la cantidad es un número entero, y las imágenes porque la
+consulta a los catálogos públicos, hecha sobre la marcha al conectar el lector, ya traía media
+solución adentro.
 
 ## Puesta en marcha
 

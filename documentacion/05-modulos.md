@@ -365,10 +365,14 @@ vuelve al buscador después de tocar "Agregar", así el lector nunca escribe en 
 
 ![Tres lecturas: dos yerbas y un aceite](imagenes/fase-6-lector-venta.png)
 
-**En el catálogo (CU-03 paso 5):** el producto leído se abre en su ficha, para ver o modificar sus
-datos.
+**En el catálogo (CU-03 paso 5):** el código leído filtra el listado y deja el producto a la vista
+con su precio y su stock, sin abrir nada.
 
-![Ficha abierta con el lector](imagenes/fase-6-lector-catalogo.png)
+Esto cambió respecto del análisis, que dice que se abre la ficha del producto. Trabajando con el
+lector en la mano se vio que en el mostrador esa pantalla se usa como consulta rápida de precios
+—alguien pregunta cuánto sale algo, se lo escanea y se le contesta— y que abrir una ficha de
+edición en cada lectura estorba más de lo que ayuda. El cambio está registrado en el anexo de
+modificaciones al análisis.
 
 **Si el código no existe (CU-03 paso 6):** el sistema lo avisa y ofrece darlo de alta. El
 formulario se abre con el código ya cargado. En una venta, al guardarlo, el producto nuevo entra
@@ -380,6 +384,20 @@ directo al carrito. Si el usuario cierra el aviso o el formulario, todo queda co
 ![Alta con el código leído](imagenes/fase-6-lector-alta.png)
 
 ![El producto nuevo en el carrito](imagenes/fase-6-lector-alta-carrito.png)
+
+**Los datos los sugiere un catálogo público.** El lector entrega el número y nada más, así que dar
+de alta un producto nuevo significaba escribir el nombre, el precio y el resto a mano, uno por uno.
+Antes de abrir el formulario, el sistema consulta ese código en cuatro catálogos públicos abiertos
+—alimentos, higiene y cosmética, productos en general y alimento para mascotas— y usa el primero
+que lo conozca para sugerir el nombre y traer la foto.
+
+Lo que llega es una sugerencia y no un dato del sistema: esos catálogos los cargan personas y
+vienen desparejos, con la marca repetida en el nombre o todo en minúsculas. El formulario avisa que
+hay que revisar el nombre antes de guardar.
+
+Que un código no esté no es un error. Se carga a mano, que es lo que se hacía igual, y la pantalla
+sigue funcionando con la conexión caída. La cobertura es despareja según el rubro: en alimentos es
+buena y fuera de alimentos es escasa, como se detalla en la bitácora.
 
 ## 5.12 Ofertas
 
@@ -478,7 +496,56 @@ el código no se toca.
 **Lo que queda fuera.** Las devoluciones, que el comercio resuelve desde la aplicación de
 MercadoPago, y el cobro partido entre dos formas de pago. La tabla de pagos soporta las dos cosas.
 
-## 5.14 Decisiones de esta etapa
+## 5.14 Cantidades por peso
+
+Un almacén no vende solo cosas que se cuentan. El fiambre, el queso y la verdura se venden por
+peso, y hasta la fase 9 el sistema no podía representarlos: las cantidades eran números enteros y
+120 gramos no entraban en ningún campo.
+
+Cada producto define cómo se vende. Por unidad, el precio es por unidad y la cantidad va entera.
+Por kilo, el precio se entiende por kilo, la cantidad admite tres decimales y el sistema lo muestra
+en todas partes: el catálogo dice "$ 12.000,00/kg", el stock dice "2,880 kg" y el ticket no agrega
+"c/u" a un precio que no es por unidad.
+
+El subtotal de cada renglón se redondea a dos decimales en un solo lugar, el método que lo calcula.
+Por peso el importe casi nunca da exacto —0,137 kg a $12.000 el kilo dan $1.644 con un resto— y
+redondear en cada pantalla por separado haría que el total no coincida con la suma de los renglones.
+
+Esta fase es el paso previo a la balanza. Hoy el peso lo escribe el empleado; la balanza va a
+entregarlo sola.
+
+## 5.15 Imágenes de los productos
+
+Un producto se reconoce antes por la foto que por el nombre, sobre todo lo que se vende suelto. El
+sistema guarda una imagen por producto y la muestra en el listado del catálogo, en la ficha y en la
+pantalla de venta.
+
+La foto puede llegar de dos maneras. La primera es automática: al dar de alta un producto
+escaneado, si el catálogo público tiene su foto, el sistema la descarga y la guarda. La segunda es
+a mano, desde la ficha, eligiendo un archivo del disco. Para un producto que ya estaba cargado sin
+foto hay además un botón que la busca en el catálogo, porque la descarga automática solo ocurre en
+el alta.
+
+La imagen se descarga y no se enlaza. Guardar el enlace era más simple, pero la foto desaparece si
+el catálogo la borra y sin internet la pantalla de venta queda llena de imágenes rotas, que es
+justo lo que RNF-04 no quiere. Descargada una vez, la foto es del comercio.
+
+Un producto sin foto no se ve mal: muestra un recuadro con su inicial. Hace falta, porque ningún
+comercio carga las fotos de todo su catálogo el primer día.
+
+**La pantalla de venta con tarjetas.** La venta muestra los productos que no tienen código de
+barras como tarjetas con foto, nombre y precio. Son justo los que no se pueden escanear: fruta,
+verdura, fiambre y todo lo que se vende suelto. El resto se sigue leyendo con el lector o buscando
+por nombre, y el buscador mira todo el catálogo. Quien prefiera la tabla de siempre tiene un botón
+para cambiar, y el sistema recuerda la elección.
+
+**Preparar las fotos.** El sistema acepta cualquier JPG, PNG o WEBP de hasta 2 MB, pero si cada
+foto viene de un tamaño distinto la grilla queda despareja. La herramienta
+`herramientas/normalizar-imagen.py` recorta el borde que sobra, centra el producto y lo deja de
+600×600 sobre blanco. Lo que no hace es borrar el fondo: eso necesita un modelo de visión y queda
+fuera del alcance, así que la foto tiene que entrar ya con fondo claro.
+
+## 5.16 Decisiones de esta etapa
 
 **No hay borrado definitivo.** Proveedores, productos y usuarios se dan de baja y se reactivan,
 pero no se borran. Un producto dado de baja sigue apareciendo en las ventas pasadas, y un usuario

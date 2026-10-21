@@ -17,7 +17,8 @@ resultado.
    índices.
 3. Se cargaron los datos de prueba: dos usuarios, tres proveedores y ocho productos, con casos
    variados a propósito (con y sin código de barras, con y sin vencimiento, uno bajo el mínimo,
-   uno en oferta y uno dado de baja).
+   uno en oferta y uno dado de baja). En la fase 13 pasaron a ser diez productos reales, con su
+   código de barras de verdad y su foto.
 4. Se escribieron diez consultas de ejemplo que cubren las necesidades de los requisitos.
 5. Se documentó el análisis, la arquitectura, las tecnologías y el modelo de datos, con sus dos
    diagramas.
@@ -545,3 +546,276 @@ dos casos y deja el detalle en el log, que es lo que permitió diagnosticar todo
 Los once requisitos funcionales del análisis están implementados. Queda el diseño de interfaz, la
 venta por peso con la balanza y el cierre: el manual de usuario, la planilla final de pruebas, las
 conclusiones y la presentación.
+
+---
+
+## Fase 9 — Cantidades decimales y venta por peso
+
+**19 de octubre de 2026**
+
+### Qué se hizo
+
+1. Cinco columnas de cantidad pasaron de entero a `DECIMAL(10,3)`: el stock y el mínimo del
+   producto, la cantidad del renglón de venta, y el stock anterior y nuevo de cada movimiento.
+2. La columna `unidad_venta`, que define si el precio de un producto es por unidad o por kilo.
+3. El redondeo del subtotal de cada renglón a dos decimales, con una regla única.
+4. El frontend, que ahora muestra las cantidades según cómo se vende el producto: "12" para algo
+   que se cuenta y "0,120 kg" para algo que se pesa, y el precio como "$ 12.000,00/kg".
+5. La migración `04-migracion-decimales.sql`, para las bases que ya estaban creadas.
+
+### Decisiones
+
+**El problema es anterior a la balanza.** La balanza es la fase 10, pero no tiene sentido conectar
+una balanza a un sistema donde la cantidad es un número entero: un fiambre de 120 gramos no entra
+en ningún campo y el stock de ese producto queda mal desde la primera venta. Por eso los decimales
+se hicieron antes y solos, como paso previo.
+
+**Una columna para todos los productos, y no una tabla aparte para los que se pesan.** La primera
+idea fue tratar los embutidos como un caso especial. Habría significado duplicar la lógica de
+stock, la de venta y la de movimientos, con dos caminos que hay que mantener iguales para siempre.
+Un producto que se vende por kilo no es otra cosa que un producto: es el mismo producto con otra
+unidad. Una columna alcanza.
+
+**Tres decimales y no dos.** Es lo que entrega una balanza de mostrador y es lo que se necesita
+para los gramos: 0,120 kg son 120 gramos. Con dos decimales, 125 gramos no se podrían representar.
+
+**La migración no transforma datos.** Un stock de 3 pasa a 3,000, que es el mismo número. Los
+productos que ya existían quedan por unidad, que es como se venían vendiendo. Una migración que no
+puede perder información es una migración que se puede correr sin miedo.
+
+**El subtotal se redondea en un solo lugar.** Por peso, el importe casi nunca da exacto: 0,120 kg
+a $12.000 el kilo son $1.440, pero 0,137 kg dan $1.644 con un resto. Redondear a dos decimales con
+una sola regla, en el método que calcula el subtotal, evita que cada pantalla redondee distinto y
+que el total no coincida con la suma de los renglones.
+
+### Cómo se verificó
+
+- Con las pruebas automáticas: las 91 que ya existían siguieron pasando **sin cambiar ninguna
+  aserción**. No se agregó ninguna prueba nueva en esta fase, y es una decisión discutible: el
+  cambio era de tipos, no de comportamiento, y las 91 existentes cubrían el comportamiento. Eso
+  sirvió para lo que tenía que servir, como se cuenta abajo.
+- A mano, con un caso real de mostrador: un producto a $12.000 el kilo, del que se venden 0,120 kg.
+  El sistema cobró $1.440 y el stock pasó de 3 a 2,880 kg, con el movimiento registrado.
+
+### Un problema que apareció
+
+El cambio de tipos rompió una consulta que el compilador no podía ver. La consulta de productos
+menos vendidos arma un objeto directamente desde JPQL, y al pasar la cantidad a decimal el
+constructor dejó de coincidir con lo que la consulta devolvía. Como ese error aparece al construir
+el contexto de la aplicación y no al compilar, el resultado fue que **las 91 pruebas fallaron de
+golpe**, todas, antes de ejecutar ninguna.
+
+Visto en frío es el mejor resultado posible: el error se vio en el primer intento y en la máquina
+de desarrollo. Pero deja algo anotado para el documento final, porque contradice una idea cómoda:
+que en un lenguaje con tipos el compilador encuentra todo. Una consulta escrita como texto es texto
+hasta que alguien la ejecuta.
+
+Después, ya en el frontend, aparecieron dos pantallas en blanco seguidas. La primera, al abrir el
+formulario de un producto: una variable que decidía si el producto se vendía por peso se leía antes
+de que existiera el estado del que dependía. La segunda, en la pantalla de stock, por una función
+de formato que se usaba sin importarla. Las dos se arreglaron en minutos, pero las dos se vieron
+recién abriendo el navegador: ninguna de las 91 pruebas podía encontrarlas, porque todas prueban el
+backend.
+
+### Estado al cerrar la fase
+
+El sistema puede representar y cobrar cantidades fraccionarias de punta a punta: base, API,
+pantalla y ticket. Falta la balanza, que es la que va a entregar ese número sola en vez de que el
+empleado lo escriba.
+
+---
+
+## Entre fases — Datos sugeridos al escanear un código
+
+**19 de octubre de 2026**
+
+Esta parte no estaba planificada. Apareció al conectar el lector de código de barras de verdad, ya
+terminada la fase 9, y se hizo en el momento porque cambiaba algo del uso diario.
+
+### Qué pasó
+
+El lector funcionaba desde la fase 6, pero hasta ese día se había probado con códigos escritos a
+mano. Con el lector físico en la mesa quedó claro algo obvio en cuanto se ve: el lector escribe el
+número y nada más. Para dar de alta un producto nuevo había que escribir el nombre, el precio, el
+stock y el resto a mano, uno por uno. Un almacén con cientos de productos no se carga así.
+
+La idea salió de una prueba de un minuto: el mismo código, escaneado con el teléfono, abre una
+página que dice qué producto es. Si esa información está pública, el sistema puede pedirla.
+
+### Qué se hizo
+
+1. La consulta del código en catálogos públicos abiertos, que devuelve un nombre sugerido.
+2. Cuatro catálogos en vez de uno, consultados en orden: alimentos, higiene y cosmética, productos
+   en general y alimento para mascotas. Un almacén vende de todos los rubros.
+3. El formulario de alta reconoce un código escaneado en el campo del nombre, lo manda a su lugar
+   y pide los datos.
+4. Los buscadores de Productos, Stock y Nueva venta quedan listos para escanear apenas se abre la
+   pantalla, sin tener que hacer clic antes.
+5. El nombre del empleado en el ticket y en el detalle de la venta, en lugar del nombre de usuario.
+6. 3 pruebas automáticas nuevas: 94 en total.
+
+### Decisiones
+
+**No poder sugerir no es un error.** Si el catálogo no conoce el código, o no hay internet, el
+sistema no avisa de una falla: se carga a mano, que es lo que se hacía igual. Por eso la consulta
+devuelve vacío en vez de fallar, y la pantalla sigue andando con la conexión caída.
+
+**El catálogo está detrás de una interfaz**, igual que la pasarela de pago. Las pruebas usan un
+catálogo falso, así no salen a internet ni dependen de que una base pública esté disponible.
+
+**El nombre que llega es una sugerencia, no un dato.** Los catálogos los cargan personas y vienen
+desprolijos: la marca repetida en el nombre, todo en minúsculas, el tamaño a veces sí y a veces no.
+El sistema arma el nombre lo mejor que puede y el formulario avisa que hay que revisarlo antes de
+guardar. La decisión la sigue tomando el empleado.
+
+**Escanear en el catálogo ya no abre la ficha del producto.** Esto es un cambio al análisis, no un
+detalle: el paso 5 de CU-03 dice que al leer un código en la gestión de catálogo se abre la ficha
+del producto. Trabajando con el lector en la mano se vio que en el mostrador esa pantalla se usa de
+otra forma, como consulta rápida de precios, y que abrir una ficha en cada lectura estorba. Ahora
+el código leído filtra el listado y deja el producto a la vista con su precio. Queda registrado
+para el anexo de cambios al análisis.
+
+### Cómo se verificó
+
+Con el lector físico, leyendo productos de verdad. El dato más útil salió de ahí: una gaseosa la
+reconoció enseguida, y un desodorante no. Esa diferencia llevó a medir la cobertura real.
+
+### Lo que no salió como esperábamos
+
+La cobertura de estos catálogos es muy despareja según el rubro. Medido sobre productos argentinos:
+
+| Catálogo | Rubro | Productos argentinos |
+|---|---|---|
+| Open Food Facts | Alimentos y bebidas | 16.496 |
+| Open Beauty Facts | Higiene y cosmética | 453 |
+| Open Products Facts | El resto | 159 |
+| Open Pet Food Facts | Alimento para mascotas | 16 |
+
+Los alimentos están razonablemente cubiertos. Todo lo demás, junto, no llega a 630 productos en
+todo el país. Por eso el desodorante no aparecía, y por eso sumar los otros tres catálogos ayudó
+menos de lo esperado: se sumaron porque es barato hacerlo, no porque resuelvan el problema.
+
+Se evaluaron dos alternativas más. UPCitemdb responde sin credenciales y trae título, marca y hasta
+cuatro imágenes, pero tiene un límite diario de consultas. Mercado Libre tiene la mejor cobertura
+argentina de todas, y se descartó por ahora: su API pide credenciales con un token que vence cada
+pocas horas, y una cosa más que puede fallar en el mostrador, a cambio de datos que el empleado
+puede escribir en veinte segundos, no se justifica. Queda anotado como trabajo futuro.
+
+La conclusión honesta es que la función cumple con lo que se pedía —cargar lo menos posible a
+mano— pero no para todo el catálogo. Para un almacén, donde la mayoría de lo que se vende es
+comida y bebida, resuelve buena parte. Para una perfumería no serviría.
+
+---
+
+## Fase 13 — Imágenes de productos y venta visual
+
+**19 al 21 de octubre de 2026**
+
+Las fases 10, 11 y 12 —la balanza, el diseño de interfaz y la paginación— quedaron para después.
+Esta se adelantó porque la imagen del producto es un pedido concreto que había que resolver, y
+porque la consulta a los catálogos públicos, recién terminada, ya tenía media solución adentro.
+
+### Qué se hizo
+
+1. La columna `imagen` en productos, que guarda el nombre del archivo y no la imagen.
+2. La carga y la baja de la foto desde la ficha del producto, con vista previa antes de guardar.
+3. La descarga automática de la foto que sugiere el catálogo público al dar de alta un producto
+   escaneado.
+4. El botón "Traer del catálogo" para los productos que ya estaban cargados sin foto.
+5. La miniatura en el listado del catálogo, con un recuadro con la inicial para los que no tienen.
+6. La grilla de tarjetas en la pantalla de venta.
+7. `herramientas/normalizar-imagen.py`, que deja una foto cuadrada, centrada y con fondo blanco.
+8. Los datos de prueba pasaron a ser diez productos reales, con su código de barras y su foto.
+9. 15 pruebas automáticas nuevas: 109 en total.
+
+### Decisiones
+
+**La base guarda el nombre del archivo, no la imagen.** Un BLOB engorda cada respaldo de la base y
+servir binarios desde la base es más lento que servir un archivo estático. Las fotos viven en una
+carpeta del servidor, fuera del proyecto, porque son datos del comercio y no código.
+
+**La foto se descarga, no se enlaza.** Guardar el enlace del catálogo era gratis y no ocupaba
+disco, pero la foto desaparece si el catálogo la borra, y sin internet la pantalla de venta queda
+llena de imágenes rotas. Eso choca con RNF-04, que pide que el comercio siga vendiendo con la
+conexión caída. Se descarga una vez, al dar de alta, y después la foto es del comercio.
+
+**El nombre del archivo sale del id del producto y nunca de lo que manda el cliente.** Si el nombre
+lo eligiera quien sube el archivo, uno con `..` podría escribir fuera de la carpeta. Hay una prueba
+que manda justamente ese nombre y verifica que el sistema lo ignore.
+
+**Solo se descarga de los catálogos que el sistema consulta.** El enlace de la foto llega desde el
+navegador, así que sin esa restricción se podría hacer que el servidor pida cualquier dirección,
+incluso una de la red interna del comercio. Es una lista de cuatro direcciones y una prueba que
+verifica que un enlace de afuera se ignore.
+
+**La grilla de la venta muestra los productos sin código de barras.** El plan original era mostrar
+el catálogo entero sobre el listado paginado, pero la paginación es la fase 12 y todavía no está:
+sin paginar, abrir la pantalla cargaría cientos de productos con sus fotos de una sola vez. Mostrar
+los que no tienen código resuelve las dos cosas, porque son justo los que no se pueden escanear
+—fruta, verdura, fiambre— que es para lo que la grilla sirve, y son pocos.
+
+**El orden es alfabético y no por más vendidos.** En un mostrador la velocidad sale de encontrar el
+producto siempre en el mismo lugar. Un orden que se acomoda solo según las ventas mueve las cosas
+de sitio cada semana.
+
+**La tabla de antes quedó como vista alternativa**, con un botón para cambiar y la elección
+recordada. Entra más productos en la pantalla y le sirve a quien ya se sabe el catálogo de memoria.
+
+### Cómo se verificó
+
+- Con las pruebas automáticas: 109 en verde, 15 de esta fase. Cubren el alta de la imagen, el
+  rechazo de un archivo que no es imagen, el de uno de más de 2 MB, el reemplazo de una que ya
+  estaba, la baja, el nombre de archivo mandado por el cliente, y que la foto anterior se conserve
+  si la descarga falla.
+- En el navegador, con productos reales y el lector físico: se escaneó una gaseosa que el sistema
+  no tenía, el catálogo devolvió el nombre y la foto, la vista previa la mostró antes de guardar y
+  al guardar el archivo quedó en el disco del servidor. Después se quitó la foto y se comprobó que
+  el archivo desapareciera de la carpeta y la columna quedara vacía.
+- Cancelar el formulario después de traer una foto no cambia nada: se verificó contra la base que
+  ni el código ni la imagen se hubieran tocado.
+
+### Dos problemas que aparecieron
+
+**Los códigos RF-12 y CU-21 estaban puestos en dos cosas distintas.** Los issues de imágenes se
+escribieron antes que el anexo de la balanza, y después ese anexo tomó los mismos dos códigos para
+la venta por peso y el pesaje. Durante un tiempo las dos funciones, que no tienen nada que ver,
+figuraban con la misma identificación. Se detectó al ir a escribir un issue nuevo y se resolvió
+dejando RF-12 y CU-21 para la balanza, que es lo que dice el documento entregado, y moviendo las
+imágenes a RF-14 y CU-22. Hubo que corregir cinco issues y quince comentarios del código.
+
+**Una tercera pantalla en blanco**, de la misma familia que las dos de la fase 9. El botón para
+traer la foto del catálogo pregunta si el producto tiene un código de barras cargado, y lo hacía
+sobre el valor crudo. Las columnas que la base admite vacías llegan en nulo, así que en un producto
+sin código esa pregunta rompía la pantalla antes de dibujar nada. No se vio al programarlo porque
+todos los productos de prueba de ese momento tenían código: apareció recién al cargar los primeros
+que se venden sueltos. Se arregló en el origen, pasando a texto vacío los campos que la base admite
+vacíos al abrir el formulario, para que no vuelva a pasar con otro campo.
+
+Tres pantallas en blanco en dos fases, ninguna encontrada por las 109 pruebas, todas encontradas
+abriendo el navegador. No es casualidad y queda anotado para las conclusiones: las pruebas de este
+proyecto cubren el backend, y el frontend se verifica a mano.
+
+### Lo que no salió como esperábamos
+
+La foto que devuelve el catálogo público casi nunca tiene fondo blanco. De las ocho que se bajaron
+para los datos de prueba, solo dos están sobre fondo limpio: el resto son fotos sacadas con el
+teléfono en la góndola del supermercado, sobre una mesada de granito o sostenidas con la mano.
+Tiene sentido, porque es un catálogo colaborativo y las carga cualquiera, pero choca con el pedido
+original, que era ver el producto solo, sobre blanco.
+
+La conclusión es que la descarga automática resuelve la **cobertura** y no la **presentación**. Son
+dos problemas distintos y se confundieron en uno al planificar. La cobertura la resuelve el
+catálogo; la presentación la resuelve la herramienta de normalización, pero solo hasta donde puede,
+porque recorta, centra y cuadra la imagen sin tocar el fondo. Borrar el fondo necesita un modelo de
+visión y queda fuera del alcance de este trabajo.
+
+Para el comercio eso no es un problema: la foto del producto en la góndola alcanza para
+reconocerlo, y el empleado siempre puede reemplazarla por una propia. Para las capturas del
+documento sí, y por eso las fotos definitivas de los datos de prueba se sacan aparte, sobre una
+hoja blanca, y pasan por la misma herramienta.
+
+### Estado al cerrar la fase
+
+Los productos tienen foto en el catálogo, en la ficha y en la pantalla de venta, y se cargan solas
+cuando el catálogo las tiene. Quedan la balanza, el diseño de interfaz, la paginación y el cierre.
+

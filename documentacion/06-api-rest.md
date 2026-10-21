@@ -134,8 +134,12 @@ Es público: sirve para verificar la instalación sin tener que iniciar sesión.
 | `GET` | `/api/products?search=&activeOnly=true` | Lista y busca por nombre o código de barras |
 | `GET` | `/api/products/{id}` | Trae un producto |
 | `GET` | `/api/products/barcode/{barcode}` | Trae el producto con ese código de barras exacto. Lo usa el lector (CU-03). `404` si no existe |
+| `GET` | `/api/products/without-barcode` | Los que no se pueden escanear. Los muestra la grilla de la pantalla de venta |
+| `GET` | `/api/products/suggestion/{barcode}` | Datos sugeridos por los catálogos públicos para un código que el comercio no tiene (CU-03 paso 6). `404` si ningún catálogo lo conoce |
 | `POST` | `/api/products` | Alta → `201` |
 | `PUT` | `/api/products/{id}` | Modificación. No cambia el stock |
+| `POST` | `/api/products/{id}/image` | Carga la foto. `multipart/form-data`, campo `file` |
+| `DELETE` | `/api/products/{id}/image` | Quita la foto → `204` |
 | `PATCH` | `/api/products/{id}/deactivate` | Baja → `204` |
 | `PATCH` | `/api/products/{id}/activate` | Reactivación → `204` |
 
@@ -143,18 +147,28 @@ Es público: sirve para verificar la instalación sin tener que iniciar sesión.
 
 ```json
 {
-  "name": "Yerba Mate 1kg",
-  "description": "Yerba mate elaborada con palo",
-  "price": 4850.00,
-  "stock": 40,
-  "minimumStock": 10,
-  "barcode": "7790010001234",
+  "name": "Queso cremoso",
+  "description": "Se vende por kilo, cortado",
+  "price": 12000.00,
+  "stock": 3.250,
+  "minimumStock": 1.000,
+  "saleUnit": "KG",
+  "barcode": null,
   "expirationDate": null,
   "onOffer": false,
   "offerPrice": null,
-  "supplierId": 1
+  "supplierId": 2,
+  "imageUrl": null
 }
 ```
+
+`saleUnit` es `UNIDAD` o `KG`. Si no viene, se asume `UNIDAD`. Con `KG`, el precio se entiende por
+kilo y la cantidad admite hasta tres decimales.
+
+`imageUrl` es el enlace a la foto que sugirió un catálogo público. El sistema la descarga y guarda
+el archivo; el enlace no se guarda. Solo se descarga de los catálogos que el sistema consulta: un
+enlace de cualquier otra dirección se ignora en silencio, porque el enlace llega desde el navegador
+y sin esa restricción se podría hacer que el servidor pida cualquier cosa.
 
 `stock` solo se usa en el alta. En la modificación se ignora: el stock se cambia con un ajuste
 (punto 6.9). El alta deja registrado ese stock inicial como un movimiento de tipo `CARGA_INICIAL`,
@@ -164,23 +178,27 @@ con el usuario de la sesión.
 
 ```json
 {
-  "id": 1,
-  "name": "Yerba Mate 1kg",
-  "description": "Yerba mate elaborada con palo",
-  "price": 4850.00,
-  "stock": 40,
-  "minimumStock": 10,
-  "barcode": "7790010001234",
+  "id": 9,
+  "name": "Queso cremoso",
+  "description": "Se vende por kilo, cortado",
+  "price": 12000.00,
+  "stock": 3.250,
+  "minimumStock": 1.000,
+  "saleUnit": "KG",
+  "barcode": null,
+  "image": "producto-9.jpg",
   "expirationDate": null,
   "onOffer": false,
   "offerPrice": null,
   "active": true,
-  "createdAt": "2026-09-20T16:05:12",
-  "supplier": { "id": 1, "name": "Distribuidora del Sur", "...": "..." },
+  "createdAt": "2026-10-20T16:05:12",
+  "supplier": { "id": 2, "name": "Lácteos La Serenísima", "...": "..." },
   "lowStock": false,
-  "salePrice": 4850.00
+  "salePrice": 12000.00
 }
 ```
+
+`image` es el nombre del archivo, no la imagen. Se pide aparte, a `/imagenes/{image}`.
 
 `lowStock` y `salePrice` no son columnas, se calculan:
 
@@ -195,6 +213,46 @@ con el usuario de la sesión.
 - El proveedor indicado está dado de baja.
 
 **Devuelve `404` si:** el proveedor indicado no existe.
+
+### La foto del producto
+
+La imagen se carga en un pedido aparte del alta, porque el nombre del archivo sale del id del
+producto y ese id recién existe una vez guardado.
+
+```
+POST /api/products/9/image
+Content-Type: multipart/form-data
+file: <archivo>
+```
+
+Devuelve el producto con el nombre del archivo ya cargado. Acepta JPG, PNG y WEBP de hasta 2 MB, y
+responde `409` si el archivo es de otro tipo o pesa de más. El nombre lo pone el sistema a partir
+del id (`producto-9.jpg`) y nunca el que mande el cliente.
+
+Las imágenes se sirven como archivos bajo `/imagenes/**`, que necesita sesión igual que el resto
+del sistema. La carpeta donde quedan se configura en `app.images.folder` y vive fuera del proyecto.
+
+### Los datos sugeridos al escanear
+
+```
+GET /api/products/suggestion/7790895000997
+```
+
+```json
+{
+  "barcode": "7790895000997",
+  "name": "Coca-Cola 2,25 L",
+  "imageUrl": "https://images.openfoodfacts.org/images/products/779/089/500/0997/front_es.26.400.jpg"
+}
+```
+
+Consulta cuatro catálogos públicos abiertos en orden —alimentos, higiene y cosmética, productos en
+general y alimento para mascotas— y gana el primero que conozca el código. Responde `404` si
+ninguno lo tiene, que es lo normal para buena parte del catálogo de un almacén: la consulta sirve
+para no cargar todo a mano, no para reemplazar la carga.
+
+El nombre que devuelve es una sugerencia y hay que revisarla: los catálogos los cargan personas y
+los datos vienen desparejos.
 
 **Devuelve `403` si quien lo pide es Empleado y:**
 
@@ -318,15 +376,17 @@ solo del Administrador: al Empleado le responde `403`.
 {
   "items": [
     { "productId": 1, "quantity": 2 },
-    { "productId": 4, "quantity": 1 }
+    { "productId": 9, "quantity": 0.120 }
   ],
   "discount": 290,
   "paymentMethod": "EFECTIVO"
 }
 ```
 
-- `items` es el carrito: qué productos y cuántos. **El precio no viaja**: lo pone el servidor con el
-  precio de venta de cada producto en ese momento.
+- `items` es el carrito: qué productos y cuánto de cada uno. **El precio no viaja**: lo pone el
+  servidor con el precio de venta de cada producto en ese momento.
+- `quantity` admite hasta tres decimales. En un producto que se vende por kilo son kilos: `0.120`
+  son 120 gramos.
 - `discount` es un descuento en pesos sobre el total. Es opcional.
 - `paymentMethod` admite `EFECTIVO`, `TRANSFERENCIA` o `MERCADOPAGO`.
 
@@ -337,16 +397,19 @@ solo del Administrador: al Empleado le responde `403`.
   "id": 1,
   "dateTime": "2026-09-21T17:51:52",
   "username": "vendedor",
-  "subtotal": 16290.00,
+  "employeeName": "María Gómez",
+  "subtotal": 8440.00,
   "discount": 290.00,
-  "total": 16000.00,
+  "total": 8150.00,
   "status": "CONFIRMADA",
   "details": [
-    { "id": 1, "productName": "Yerba Mate 1kg", "unitPrice": 4850.00, "quantity": 2, "subtotal": 9700.00 },
-    { "id": 2, "productName": "Aceite girasol 900ml", "unitPrice": 2990.00, "quantity": 1, "subtotal": 2990.00 }
+    { "id": 1, "productName": "Coca-Cola 2,25 L", "unitPrice": 3500.00, "quantity": 2.000,
+      "saleUnit": "UNIDAD", "subtotal": 7000.00 },
+    { "id": 2, "productName": "Queso cremoso", "unitPrice": 12000.00, "quantity": 0.120,
+      "saleUnit": "KG", "subtotal": 1440.00 }
   ],
   "payments": [
-    { "id": 1, "method": "EFECTIVO", "amount": 16000.00, "status": "APROBADO",
+    { "id": 1, "method": "EFECTIVO", "amount": 8150.00, "status": "APROBADO",
       "externalReference": null,
       "dateTime": "2026-09-21T17:51:52", "confirmedAt": "2026-09-21T17:51:52" }
   ]
