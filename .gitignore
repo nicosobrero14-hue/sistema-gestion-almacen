@@ -16,7 +16,7 @@ dist/
 npm-debug.log*
 .vite/
 
-# Dibujos en crudo de las ilustraciones: los rehace herramientas/dibujar-ilustraciones.py
+# Fotos sin normalizar: son el paso previo, lo que vale es lo que sale de la herramienta
 herramientas/crudo/
 
 # ---------- Entornos de desarrollo ----------

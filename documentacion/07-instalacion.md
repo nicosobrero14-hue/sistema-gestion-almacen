@@ -47,12 +47,13 @@ mysql -u root -p -e "SHOW TABLES;" gestion_almacen
 Tienen que aparecer las siete tablas: `detalle_venta`, `movimientos_stock`, `pagos`, `productos`,
 `proveedores`, `usuarios` y `ventas`.
 
-Los ocho productos de prueba vienen con una ilustración. La base guarda solo el nombre del archivo,
-así que los archivos hay que copiarlos aparte, desde `base-de-datos/imagenes-de-prueba/` a la
-carpeta donde el sistema guarda las fotos:
+Los datos de prueba traen diez productos. Los ocho que tienen código de barras vienen con su foto,
+que es la que trajo el catálogo público cuando se los escaneó. La base guarda solo el nombre del
+archivo, así que los archivos hay que copiarlos aparte, desde `base-de-datos/imagenes-de-prueba/` a
+la carpeta donde el sistema guarda las fotos:
 
 ```bash
-mkdir -p ~/gestion-almacen/imagenes && cp base-de-datos/imagenes-de-prueba/*.png ~/gestion-almacen/imagenes/
+mkdir -p ~/gestion-almacen/imagenes && cp base-de-datos/imagenes-de-prueba/*.jpg ~/gestion-almacen/imagenes/
 ```
 
 Esa carpeta se configura en `application.properties`, en `app.images.folder`, y por defecto queda
@@ -60,7 +61,11 @@ dentro de la carpeta del usuario. Está fuera del proyecto a propósito: las fot
 comercio, no código, y no tienen por qué viajar en el repositorio ni perderse al actualizarlo.
 
 Si los archivos no se copian no pasa nada grave: los productos aparecen con un recuadro con la
-inicial, que es lo mismo que se ve mientras el comercio todavía no cargó sus fotos.
+inicial, que es lo mismo que se ve mientras el comercio todavía no cargó sus fotos. Los otros dos
+productos, que se venden por kilo, arrancan así a propósito.
+
+Las fotos están acreditadas en `base-de-datos/imagenes-de-prueba/CREDITOS.md`, porque la licencia
+del catálogo lo pide.
 
 ## 7.4 Configurar la conexión
 
