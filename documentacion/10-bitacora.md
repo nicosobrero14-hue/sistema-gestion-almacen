@@ -695,11 +695,36 @@ Los alimentos están razonablemente cubiertos. Todo lo demás, junto, no llega a
 todo el país. Por eso el desodorante no aparecía, y por eso sumar los otros tres catálogos ayudó
 menos de lo esperado: se sumaron porque es barato hacerlo, no porque resuelvan el problema.
 
-Se evaluaron dos alternativas más. UPCitemdb responde sin credenciales y trae título, marca y hasta
-cuatro imágenes, pero tiene un límite diario de consultas. Mercado Libre tiene la mejor cobertura
-argentina de todas, y se descartó por ahora: su API pide credenciales con un token que vence cada
-pocas horas, y una cosa más que puede fallar en el mostrador, a cambio de datos que el empleado
-puede escribir en veinte segundos, no se justifica. Queda anotado como trabajo futuro.
+### UPCitemdb: por qué no se sumó
+
+La alternativa que más prometía era UPCitemdb, porque responde sin credenciales y porque sus fichas
+traen varias imágenes. Se probó contra once códigos de barras argentinos, los mismos ocho de los
+datos de prueba más tres que habían fallado antes.
+
+Conoció **uno** de los once, y esa única ficha venía **sin ninguna imagen**. El mismo día, un código
+de los Estados Unidos devolvió la ficha completa con diez imágenes. No es una base incompleta: es
+una base norteamericana, armada con las publicaciones de las cadenas de allá. Los códigos que
+empiezan con 779, que son los argentinos, prácticamente no están.
+
+El límite de consultas tampoco es el que se había anotado al principio. No es diario: son **seis
+consultas cada veinticinco segundos**, y pasadas esas seis responde `429` pidiendo ir más despacio.
+Para un mostrador donde se escanea un producto por vez alcanzaría, pero no para cargar un catálogo
+de corrido.
+
+Ahora bien, la prueba dejó algo más valioso que el descarte. La imagen que devolvió para el producto
+estadounidense es una foto de estudio de 450×450, con el producto centrado y el fondo blanco puro:
+se midieron los píxeles del borde y el cien por ciento son blancos. Comparada con las de Open Food
+Facts, que son fotos de góndola sacadas con el teléfono, la diferencia no está en la base sino en
+**de dónde sale la foto**. Una base colaborativa recibe lo que suben las personas; una base armada
+con publicaciones de comercios recibe las fotos de catálogo que esos comercios ya tenían hechas.
+
+Eso cambia cómo mirar la opción que quedaba. Mercado Libre se había dejado de lado por la cobertura
+argentina, pero su valor real sería doble: tiene los productos de acá y además sus publicaciones
+usan fotos de catálogo, que es justo el fondo blanco que se pedía. Sigue sin integrarse por ahora,
+porque su API necesita credenciales con un token que vence cada pocas horas, y una cosa más que
+puede fallar en el mostrador no se justifica a cambio de datos que el empleado escribe en veinte
+segundos. Pero queda anotado como el camino a seguir si alguna vez se retoma, y por una razón
+distinta de la que se creía.
 
 La conclusión honesta es que la función cumple con lo que se pedía —cargar lo menos posible a
 mano— pero no para todo el catálogo. Para un almacén, donde la mayoría de lo que se vende es
