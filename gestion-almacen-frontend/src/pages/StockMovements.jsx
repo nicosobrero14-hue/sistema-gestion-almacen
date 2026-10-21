@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { getMovements } from '../api/stock'
 import Message from '../components/Message'
 import Modal from '../components/Modal'
-import { formatDateTime } from '../utils/format'
+import { formatDateTime, formatQuantity } from '../utils/format'
 
 const TYPES = {
   CARGA_INICIAL: 'Carga inicial',
@@ -48,8 +48,8 @@ export default function StockMovements({ product, onClose }) {
                   <tr key={movement.id}>
                     <td className="nowrap">{formatDateTime(movement.dateTime)}</td>
                     <td>{TYPES[movement.type]}</td>
-                    <td className="right">{movement.previousStock}</td>
-                    <td className="right">{movement.newStock}</td>
+                    <td className="right">{formatQuantity(movement.previousStock, product.saleUnit)}</td>
+                    <td className="right">{formatQuantity(movement.newStock, product.saleUnit)}</td>
                     <td className={difference > 0 ? 'right positive' : 'right negative'}>
                       {difference > 0 ? '+' : ''}{difference}
                     </td>

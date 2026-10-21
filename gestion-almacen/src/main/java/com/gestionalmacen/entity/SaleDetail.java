@@ -7,6 +7,8 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -49,6 +51,12 @@ public class SaleDetail {
 	@Column(name = "precio_unitario", nullable = false, precision = 10, scale = 2)
 	private BigDecimal unitPrice;
 
+	// Copia de como se vendia el producto, igual que el nombre y el precio: el ticket no
+	// cambia aunque despues el producto se reclasifique (RF-12).
+	@Enumerated(EnumType.STRING)
+	@Column(name = "unidad_venta", nullable = false, length = 10)
+	private SaleUnit saleUnit;
+
 	// Fraccionada en los productos que se venden por peso: 0,120 son 120 gramos (RF-12).
 	@Column(name = "cantidad", nullable = false, precision = 10, scale = 3)
 	private BigDecimal quantity;
@@ -59,6 +67,7 @@ public class SaleDetail {
 		this.product = product;
 		this.productName = product.getName();
 		this.unitPrice = product.getSalePrice();
+		this.saleUnit = product.getSaleUnit();
 		this.quantity = quantity;
 	}
 

@@ -1,14 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { activateProduct, deactivateProduct, findProductByBarcode, getProducts } from '../api/products'
+import { activateProduct, deactivateProduct, findProductByBarcode, getProducts, suggestProduct } from '../api/products'
 import Message from '../components/Message'
 import { isBarcode } from '../utils/barcode'
-import { formatPrice } from '../utils/format'
+import { formatPrice, formatProductPrice, formatQuantity } from '../utils/format'
 import ProductForm from './ProductForm'
 
 // Pantalla del catalogo de productos (RF-01 / CU-02, CU-20).
 // isAdmin: el formulario bloquea el precio y la oferta si quien lo usa es empleado.
 export default function Products({ isAdmin }) {
+  // El lector escribe donde este el cursor: el buscador lo tiene desde que se abre la pantalla.
+  const searchRef = useRef(null)
   // Las alertas del panel abren esta pantalla con el producto ya buscado: /products?search=Leche
   const [searchParams] = useSearchParams()
 
@@ -24,6 +26,8 @@ export default function Products({ isAdmin }) {
 
   // Codigo leido que no corresponde a ningun producto (CU-03 paso 6).
   const [missingBarcode, setMissingBarcode] = useState('')
+  // Datos que sugiere el catalogo publico para ese codigo, si lo conoce.
+  const [suggestion, setSuggestion] = useState(null)
 
   const load = () => {
     getProducts(search, activeOnly)
@@ -42,29 +46,42 @@ export default function Products({ isAdmin }) {
     setFormOpen(true)
   }
 
-  // Un alta comun empieza con el formulario vacio, sin el codigo de un escaneo anterior.
+  // Un alta comun empieza con el formulario vacio, sin el codigo ni la sugerencia de un escaneo anterior.
   const newProduct = () => {
     setMissingBarcode('')
+    setSuggestion(null)
     openForm(null)
   }
+
+  const volverAlBuscador = () => searchRef.current?.focus()
 
   const onSaved = (message) => {
     setFormOpen(false)
     setMissingBarcode('')
+    setSuggestion(null)
     setSuccess(message)
     load()
+    volverAlBuscador()
   }
 
-  // CU-03 paso 5: en el catalogo, el codigo leido abre la ficha del producto.
+  // CU-03 paso 5: el codigo leido filtra el listado y deja el producto a la vista con su precio.
+  // No abre ninguna ficha: el catalogo funciona como consulta rapida de precios en el mostrador.
   const onSearchKeyDown = async (event) => {
     if (event.key !== 'Enter' || !isBarcode(search)) return
     setMissingBarcode('')
+    setSuggestion(null)
     try {
-      openForm(await findProductByBarcode(search.trim()))
+      await findProductByBarcode(search.trim()) // existe: el listado ya lo esta mostrando
     } catch (e) {
-      // CU-03 paso 6: si el codigo no existe, se ofrece darlo de alta.
-      if (e.status === 404) setMissingBarcode(search.trim())
-      else setError(e.message)
+      if (e.status !== 404) {
+        setError(e.message)
+        return
+      }
+      // CU-03 paso 6: si el codigo no existe, se ofrece darlo de alta y se le piden
+      // al catalogo publico los datos del producto. Que no los tenga es normal.
+      const code = search.trim()
+      setMissingBarcode(code)
+      suggestProduct(code).then(setSuggestion).catch(() => setSuggestion(null))
     }
   }
 
@@ -73,7 +90,7 @@ export default function Products({ isAdmin }) {
       if (product.active) {
         // CU-02 exc. 3b: si todavia tiene stock, se avisa antes de darlo de baja.
         const question = product.stock > 0
-          ? `"${product.name}" todavía tiene ${product.stock} unidades en stock. ¿Darlo de baja igual?`
+          ? `"${product.name}" todavía tiene ${formatQuantity(product.stock, product.saleUnit)} en stock. ¿Darlo de baja igual?`
           : `¿Dar de baja "${product.name}"?`
         if (!window.confirm(question)) return
         await deactivateProduct(product.id)
@@ -108,6 +125,8 @@ export default function Products({ isAdmin }) {
           onChange={(event) => setSearch(event.target.value)}
           onKeyDown={onSearchKeyDown}
           aria-label="Buscar productos"
+          autoFocus
+          ref={searchRef}
         />
         <label className="checkbox">
           <input type="checkbox" checked={activeOnly} onChange={(event) => setActiveOnly(event.target.checked)} />
@@ -117,8 +136,10 @@ export default function Products({ isAdmin }) {
 
       <Message type="error" text={error} onClose={() => setError('')} />
       <Message type="success" text={success} onClose={() => setSuccess('')} />
-      <Message type="warning" text={missingBarcode && `No hay ningún producto con el código ${missingBarcode}.`}
-        onClose={() => setMissingBarcode('')}>
+      <Message type="warning" text={missingBarcode && (suggestion
+        ? `No hay ningún producto con el código ${missingBarcode}. Según el catálogo público es "${suggestion.name}".`
+        : `No hay ningún producto con el código ${missingBarcode}.`)}
+        onClose={() => { setMissingBarcode(''); setSuggestion(null) }}>
         <button type="button" className="button button-small" onClick={() => openForm(null)}>
           Dar de alta con ese código
         </button>
@@ -149,17 +170,19 @@ export default function Products({ isAdmin }) {
                   <td className="right">
                     {product.onOffer ? (
                       <span className="offer-price">
-                        <s>{formatPrice(product.price)}</s> {formatPrice(product.offerPrice)}
+                        <s>{formatProductPrice(product.price, product.saleUnit)}</s>{' '}
+                        {formatProductPrice(product.offerPrice, product.saleUnit)}
                       </span>
                     ) : (
-                      formatPrice(product.price)
+                      formatProductPrice(product.price, product.saleUnit)
                     )}
                   </td>
                   {/* Stock bajo: color y simbolo, para que se entienda sin distinguir colores (RNF-03). */}
                   <td className={product.lowStock ? 'right low-stock' : 'right'}>
-                    {product.stock} {product.lowStock && <span title="Stock por debajo del mínimo">⚠</span>}
+                    {formatQuantity(product.stock, product.saleUnit)}{' '}
+                    {product.lowStock && <span title="Stock por debajo del mínimo">⚠</span>}
                   </td>
-                  <td className="right">{product.minimumStock}</td>
+                  <td className="right">{formatQuantity(product.minimumStock, product.saleUnit)}</td>
                   <td>{product.supplier?.name ?? '—'}</td>
                   <td>
                     <span className={product.active ? 'chip chip-active' : 'chip chip-inactive'}>
@@ -182,8 +205,9 @@ export default function Products({ isAdmin }) {
       )}
 
       {formOpen && (
-        <ProductForm product={selected} barcode={missingBarcode} isAdmin={isAdmin} onSaved={onSaved}
-          onCancel={() => setFormOpen(false)} />
+        <ProductForm product={selected} barcode={missingBarcode} suggestedName={suggestion?.name ?? ''}
+          isAdmin={isAdmin} onSaved={onSaved}
+          onCancel={() => { setFormOpen(false); volverAlBuscador() }} />
       )}
     </>
   )

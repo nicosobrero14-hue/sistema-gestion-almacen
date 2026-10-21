@@ -131,6 +131,7 @@ public class SaleService implements ISaleService {
 		Sale sale = new Sale();
 		sale.setUser(user);
 		sale.setUsername(user.getUsername());
+		sale.setEmployeeName(user.getName() + " " + user.getLastName());
 		sale.setStatus(SaleStatus.PENDIENTE_PAGO);
 
 		//1- arma los renglones con el precio de hoy y controla el stock de cada producto

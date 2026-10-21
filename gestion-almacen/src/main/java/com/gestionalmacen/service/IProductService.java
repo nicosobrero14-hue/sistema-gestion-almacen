@@ -3,6 +3,7 @@ package com.gestionalmacen.service;
 import java.util.List;
 
 import com.gestionalmacen.dto.ProductDTO;
+import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.Product;
 
 // Operaciones sobre el catalogo de productos (RF-01 / CU-02, CU-20).
@@ -14,6 +15,9 @@ public interface IProductService {
 
 	// Busca por el codigo exacto, como lo manda el lector de codigo de barras (CU-03).
 	Product findProductByBarcode(String barcode);
+
+	// CU-03 paso 6: datos sugeridos desde un catalogo publico para un codigo que no esta en el comercio.
+	ProductSuggestionDTO suggestProduct(String barcode);
 
 	// isAdmin: si quien lo hace es administrador. Solo el administrador maneja precios y ofertas.
 	Product saveProduct(ProductDTO productDTO, boolean isAdmin);

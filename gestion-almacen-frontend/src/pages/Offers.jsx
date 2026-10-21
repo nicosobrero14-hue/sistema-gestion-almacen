@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { endOffer, getLeastSoldProducts, getOffers } from '../api/offers'
 import { getExpiringProducts } from '../api/stock'
 import Message from '../components/Message'
-import { daysUntil, expirationText, formatDate, formatPrice } from '../utils/format'
+import { daysUntil, expirationText, formatDate, formatPrice, formatQuantity } from '../utils/format'
 import OfferForm from './OfferForm'
 
 // Plazos para las sugerencias (RF-10: configurable, por ejemplo 15 o 30 dias).
@@ -104,7 +104,7 @@ export default function Offers() {
                   <td className="right">{formatPrice(product.price)}</td>
                   <td className="right"><strong>{formatPrice(product.offerPrice)}</strong></td>
                   <td className="right">{discountPercent(product)}%</td>
-                  <td className="right">{product.stock}</td>
+                  <td className="right">{formatQuantity(product.stock, product.saleUnit)}</td>
                   <td className="actions">
                     <button type="button" className="button button-small button-secondary" onClick={() => removeOffer(product)}>
                       Quitar oferta
@@ -138,7 +138,7 @@ export default function Offers() {
                   <tr key={product.id}>
                     <td>{product.name}</td>
                     <td className="right">{unitsSold}</td>
-                    <td className="right">{product.stock}</td>
+                    <td className="right">{formatQuantity(product.stock, product.saleUnit)}</td>
                     <td className="actions">{offerAction(product)}</td>
                   </tr>
                 ))}
@@ -172,7 +172,7 @@ export default function Offers() {
                         {formatDate(product.expirationDate)}
                         <small className={daysLeft < 0 ? 'expiration expired' : 'expiration'}>{expirationText(daysLeft)}</small>
                       </td>
-                      <td className="right">{product.stock}</td>
+                      <td className="right">{formatQuantity(product.stock, product.saleUnit)}</td>
                       <td className="actions">{offerAction(product)}</td>
                     </tr>
                   )

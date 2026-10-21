@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { editProduct, saveProduct } from '../api/products'
+import { editProduct, saveProduct, suggestProduct } from '../api/products'
 import { getSuppliers } from '../api/suppliers'
 import Message from '../components/Message'
 import Modal from '../components/Modal'
 import TextField from '../components/TextField'
+import { isBarcode } from '../utils/barcode'
+import { SALE_UNITS } from '../utils/format'
 
 const EMPTY = {
   name: '',
@@ -11,6 +13,7 @@ const EMPTY = {
   price: '',
   stock: 0,
   minimumStock: 0,
+  saleUnit: 'UNIDAD',
   barcode: '',
   expirationDate: '',
   onOffer: false,
@@ -25,13 +28,37 @@ const toNumber = (value) => (value === '' ? null : Number(value))
 // CU-19 y CU-20: el empleado pone el precio en el alta, pero despues solo el administrador lo cambia.
 // Las ofertas son siempre del administrador. El backend controla lo mismo.
 // barcode: en un alta, el codigo que leyo el lector y no existia (CU-03 paso 6).
+// suggestedName: el nombre que sugirio el catalogo publico para ese codigo, si lo conocia.
 // onSaved recibe el mensaje y el producto guardado.
-export default function ProductForm({ product, barcode = '', isAdmin, onSaved, onCancel }) {
+export default function ProductForm({ product, barcode = '', suggestedName = '', isAdmin, onSaved, onCancel }) {
   const canEditPrice = isAdmin || !product
 
   const [data, setData] = useState(
-    product ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '' } : { ...EMPTY, barcode },
+    product
+      ? { ...product, supplierId: product.supplier?.id ?? '', offerPrice: product.offerPrice ?? '' }
+      : { ...EMPTY, barcode, name: suggestedName },
   )
+  // Por peso cambian las etiquetas y los campos admiten decimales.
+  const porPeso = data.saleUnit === 'KG'
+  // Si el nombre lo sugirio el catalogo publico, se avisa para que se revise.
+  const [suggested, setSuggested] = useState(Boolean(suggestedName))
+
+  // CU-03: el lector escribe donde este el cursor, y lo normal es que sea el nombre.
+  // Si lo que entro es un codigo de barras, se lo pasa a su campo y se piden los datos.
+  const onNameKeyDown = async (event) => {
+    if (event.key !== 'Enter' || !isBarcode(data.name)) return
+    event.preventDefault() // Enter en un formulario lo enviaria
+    const code = data.name.trim()
+    setData((actual) => ({ ...actual, name: '', barcode: code }))
+    try {
+      const found = await suggestProduct(code)
+      setData((actual) => ({ ...actual, name: found.name }))
+      setSuggested(true)
+    } catch (e) {
+      setSuggested(false) // que el catalogo no lo conozca es normal: se escribe a mano
+    }
+  }
+
   const [suppliers, setSuppliers] = useState([])
   const [errors, setErrors] = useState({})
   const [error, setError] = useState('')
@@ -91,25 +118,42 @@ export default function ProductForm({ product, barcode = '', isAdmin, onSaved, o
 
       <form onSubmit={onSubmit} noValidate>
         <TextField name="name" label="Nombre" value={data.name} onChange={onChange}
+          onKeyDown={product ? undefined : onNameKeyDown}
+          help={suggested && !product ? 'Sugerido por el catálogo público: revíselo antes de guardar' : null}
           error={errors.name} required maxLength={120} autoFocus />
 
         <TextField name="description" label="Descripción" value={data.description} onChange={onChange}
           error={errors.description} maxLength={255} />
 
         <div className="fields-row">
-          <TextField name="price" label="Precio" type="number" step="0.01" min="0" value={data.price}
-            onChange={onChange} error={errors.price} required disabled={!canEditPrice}
+          {/* RF-12: define si el precio es por unidad o por kilo, y como se carga en una venta. */}
+          <div className="field">
+            <label htmlFor="saleUnit">Unidad de venta</label>
+            <select id="saleUnit" name="saleUnit" value={data.saleUnit} onChange={onChange}>
+              {Object.keys(SALE_UNITS).map((unit) => (
+                <option key={unit} value={unit}>{SALE_UNITS[unit]}</option>
+              ))}
+            </select>
+            <small className="help">Por kilo: se pesa al venderlo</small>
+          </div>
+          <TextField name="price" label={porPeso ? 'Precio por kilo' : 'Precio'} type="number" step="0.01" min="0"
+            value={data.price} onChange={onChange} error={errors.price} required disabled={!canEditPrice}
             help={canEditPrice ? null : 'Solo el administrador modifica precios'} />
+        </div>
+
+        <div className="fields-row">
           <TextField name="barcode" label="Código de barras" value={data.barcode} onChange={onChange}
             error={errors.barcode} maxLength={64} help="Opcional" />
         </div>
 
         <div className="fields-row">
           {/* El stock se carga solo en el alta. Despues se ajusta desde la pantalla de stock. */}
-          <TextField name="stock" label={product ? 'Stock actual' : 'Stock inicial'} type="number" min="0" value={data.stock}
+          <TextField name="stock" label={(product ? 'Stock actual' : 'Stock inicial') + (porPeso ? ' en kg' : '')}
+            type="number" min="0" step={porPeso ? '0.001' : '1'} value={data.stock}
             onChange={onChange} error={errors.stock} required disabled={Boolean(product)}
             help={product ? 'Se ajusta desde la pantalla de stock' : null} />
-          <TextField name="minimumStock" label="Stock mínimo" type="number" min="0" value={data.minimumStock}
+          <TextField name="minimumStock" label={'Stock mínimo' + (porPeso ? ' en kg' : '')}
+            type="number" min="0" step={porPeso ? '0.001' : '1'} value={data.minimumStock}
             onChange={onChange} error={errors.minimumStock} required help="Umbral de la alerta de stock bajo" />
         </div>
 

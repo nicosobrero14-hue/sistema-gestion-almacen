@@ -25,6 +25,17 @@ export const expirationText = (days) => {
   return `Vence en ${days} ${days === 1 ? 'día' : 'días'}`
 }
 
+// Cantidades: por unidad van enteras, por peso con tres decimales y la unidad (RF-12).
+// 27 -> "27";  2.88 en un producto por peso -> "2,880 kg"
+export const formatQuantity = (value, saleUnit = 'UNIDAD') => (saleUnit === 'KG'
+  ? `${Number(value).toLocaleString('es-AR', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg`
+  : String(Number(value)))
+
+// El precio de un producto por peso es por kilo, y tiene que leerse asi.
+export const formatProductPrice = (value, saleUnit = 'UNIDAD') => (saleUnit === 'KG'
+  ? `${formatPrice(value)}/kg`
+  : formatPrice(value))
+
 // 15 -> "000015"
 export const formatTicketNumber = (id) => String(id).padStart(6, '0')
 
@@ -32,6 +43,11 @@ export const PAYMENT_METHODS = {
   EFECTIVO: 'Efectivo',
   TRANSFERENCIA: 'Transferencia',
   MERCADOPAGO: 'MercadoPago',
+}
+
+export const SALE_UNITS = {
+  UNIDAD: 'Por unidad',
+  KG: 'Por kilo',
 }
 
 export const SALE_STATUS = {

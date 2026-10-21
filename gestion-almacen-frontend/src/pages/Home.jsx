@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import client from '../api/client'
 import { getExpiringProducts, getLowStockProducts } from '../api/stock'
-import { daysUntil, expirationText, formatDate } from '../utils/format'
+import { daysUntil, expirationText, formatDate, formatQuantity } from '../utils/format'
 
 // Se avisa de los productos que vencen dentro de este plazo.
 const EXPIRATION_DAYS = 30
@@ -75,8 +75,8 @@ export default function Home({ user }) {
                 {lowStock.map((product) => (
                   <tr key={product.id}>
                     <td>{product.name}</td>
-                    <td className="right low-stock">{product.stock}</td>
-                    <td className="right">{product.minimumStock}</td>
+                    <td className="right low-stock">{formatQuantity(product.stock, product.saleUnit)}</td>
+                    <td className="right">{formatQuantity(product.minimumStock, product.saleUnit)}</td>
                     {/* CU-06 paso 6: acceso directo al producto para ajustarlo. */}
                     <td className="actions">
                       <Link to={`/stock?search=${encodeURIComponent(product.name)}`} className="button button-small">
@@ -114,7 +114,7 @@ export default function Home({ user }) {
                         {formatDate(product.expirationDate)}
                         <small className={days < 0 ? 'expiration expired' : 'expiration'}>{expirationText(days)}</small>
                       </td>
-                      <td className="right">{product.stock}</td>
+                      <td className="right">{formatQuantity(product.stock, product.saleUnit)}</td>
                       <td className="actions">
                         <Link to={`/products?search=${encodeURIComponent(product.name)}`} className="button button-small">
                           Ver producto

@@ -51,6 +51,11 @@ public class Sale {
 	@Column(name = "username", nullable = false, length = 50)
 	private String username;
 
+	// Copia del nombre del empleado, que es lo que se muestra en el ticket y en el historial.
+	// El username queda para filtrar y para el control de permisos, que es cosa del sistema.
+	@Column(name = "nombre_empleado", nullable = false, length = 120)
+	private String employeeName;
+
 	// Suma de los renglones.
 	@Column(name = "subtotal", nullable = false, precision = 10, scale = 2)
 	private BigDecimal subtotal;

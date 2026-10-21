@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.gestionalmacen.dto.ProductDTO;
+import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.Product;
 import com.gestionalmacen.service.IProductService;
 
@@ -49,7 +50,13 @@ public class ProductController {
 		return productService.findProductByBarcode(barcode);
 	}
 
-	//4- crear un producto
+	//4- datos sugeridos para un codigo que no esta en el catalogo del comercio (CU-03 paso 6)
+	@GetMapping("/suggestion/{barcode}")
+	public ProductSuggestionDTO suggestProduct(@PathVariable String barcode) {
+		return productService.suggestProduct(barcode);
+	}
+
+	//5- crear un producto
 	// isUserInRole: el rol sale de la sesion, no de lo que manda el cliente.
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
@@ -57,21 +64,21 @@ public class ProductController {
 		return productService.saveProduct(productDTO, request.isUserInRole("ADMIN"));
 	}
 
-	//5- modificar un producto (CU-20). El stock no se modifica por aca
+	//6- modificar un producto (CU-20). El stock no se modifica por aca
 	@PutMapping("/{id}")
 	public Product editProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO,
 			HttpServletRequest request) {
 		return productService.editProduct(id, productDTO, request.isUserInRole("ADMIN"));
 	}
 
-	//6- dar de baja: deja de aparecer, pero no se borra
+	//7- dar de baja: deja de aparecer, pero no se borra
 	@PatchMapping("/{id}/deactivate")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deactivateProduct(@PathVariable Long id) {
 		productService.deactivateProduct(id);
 	}
 
-	//7- reactivar un producto dado de baja
+	//8- reactivar un producto dado de baja
 	@PatchMapping("/{id}/activate")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void activateProduct(@PathVariable Long id) {
