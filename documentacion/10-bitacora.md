@@ -718,13 +718,47 @@ Facts, que son fotos de góndola sacadas con el teléfono, la diferencia no est�
 **de dónde sale la foto**. Una base colaborativa recibe lo que suben las personas; una base armada
 con publicaciones de comercios recibe las fotos de catálogo que esos comercios ya tenían hechas.
 
-Eso cambia cómo mirar la opción que quedaba. Mercado Libre se había dejado de lado por la cobertura
-argentina, pero su valor real sería doble: tiene los productos de acá y además sus publicaciones
-usan fotos de catálogo, que es justo el fondo blanco que se pedía. Sigue sin integrarse por ahora,
-porque su API necesita credenciales con un token que vence cada pocas horas, y una cosa más que
-puede fallar en el mostrador no se justifica a cambio de datos que el empleado escribe en veinte
-segundos. Pero queda anotado como el camino a seguir si alguna vez se retoma, y por una razón
-distinta de la que se creía.
+Eso cambió cómo mirar la opción que quedaba. Mercado Libre se había dejado de lado por la
+cobertura, pero su valor parecía doble: tiene los productos de acá y sus publicaciones usan fotos
+de catálogo, que es justo el fondo blanco que se pedía. Así que se la investigó en serio.
+
+### Mercado Libre: encaja técnicamente y lo frena la licencia
+
+Lo primero que se vio es que sin credenciales no se puede medir nada. Se probaron seis endpoints,
+incluido `/sites/MLA`, que durante años fue público, y los seis responden `403`. La API está
+cerrada por completo.
+
+Leyendo la documentación, lo técnico encaja mejor que en cualquiera de las otras. Un solo llamado
+al buscador de productos de catálogo, pasándole el código de barras en `product_identifier`,
+devuelve el nombre, los atributos del producto y un arreglo `pictures` con **varias** fotos de
+catálogo. Open Food Facts devuelve una sola, y de calidad despareja.
+
+También apareció una salida al obstáculo que se creía insalvable. El flujo normal de OAuth exige
+una dirección de redirección con HTTPS obligatorio, que la computadora de un comercio no tiene, el
+mismo problema que apareció con los avisos de MercadoPago en la fase 8. Pero Mercado Libre ofrece
+además el flujo *Device Grant*, pensado justamente para equipos sin dirección pública: la
+aplicación consulta hasta que el usuario autoriza desde otro dispositivo.
+
+Lo que la descarta está en los términos y condiciones del programa de desarrolladores. La cláusula
+2.2.1.3 permite "realizar una cantidad limitada de copias intermedias del Contenido de Mercado
+Libre" y obliga a "eliminar irreversiblemente las copias intermedias cuando ya no sean necesarias".
+La 7.4 prohíbe almacenar ese contenido para fines distintos de los permitidos.
+
+El diseño de este sistema hace exactamente lo contrario. La foto se descarga una vez y se guarda
+para siempre, y se eligió así a propósito para que la venta no dependa de internet, que es lo que
+pide RNF-04. Eso no es una copia intermedia. La única forma compatible sería mostrar la foto
+enlazada en vivo, que es justamente lo que se descartó.
+
+Es un caso interesante para anotar: de todas las alternativas evaluadas, esta es la que mejor
+encaja técnicamente, y la que queda afuera por una razón que no es técnica. Vale la pena decirlo
+porque al elegir una API se suele mirar qué devuelve y qué tan difícil es conectarla, y no bajo qué
+condiciones se permite usar lo que devuelve.
+
+De paso quedaron anotados otros datos, por si alguna vez se retoma: crear una aplicación en
+Argentina exige validar antes los datos del titular de la cuenta, el token de acceso dura seis
+horas según el texto aunque el ejemplo de la respuesta dice 10.800 segundos que son tres, el
+refresh token es de un solo uso, y la aplicación se invalida sola si no se la usa durante cuatro
+meses.
 
 La conclusión honesta es que la función cumple con lo que se pedía —cargar lo menos posible a
 mano— pero no para todo el catálogo. Para un almacén, donde la mayoría de lo que se vende es
