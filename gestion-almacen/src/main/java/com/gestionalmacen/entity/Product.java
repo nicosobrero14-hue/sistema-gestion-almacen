@@ -41,6 +41,11 @@ public class Product {
 	@Column(name = "precio", nullable = false, precision = 10, scale = 2)
 	private BigDecimal price;
 
+	// Lo que cuesta reponer el producto. Es opcional: ningun comercio carga el costo de todo
+	// el catalogo el primer dia. Sin el, el producto no muestra margen y nada mas (RF-15).
+	@Column(name = "precio_costo", precision = 10, scale = 2)
+	private BigDecimal costPrice;
+
 	// DECIMAL y no entero: lo que se vende por peso tiene stock fraccionado (RF-12).
 	@Column(name = "stock_actual", nullable = false, precision = 10, scale = 3)
 	private BigDecimal stock;

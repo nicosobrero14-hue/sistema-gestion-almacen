@@ -41,6 +41,10 @@ public class Supplier {
 	@Column(name = "direccion", length = 150)
 	private String address;
 
+	// Sirve para reconocer al proveedor con el CUIT que trae el QR de sus facturas (CU-23).
+	@Column(name = "cuit", length = 13, unique = true)
+	private String cuit;
+
 	// Baja logica: en false deja de aparecer, pero no se borra.
 	@Column(name = "activo", nullable = false)
 	private boolean active = true;
