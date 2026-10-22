@@ -57,6 +57,10 @@ public interface IProductRepository extends JpaRepository<Product, Long> {
 			""")
 	List<ProductSalesDTO> findLeastSold(@Param("from") LocalDateTime from);
 
+	// Los que no se pueden leer con el lector: fruta, verdura y todo lo que se vende suelto.
+	// Son los que la pantalla de venta muestra en la grilla de fotos (RF-14 / CU-07).
+	List<Product> findByActiveTrueAndBarcodeIsNullOrderByName();
+
 	// Ofertas vigentes (CU-19 paso 6).
 	List<Product> findByActiveTrueAndOnOfferTrueOrderByName();
 

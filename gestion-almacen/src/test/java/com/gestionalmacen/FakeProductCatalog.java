@@ -16,11 +16,12 @@ import com.gestionalmacen.service.IProductCatalog;
 public class FakeProductCatalog implements IProductCatalog {
 
 	private final Map<String, String> products = new HashMap<>();
+	private final Map<String, String> images = new HashMap<>();
 
 	@Override
 	public ProductSuggestionDTO findByBarcode(String barcode) {
 		String name = products.get(barcode);
-		return name == null ? null : new ProductSuggestionDTO(barcode, name);
+		return name == null ? null : new ProductSuggestionDTO(barcode, name, images.get(barcode));
 	}
 
 	// ---------- para las pruebas ----------
@@ -30,8 +31,15 @@ public class FakeProductCatalog implements IProductCatalog {
 		products.put(barcode, name);
 	}
 
+	// Lo mismo, pero la ficha del catalogo ademas trae una foto.
+	public void add(String barcode, String name, String imageUrl) {
+		products.put(barcode, name);
+		images.put(barcode, imageUrl);
+	}
+
 	// El bean es unico para toda la ejecucion: cada prueba arranca sin lo que cargo la anterior.
 	public void reset() {
 		products.clear();
+		images.clear();
 	}
 }

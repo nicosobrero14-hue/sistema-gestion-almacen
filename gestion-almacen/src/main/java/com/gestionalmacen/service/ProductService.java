@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.gestionalmacen.dto.ProductDTO;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
@@ -40,9 +41,18 @@ public class ProductService implements IProductService {
 	@Autowired
 	private IProductCatalog productCatalog;
 
+	// Guarda y trae las fotos de los productos (CU-22).
+	@Autowired
+	private IProductImageService imageService;
+
 	@Override
 	public List<Product> getProducts(String search, boolean activeOnly) {
 		return productRepository.search(search.trim(), activeOnly);
+	}
+
+	@Override
+	public List<Product> getProductsWithoutBarcode() {
+		return productRepository.findByActiveTrueAndBarcodeIsNullOrderByName();
 	}
 
 	@Override
@@ -85,6 +95,10 @@ public class ProductService implements IProductService {
 		this.copyData(productDTO, product);
 		productRepository.save(product);
 
+		// La foto que sugirio el catalogo se descarga ahora, con el producto ya guardado: el nombre
+		// del archivo sale de su id. Si no se pudo traer, el producto queda sin foto y se carga despues.
+		product.setImage(imageService.download(product.getId(), productDTO.getImageUrl()));
+
 		// RF-02: el stock inicial tambien queda registrado como movimiento.
 		movementRepository.save(new StockMovement(product, userService.getSessionUser(),
 				MovementType.CARGA_INICIAL, BigDecimal.ZERO, "Alta del producto"));
@@ -105,7 +119,30 @@ public class ProductService implements IProductService {
 		}
 
 		this.copyData(productDTO, product);
+
+		// CU-22: la foto que se pidio traer del catalogo publico. Solo se reemplaza si la descarga
+		// funciono: si el catalogo no responde, la que ya tenia el producto sigue estando.
+		String downloaded = imageService.download(id, productDTO.getImageUrl());
+		if (downloaded != null) {
+			product.setImage(downloaded);
+		}
 		return productRepository.save(product);
+	}
+
+	// CU-22: el archivo se guarda en el servidor y en el producto queda solo su nombre.
+	@Override
+	public Product saveImage(Long id, MultipartFile file) {
+		Product product = this.findProduct(id);
+		product.setImage(imageService.save(id, file));
+		return productRepository.save(product);
+	}
+
+	@Override
+	public void deleteImage(Long id) {
+		Product product = this.findProduct(id);
+		imageService.delete(id);
+		product.setImage(null);
+		productRepository.save(product);
 	}
 
 	@Override

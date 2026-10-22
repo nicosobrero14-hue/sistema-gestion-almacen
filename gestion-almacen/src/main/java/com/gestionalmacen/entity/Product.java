@@ -57,6 +57,11 @@ public class Product {
 	@Column(name = "codigo_barras", length = 64, unique = true)
 	private String barcode;
 
+	// Nombre del archivo de la imagen, no la imagen: guardar binarios en la base engorda los
+	// respaldos y servir un archivo estatico es mas rapido (RF-14). Puede no tener.
+	@Column(name = "imagen", length = 255)
+	private String image;
+
 	// Solo para productos perecederos.
 	@Column(name = "fecha_vencimiento")
 	private LocalDate expirationDate;

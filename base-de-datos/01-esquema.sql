@@ -66,6 +66,8 @@ CREATE TABLE IF NOT EXISTS productos (
     -- Como se vende el producto. Define si "precio" es por unidad o por kilo
     unidad_venta      VARCHAR(10)   NOT NULL DEFAULT 'UNIDAD',
     codigo_barras     VARCHAR(64)   NULL,                -- opcional: no todo producto tiene código
+    -- Nombre del archivo de la imagen, no la imagen: un BLOB engorda los respaldos
+    imagen            VARCHAR(255)  NULL,
     fecha_vencimiento DATE          NULL,                -- solo perecederos
     en_oferta         TINYINT(1)    NOT NULL DEFAULT 0,
     precio_oferta     DECIMAL(10,2) NULL,

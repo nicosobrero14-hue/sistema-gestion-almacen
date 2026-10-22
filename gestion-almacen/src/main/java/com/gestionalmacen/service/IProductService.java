@@ -2,6 +2,8 @@ package com.gestionalmacen.service;
 
 import java.util.List;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import com.gestionalmacen.dto.ProductDTO;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.Product;
@@ -13,6 +15,9 @@ public interface IProductService {
 
 	Product findProduct(Long id);
 
+	// Los productos sin codigo de barras, que son los que no se pueden escanear (RF-14 / CU-07).
+	List<Product> getProductsWithoutBarcode();
+
 	// Busca por el codigo exacto, como lo manda el lector de codigo de barras (CU-03).
 	Product findProductByBarcode(String barcode);
 
@@ -23,6 +28,11 @@ public interface IProductService {
 	Product saveProduct(ProductDTO productDTO, boolean isAdmin);
 
 	Product editProduct(Long id, ProductDTO productDTO, boolean isAdmin);
+
+	// CU-22: la foto del producto. La puede cargar cualquiera que pueda editarlo.
+	Product saveImage(Long id, MultipartFile file);
+
+	void deleteImage(Long id);
 
 	void deactivateProduct(Long id);
 

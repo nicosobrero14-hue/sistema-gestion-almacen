@@ -47,6 +47,26 @@ mysql -u root -p -e "SHOW TABLES;" gestion_almacen
 Tienen que aparecer las siete tablas: `detalle_venta`, `movimientos_stock`, `pagos`, `productos`,
 `proveedores`, `usuarios` y `ventas`.
 
+Los datos de prueba traen diez productos. Los ocho que tienen código de barras vienen con su foto,
+que es la que trajo el catálogo público cuando se los escaneó. La base guarda solo el nombre del
+archivo, así que los archivos hay que copiarlos aparte, desde `base-de-datos/imagenes-de-prueba/` a
+la carpeta donde el sistema guarda las fotos:
+
+```bash
+mkdir -p ~/gestion-almacen/imagenes && cp base-de-datos/imagenes-de-prueba/*.jpg ~/gestion-almacen/imagenes/
+```
+
+Esa carpeta se configura en `application.properties`, en `app.images.folder`, y por defecto queda
+dentro de la carpeta del usuario. Está fuera del proyecto a propósito: las fotos son datos del
+comercio, no código, y no tienen por qué viajar en el repositorio ni perderse al actualizarlo.
+
+Si los archivos no se copian no pasa nada grave: los productos aparecen con un recuadro con la
+inicial, que es lo mismo que se ve mientras el comercio todavía no cargó sus fotos. Los otros dos
+productos, que se venden por kilo, arrancan así a propósito.
+
+Las fotos están acreditadas en `base-de-datos/imagenes-de-prueba/CREDITOS.md`, porque la licencia
+del catálogo lo pide.
+
 ## 7.4 Configurar la conexión
 
 Las credenciales de MySQL no están en el repositorio. Hay que crear el archivo local:
@@ -165,7 +185,26 @@ comprobante, con el ancho de un ticket de 80 mm. Si el navegador agrega el encab
 la dirección y la fecha, se quitan en el diálogo, en "Más opciones", desmarcando "Encabezados y pies
 de página".
 
-## 7.11 Lector de código de barras
+## 7.11 Preparar las fotos de los productos
+
+El sistema acepta cualquier JPG, PNG o WEBP de hasta 2 MB, así que se puede subir una foto sacada
+con el celular y listo. El problema es que cada foto llega con un tamaño distinto y la grilla de la
+pantalla de venta queda despareja.
+
+Para eso está `herramientas/normalizar-imagen.py`, que recorta el borde que sobra, centra el
+producto y lo deja de 600×600 sobre blanco:
+
+```bash
+python herramientas/normalizar-imagen.py fotos-del-comercio/
+```
+
+Necesita Pillow, que se instala con `pip install Pillow`. Toma una foto suelta o una carpeta entera.
+
+Lo que el script **no** hace es borrar el fondo. Eso necesita un modelo de visión y queda fuera del
+alcance de este trabajo, así que la foto tiene que entrar ya con el fondo claro: alcanza con apoyar
+el producto sobre una hoja blanca o contra una pared clara y sacarle la foto de frente.
+
+## 7.12 Lector de código de barras
 
 Es opcional: sin lector, los códigos se pueden escribir a mano.
 

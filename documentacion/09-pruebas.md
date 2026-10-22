@@ -282,6 +282,59 @@ Las de sistema se hicieron contra la cuenta de prueba real de MercadoPago.
 | CP-160 | La pantalla espera el pago | Carrito con yerba, MercadoPago elegido | Confirmar la venta | Aparece "Esperando el pago" con el monto y el botón para cancelar | Correcto | Aprobada |
 | CP-161 | Las ventas canceladas no suman a la caja | Historial con ventas confirmadas y canceladas | Abrir el historial | Las canceladas aparecen marcadas y el total recaudado solo cuenta las confirmadas | Correcto | Aprobada |
 
+
+### Cantidades decimales y venta por peso
+
+Esta fase no agregó pruebas automáticas y vale la pena decir por qué: el cambio era de tipos y no
+de comportamiento, y las 91 que ya existían cubrían ese comportamiento. Pasaron todas sin tocar
+ninguna aserción. Visto después, hubiera convenido agregar al menos una con una cantidad
+fraccionaria, porque todas las existentes usan cantidades enteras.
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-162 | Venta de un producto por peso (RF-12) | Queso a $12.000 el kilo, 3 kg de stock | Vender 0,120 kg | Cobra $1.440 y el stock queda en 2,880 kg | Correcto | Aprobada |
+| CP-163 | El movimiento registra la cantidad fraccionaria | Lo anterior | Ver los movimientos del producto | Un movimiento de venta, de 3,000 a 2,880 | Correcto | Aprobada |
+| CP-164 | La cantidad se muestra según la unidad | Un producto por unidad y otro por kilo | Abrir el catálogo | "12" para el que se cuenta y "2,880 kg" para el que se pesa, con el precio "/kg" | Correcto | Aprobada |
+| CP-165 | La migración no pierde datos | Base creada antes de la fase 9 | Ejecutar `04-migracion-decimales.sql` | Los stocks enteros quedan iguales y todos los productos quedan por unidad | Correcto | Aprobada |
+
+### Datos sugeridos al escanear
+
+Las pruebas automáticas usan un catálogo falso, así no salen a internet. Las de sistema se hicieron
+con el lector físico y productos reales.
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-166 | Sugerencia para un código desconocido (CU-03 paso 6) | El catálogo falso conoce el código | `GET /api/products/suggestion/{code}` | `200` con el código y el nombre sugerido | Correcto | Aprobada |
+| CP-167 | Código que ningún catálogo conoce | Catálogo vacío | Lo mismo | `404` con un mensaje claro, sin tratarlo como error del sistema | Correcto | Aprobada |
+| CP-168 | La sugerencia no crea nada | Lo anterior | Buscar después ese código en el catálogo del comercio | `404`: el producto sigue sin existir | Correcto | Aprobada |
+| CP-169 | Alta con el lector físico | Gaseosa real sin cargar | Escanear el código en el formulario de alta | El código pasa a su campo y el nombre llega del catálogo, marcado para revisar | Correcto | Aprobada |
+| CP-170 | Un producto que ningún catálogo tiene | Desodorante real | Escanear su código | Avisa que no hay datos públicos y deja cargarlo a mano | Correcto | Aprobada |
+| CP-171 | Los buscadores quedan listos para escanear | Abrir Productos, Stock o Nueva venta | Escanear sin tocar la pantalla antes | El código entra en el buscador sin hacer clic | Correcto | Aprobada |
+| CP-172 | El ticket muestra el nombre de la persona | Venta hecha por el usuario `vendedor` | Ver el ticket | Dice "María Gómez" y no "vendedor" | Correcto | Aprobada |
+
+### Imágenes de productos y venta visual
+
+| ID | Funcionalidad | Condición inicial | Datos de entrada | Resultado esperado | Resultado obtenido | Estado |
+|---|---|---|---|---|---|---|
+| CP-173 | Cargar la foto de un producto (CU-22) | Producto sin foto | `POST /api/products/{id}/image` con un JPG | `200` y el producto queda con `producto-{id}.jpg` | Correcto | Aprobada |
+| CP-174 | Rechazo de un archivo que no es imagen | Lo anterior | Un archivo de texto | `409` pidiendo JPG, PNG o WEBP | Correcto | Aprobada |
+| CP-175 | Rechazo de una imagen de más de 2 MB | Lo anterior | Un archivo de 3 MB | `409` avisando el límite | Correcto | Aprobada |
+| CP-176 | El nombre del archivo lo pone el sistema | Lo anterior | Subir con el nombre `../../atacante.jpg` | Se guarda igual como `producto-{id}.jpg`, dentro de la carpeta | Correcto | Aprobada |
+| CP-177 | Reemplazo de una foto que ya estaba | Producto con un JPG cargado | Subir un PNG | Queda el PNG y el JPG anterior se borra del disco | Correcto | Aprobada |
+| CP-178 | Baja de la foto | Producto con foto | `DELETE /api/products/{id}/image` | `204`, el producto queda sin foto y el archivo desaparece | Correcto | Aprobada |
+| CP-179 | Descarga de la foto al dar de alta | Código que el catálogo conoce con foto | Alta con `imageUrl` | El producto queda con el archivo descargado en el disco del servidor | Correcto | Aprobada |
+| CP-180 | Un enlace de afuera de los catálogos no se descarga | — | Alta con `imageUrl` apuntando a otra dirección | El producto se crea sin foto y no se hace ningún pedido | Correcto | Aprobada |
+| CP-181 | Si la descarga falla, la foto anterior queda | Producto con foto | Modificar con un enlace que no se puede bajar | El producto conserva la foto que tenía | Correcto | Aprobada |
+| CP-182 | Traer la foto de un producto ya cargado (CU-22) | Gaseosa real sin foto, con su código | Botón "Traer del catálogo" y guardar | La vista previa muestra la foto y al guardar queda en el disco | Correcto | Aprobada |
+| CP-183 | Cancelar no cambia nada | Lo anterior | Traer la foto y cancelar el formulario | Ni el código ni la foto del producto cambian en la base | Correcto | Aprobada |
+| CP-184 | Sin código de barras no se ofrece traer la foto | Producto que se vende suelto | Abrir su ficha | El botón no aparece, y aparece si se escribe un código | Correcto | Aprobada |
+| CP-185 | Código que el catálogo no conoce | Ficha con un código inexistente | Botón "Traer del catálogo" | Avisa al lado de la foto y no cambia nada | Correcto | Aprobada |
+| CP-186 | Miniatura en el catálogo | Productos con y sin foto | Abrir Productos | Los que tienen foto la muestran; los que no, un recuadro con la inicial | Correcto | Aprobada |
+| CP-187 | Grilla de la pantalla de venta (RF-14) | Productos sueltos cargados | Abrir Nueva venta | Muestra las tarjetas de los que no tienen código, en orden alfabético y con el precio por kilo | Correcto | Aprobada |
+| CP-188 | Agregar al carrito desde la tarjeta | Lo anterior | Tocar una tarjeta | El producto entra al carrito y el cursor vuelve al buscador | Correcto | Aprobada |
+| CP-189 | Cambio de vista y memoria | Lo anterior | Pasar a Lista y recargar la página | Sigue en Lista | Correcto | Aprobada |
+| CP-190 | La grilla en una pantalla angosta | Lo anterior | Reducir a 768 píxeles de ancho | Pasa de tres columnas a dos, sin cortar nada | Correcto | Aprobada |
+
 ## 9.3 Incidencias detectadas
 
 | Fase | Incidencia | Solución |
@@ -306,6 +359,15 @@ Las de sistema se hicieron contra la cuenta de prueba real de MercadoPago.
 | 8 | El manejo de errores mostraba siempre "no se pudo contactar a MercadoPago", incluso cuando MercadoPago había respondido rechazando el pedido, y descartaba el motivo | Se distinguen los dos casos y el detalle de la respuesta queda en el log del servidor. Sin eso, un rechazo por permisos no se puede diagnosticar |
 | 8 | El total recaudado del historial contaba las ventas canceladas como si se hubieran cobrado | Los totales cuentan solo las confirmadas, y la tarjeta pasó a llamarse "Ventas cobradas". CP-161 lo verifica |
 | 8 | La columna de estado hacía que la tabla del historial no entrara en una pantalla de 1280 píxeles | El estado va debajo del número de ticket y solo aparece cuando la venta no está cobrada, que es el único caso que hay que mirar |
+| 9 | **Al pasar las cantidades a decimal, las 91 pruebas fallaron todas de golpe**, antes de ejecutar ninguna | La consulta de productos menos vendidos arma un objeto desde JPQL, y el constructor dejó de coincidir con lo que la consulta devolvía. Como es texto, el compilador no lo ve: el error aparece al construir el contexto. Se corrigió el tipo del objeto. Queda anotado para las conclusiones, porque contradice la idea de que en un lenguaje con tipos el compilador encuentra todo |
+| 9 | La ficha del producto quedaba en blanco al abrirla | Una variable que decidía si el producto se vende por peso se leía antes de que existiera el estado del que dependía. Se movió después de la declaración |
+| 9 | La pantalla de stock quedaba en blanco | Usaba una función de formato sin importarla. Se agregó el import y se revisaron los de todas las pantallas |
+| 9 | El ticket decía "$ 12.000,00 c/u" para un producto que se vende por kilo | El precio se muestra como "/kg" y el "c/u" solo aparece cuando corresponde |
+| Lector | El nombre de un producto llegaba cortado: "Coca-Cola 2" en lugar de "Coca-Cola 2,25 L" | La limpieza del texto separaba por coma para quedarse con la primera marca, y de paso partía el tamaño. Ahora solo la marca se separa por coma |
+| Lector | Un desodorante real no aparecía en ningún catálogo, pero el teléfono sí lo reconocía | Se agregaron los otros tres catálogos del mismo proyecto, por rubro. Mejoró poco: la cobertura argentina fuera de alimentos es de menos de 630 productos en total, contra 16.496 de alimentos. Queda documentado como limitación |
+| 13 | Los códigos RF-12 y CU-21 identificaban dos funciones distintas: la venta por peso y las imágenes | El anexo de la balanza ya los tenía tomados. Las imágenes pasaron a RF-14 y CU-22. Se corrigieron cinco issues y quince comentarios del código |
+| 13 | La ficha quedaba en blanco en un producto sin código de barras | El botón para traer la foto preguntaba si había código sobre el valor crudo, y las columnas que la base admite vacías llegan en nulo. Se pasan a texto vacío al abrir el formulario, para que no vuelva a pasar con otro campo |
+| 13 | **La foto que devuelve el catálogo público casi nunca tiene fondo blanco**: de ocho bajadas, solo dos | Es un catálogo colaborativo y las fotos las sacan personas con el teléfono, en la góndola o sobre la mesada. La descarga resuelve la cobertura, no la presentación. Las fotos definitivas de los datos de prueba se sacan aparte sobre fondo blanco y pasan por `herramientas/normalizar-imagen.py` |
 
 En la fase 3 no se registraron incidencias: los casos pasaron en el primer intento.
 
@@ -314,6 +376,6 @@ En la fase 3 no se registraron incidencias: los casos pasaron en el primer inten
 | Nivel | Casos | Aprobados |
 |---|---|---|
 | Base de datos | 15 | 15 |
-| Backend automático | 91 | 91 |
-| Sistema completo | 64 | 64 |
-| **Total** | **170** | **170** |
+| Backend automático | 109 | 109 |
+| Sistema completo | 81 | 81 |
+| **Total** | **205** | **205** |

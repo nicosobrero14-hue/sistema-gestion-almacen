@@ -33,24 +33,40 @@ INSERT INTO proveedores (nombre, apellido, email, telefono, direccion, activo, f
 
 -- ----------------------------------------------------------------------------
 --  productos
+--  Son productos reales, con su código de barras de verdad. Los ocho primeros
+--  se cargaron escaneándolos: el sistema buscó el código en los catálogos
+--  públicos y trajo el nombre y la foto. Los dos últimos se venden sueltos, por
+--  kilo, así que no tienen código que leer ni foto en ningún catálogo.
+--
 --  Los casos son variados a propósito, para poder probar el sistema:
 --    - con y sin código de barras
+--    - por unidad y por kilo
+--    - con y sin foto
 --    - con y sin fecha de vencimiento
 --    - con y sin proveedor
 --    - uno con el stock por debajo del mínimo, que dispara la alerta
+--    - uno ya vencido y uno próximo a vencer
 --    - uno en oferta
 --    - uno dado de baja
+--
+--  La columna imagen guarda el nombre del archivo, y ese nombre sale del id del
+--  producto. Como los id los asigna la base en el orden de este INSERT, las
+--  filas no se pueden mover de lugar sin que cada producto quede con la foto de
+--  otro. Los archivos están en imagenes-de-prueba/ y hay que copiarlos a la
+--  carpeta de imágenes del servidor.
 -- ----------------------------------------------------------------------------
 INSERT INTO productos
-    (nombre, descripcion, precio, stock_actual, stock_minimo, codigo_barras, fecha_vencimiento, en_oferta, precio_oferta, activo, fecha_alta, id_proveedor) VALUES
-('Yerba Mate 1kg',       'Yerba mate elaborada con palo',   4850.00, 40, 10, '7790010001234', NULL,         0, NULL,    1, NOW(), 1),
-('Leche entera 1L',      'Leche entera larga vida',         1650.00,  8, 20, '7790742001122', '2026-10-15', 0, NULL,    1, NOW(), 2),
-('Fideos guiseros 500g', 'Fideos tipo mostachol',           1200.00, 60, 15, '7790040998877', '2027-03-01', 0, NULL,    1, NOW(), 1),
-('Aceite girasol 900ml', 'Aceite de girasol común',         3400.00, 25, 10, '7790070445566', '2027-01-20', 1, 2990.00, 1, NOW(), 1),
-('Azúcar 1kg',           'Azúcar común tipo A',             1890.00, 30, 10, NULL,            NULL,         0, NULL,    1, NOW(), 3),
-('Galletitas surtidas',  'Paquete surtido 400g',            2250.00, 12,  8, '7790580112233', '2026-11-30', 0, NULL,    1, NOW(), NULL),
-('Gaseosa cola 2.25L',   'Gaseosa sabor cola',              3100.00, 45, 12, '7790895667788', '2026-12-05', 0, NULL,    1, NOW(), 1),
-('Jabón en polvo 800g',  'Jabón en polvo para ropa blanca', 5600.00,  5,  5, '7791290334455', NULL,         0, NULL,    0, NOW(), 3);
+    (nombre, descripcion, precio, stock_actual, stock_minimo, unidad_venta, codigo_barras, fecha_vencimiento, en_oferta, precio_oferta, activo, fecha_alta, id_proveedor, imagen) VALUES
+('Leche La Serenísima clásica 1 L',   'Leche entera larga vida',          1650.00,  8.000, 20.000, 'UNIDAD', '7790742363008', '2026-10-15', 0, NULL,    1, NOW(), 2,    'producto-1.jpg'),
+('Fideos Matarazzo tallarín N°5 500 g','Fideos secos de sémola',          1450.00, 60.000, 15.000, 'UNIDAD', '7790070336316', '2027-06-01', 0, NULL,    1, NOW(), 1,    'producto-2.jpg'),
+('Aceite Natura girasol 900 ml',      'Aceite puro de girasol',           3400.00, 25.000, 10.000, 'UNIDAD', '7790272001005', '2027-03-15', 1, 2990.00, 1, NOW(), 1,    'producto-3.jpg'),
+('Arroz Molinos Ala largo fino 1 kg', 'Arroz largo fino doble carolina',  2100.00, 32.000, 10.000, 'UNIDAD', '7791120031557', NULL,         0, NULL,    1, NOW(), 1,    'producto-4.jpg'),
+('Galletitas 9 de Oro clásicas 200 g','Bizcochos salados',                2250.00, 12.000,  8.000, 'UNIDAD', '7792200000159', '2026-11-28', 0, NULL,    1, NOW(), NULL, 'producto-5.jpg'),
+('Coca-Cola 2,25 L',                  'Gaseosa sabor cola',               3500.00, 45.000, 12.000, 'UNIDAD', '7790895000997', '2027-02-10', 0, NULL,    1, NOW(), 1,    'producto-6.jpg'),
+('Celusal sal fina 500 g',            'Sal fina de mesa',                  980.00,  5.000,  5.000, 'UNIDAD', '7790072002080', NULL,         0, NULL,    0, NOW(), 3,    'producto-7.jpg'),
+('Seven Up 1.5 L',                    'Gaseosa sabor lima limón',         2800.00, 30.000, 10.000, 'UNIDAD', '7791813444411', NULL,         0, NULL,    1, NOW(), 1,    'producto-8.jpg'),
+('Queso cremoso',                     'Se vende por kilo, cortado',      12000.00,  3.250,  1.000, 'KG',     NULL,            '2026-11-10', 0, NULL,    1, NOW(), 2,    NULL),
+('Jamón cocido',                      'Se vende por kilo, feteado',      14500.00,  1.800,  0.500, 'KG',     NULL,            '2026-10-28', 0, NULL,    1, NOW(), 3,    NULL);
 
 
 -- ----------------------------------------------------------------------------

@@ -16,6 +16,9 @@ dist/
 npm-debug.log*
 .vite/
 
+# Fotos sin normalizar: son el paso previo, lo que vale es lo que sale de la herramienta
+herramientas/crudo/
+
 # ---------- Entornos de desarrollo ----------
 .classpath
 .project

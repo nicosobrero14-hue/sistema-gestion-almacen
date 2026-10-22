@@ -12,6 +12,11 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
       },
+      // Las fotos de los productos las sirve el backend desde una carpeta del servidor.
+      '/imagenes': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
 })

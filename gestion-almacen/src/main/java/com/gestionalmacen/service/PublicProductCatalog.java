@@ -56,7 +56,7 @@ public class PublicProductCatalog implements IProductCatalog {
 					.defaultHeader("User-Agent", "SistemaGestionAlmacen/1.0 (proyecto academico)")
 					.build()
 					.get()
-					.uri("/api/v2/product/{barcode}.json?fields=product_name,brands,quantity", barcode)
+					.uri("/api/v2/product/{barcode}.json?fields=product_name,brands,quantity,image_front_url", barcode)
 					.retrieve()
 					.body(RESPUESTA);
 		} catch (RestClientException e) {
@@ -73,7 +73,7 @@ public class PublicProductCatalog implements IProductCatalog {
 		@SuppressWarnings("unchecked")
 		Map<String, Object> producto = (Map<String, Object>) respuesta.get("product");
 		String name = this.buildName(producto);
-		return name.isEmpty() ? null : new ProductSuggestionDTO(barcode, name);
+		return name.isEmpty() ? null : new ProductSuggestionDTO(barcode, name, this.clean(producto.get("image_front_url")));
 	}
 
 	// Arma un nombre presentable con lo que devuelve el catalogo, que viene en minusculas
