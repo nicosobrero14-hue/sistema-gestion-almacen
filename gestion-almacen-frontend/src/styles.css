@@ -1056,6 +1056,26 @@ a.button {
   color: var(--color-muted);
 }
 
+/* ---------- Comprobantes de compra (RF-15) ---------- */
+
+.voucher-preview {
+  width: 120px;
+  height: 150px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+/* Sin foto: un recuadro con el ícono, para que el bloque no quede vacío. */
+.voucher-preview-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-background);
+  font-size: 40px;
+}
+
 /* ---------- Logo de fondo ---------- */
 
 /* El logo en version clara, bien tenue, detras del contenido de todas las pantallas.

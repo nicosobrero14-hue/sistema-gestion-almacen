@@ -247,7 +247,7 @@ CREATE TABLE IF NOT EXISTS compras (
     id_compra        BIGINT        NOT NULL AUTO_INCREMENT,
     id_proveedor     BIGINT        NOT NULL,          -- una factura siempre es de alguien
     cuit_emisor      VARCHAR(13)   NULL,              -- el que viene en el QR del comprobante
-    tipo_comprobante SMALLINT      NOT NULL,          -- código de ARCA: 1 factura A, 6 factura B, 11 factura C
+    tipo_comprobante INT           NOT NULL,          -- código de ARCA: 1 factura A, 6 factura B, 11 factura C
     punto_venta      INT           NOT NULL,
     numero           BIGINT        NOT NULL,
     fecha            DATE          NOT NULL,          -- la del comprobante, no la de carga

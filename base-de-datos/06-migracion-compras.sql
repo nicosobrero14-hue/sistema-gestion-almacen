@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS compras (
     id_compra        BIGINT        NOT NULL AUTO_INCREMENT,
     id_proveedor     BIGINT        NOT NULL,
     cuit_emisor      VARCHAR(13)   NULL,
-    tipo_comprobante SMALLINT      NOT NULL,
+    tipo_comprobante INT           NOT NULL,
     punto_venta      INT           NOT NULL,
     numero           BIGINT        NOT NULL,
     fecha            DATE          NOT NULL,

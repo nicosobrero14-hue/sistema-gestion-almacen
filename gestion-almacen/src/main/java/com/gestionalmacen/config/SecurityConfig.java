@@ -46,6 +46,10 @@ public class SecurityConfig {
 						.requestMatchers("/api/users/**").hasRole("ADMIN")              // RF-11: usuarios, solo el administrador
 						.requestMatchers(HttpMethod.GET, "/api/sales").hasRole("ADMIN") // CU-16: historial de ventas, solo el administrador
 						.requestMatchers("/api/offers/**").hasRole("ADMIN")             // CU-19: ofertas, solo el administrador
+						// CU-23: cargar la factura lo hace cualquiera, porque conviene sacarle la foto
+						// cuando llega el reparto. Lo que viene despues es plata y es del administrador.
+						.requestMatchers(HttpMethod.POST, "/api/purchases", "/api/purchases/*/image").authenticated()
+						.requestMatchers("/api/purchases/**").hasRole("ADMIN")          // RF-15: compras y saldos
 						.anyRequest().authenticated())                                  // el resto, cualquiera con sesion
 				// Sin sesion responde 401 en vez de redirigir a una pagina de login: esto es una API.
 				.exceptionHandling(errors -> errors
