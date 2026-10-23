@@ -17,3 +17,13 @@ export const uploadPurchaseImage = (id, file) => {
 }
 
 export const deletePurchaseImage = (id) => client.delete(`/purchases/${id}/image`)
+
+// La direccion desde la que el backend sirve la foto del comprobante.
+export const purchaseImageUrl = (image) => (image ? `/imagenes/${image}` : '')
+
+// CU-24: la plata que sale.
+export const addPayment = (id, payment) =>
+  client.post(`/purchases/${id}/payments`, payment).then((response) => response.data)
+
+export const cancelPayment = (id, paymentId) =>
+  client.patch(`/purchases/${id}/payments/${paymentId}/cancel`).then((response) => response.data)

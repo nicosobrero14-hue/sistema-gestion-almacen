@@ -4,6 +4,7 @@ import { getPurchases } from '../api/purchases'
 import { getSuppliers } from '../api/suppliers'
 import Message from '../components/Message'
 import { formatDate, formatPrice, PURCHASE_STATUS, voucherTypeName } from '../utils/format'
+import PurchaseDetail from './PurchaseDetail'
 import PurchaseForm from './PurchaseForm'
 
 // Fecha en el formato de los campos de fecha y de la API: 2026-10-20
@@ -28,6 +29,8 @@ export default function Purchases() {
   const [purchases, setPurchases] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [formOpen, setFormOpen] = useState(false)
+  // La factura que se esta mirando en la ficha, o null.
+  const [selected, setSelected] = useState(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -143,6 +146,7 @@ export default function Purchases() {
                 <th className="right">Pagado</th>
                 <th className="right">Saldo</th>
                 <th>Estado</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -176,6 +180,11 @@ export default function Purchases() {
                       {PURCHASE_STATUS[purchase.status]}
                     </span>
                   </td>
+                  <td className="actions">
+                    <button type="button" className="button button-small" onClick={() => setSelected(purchase)}>
+                      Ver
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -184,6 +193,11 @@ export default function Purchases() {
       )}
 
       {formOpen && <PurchaseForm onSaved={onSaved} onCancel={() => setFormOpen(false)} />}
+
+      {/* onChanged: al registrar o anular un pago cambia el saldo, asi que el listado se recarga. */}
+      {selected && (
+        <PurchaseDetail purchase={selected} onChanged={load} onClose={() => setSelected(null)} />
+      )}
     </>
   )
 }

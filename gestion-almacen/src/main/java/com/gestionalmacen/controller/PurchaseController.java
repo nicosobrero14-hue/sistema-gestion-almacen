@@ -8,6 +8,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.gestionalmacen.dto.PurchaseDTO;
+import com.gestionalmacen.dto.SupplierPaymentDTO;
 import com.gestionalmacen.entity.Purchase;
 import com.gestionalmacen.service.IPurchaseService;
 
@@ -60,7 +62,20 @@ public class PurchaseController {
 		return purchaseService.saveImage(id, file);
 	}
 
-	//5- quitar la foto
+	//5- registrar un pago al proveedor (CU-24)
+	@PostMapping("/{id}/payments")
+	@ResponseStatus(HttpStatus.CREATED)
+	public Purchase addPayment(@PathVariable Long id, @Valid @RequestBody SupplierPaymentDTO paymentDTO) {
+		return purchaseService.addPayment(id, paymentDTO);
+	}
+
+	//6- anular un pago. No se borra: queda el rastro de que estuvo registrado
+	@PatchMapping("/{id}/payments/{paymentId}/cancel")
+	public Purchase cancelPayment(@PathVariable Long id, @PathVariable Long paymentId) {
+		return purchaseService.cancelPayment(id, paymentId);
+	}
+
+	//7- quitar la foto
 	@DeleteMapping("/{id}/image")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteImage(@PathVariable Long id) {

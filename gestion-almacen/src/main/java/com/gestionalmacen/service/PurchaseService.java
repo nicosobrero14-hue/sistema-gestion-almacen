@@ -9,8 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.gestionalmacen.dto.PurchaseDTO;
+import com.gestionalmacen.dto.SupplierPaymentDTO;
 import com.gestionalmacen.entity.Purchase;
 import com.gestionalmacen.entity.Supplier;
+import com.gestionalmacen.entity.SupplierPayment;
 import com.gestionalmacen.entity.User;
 import com.gestionalmacen.exception.BusinessRuleException;
 import com.gestionalmacen.exception.NotFoundException;
@@ -95,6 +97,49 @@ public class PurchaseService implements IPurchaseService {
 		imageStorage.delete(this.imageName(id));
 		purchase.setImage(null);
 		purchaseRepository.save(purchase);
+	}
+
+	// CU-24: la plata que sale. Cada pago descuenta del saldo de la factura.
+	@Override
+	public Purchase addPayment(Long id, SupplierPaymentDTO paymentDTO) {
+		Purchase purchase = this.findPurchase(id);
+
+		// No se puede pagar mas de lo que se debe: si se pago de mas, lo que esta mal es el total.
+		if (paymentDTO.getAmount().compareTo(purchase.getBalance()) > 0) {
+			throw new BusinessRuleException("El pago no puede superar el saldo, que es de "
+					+ purchase.getBalance() + ".");
+		}
+		// Un pago anterior a la factura no tiene sentido y suele ser un error de tipeo en la fecha.
+		if (paymentDTO.getDate().isBefore(purchase.getDate())) {
+			throw new BusinessRuleException("El pago no puede ser anterior a la factura.");
+		}
+
+		User user = userService.getSessionUser();
+		SupplierPayment payment = new SupplierPayment();
+		payment.setPurchase(purchase);
+		payment.setDate(paymentDTO.getDate());
+		payment.setAmount(paymentDTO.getAmount());
+		payment.setMethod(paymentDTO.getMethod());
+		payment.setUser(user);
+		payment.setUsername(user.getUsername());
+
+		purchase.getPayments().add(payment);
+		return purchaseRepository.save(purchase);
+	}
+
+	@Override
+	public Purchase cancelPayment(Long id, Long paymentId) {
+		Purchase purchase = this.findPurchase(id);
+		SupplierPayment payment = purchase.getPayments().stream()
+				.filter(p -> p.getId().equals(paymentId))
+				.findFirst()
+				.orElseThrow(() -> new NotFoundException("El pago " + paymentId + " no es de esta factura."));
+
+		if (payment.isCancelled()) {
+			throw new BusinessRuleException("Ese pago ya estaba anulado.");
+		}
+		payment.setCancelled(true);
+		return purchaseRepository.save(purchase);
 	}
 
 	// El total acordado es lo que realmente se debe. Casi siempre coincide con el facturado y

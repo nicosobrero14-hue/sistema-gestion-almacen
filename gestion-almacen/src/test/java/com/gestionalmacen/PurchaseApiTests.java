@@ -3,6 +3,7 @@ package com.gestionalmacen;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -137,8 +138,7 @@ class PurchaseApiTests {
 
 	@Test
 	void rejectsASupplierThatWasDeactivated() throws Exception {
-		mvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
-				.patch("/api/suppliers/{id}/deactivate", supplierId).with(csrf()))
+		mvc.perform(patch("/api/suppliers/{id}/deactivate", supplierId).with(csrf()))
 				.andExpect(status().isNoContent());
 
 		mvc.perform(post("/api/purchases").with(csrf()).contentType(MediaType.APPLICATION_JSON)
@@ -237,6 +237,119 @@ class PurchaseApiTests {
 				.andExpect(status().isForbidden());
 	}
 
+	// ---------- CU-24: los pagos ----------
+
+	@Test
+	void registersAPartialPayment() throws Exception {
+		long id = this.createInvoice();
+
+		mvc.perform(post("/api/purchases/{id}/payments", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"date\":\"2026-10-21\",\"amount\":50000.00,\"method\":\"EFECTIVO\"}"))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.paid").value(50000.00))
+				.andExpect(jsonPath("$.balance").value(75878.05))
+				.andExpect(jsonPath("$.status").value("PARCIAL"));
+	}
+
+	@Test
+	void payingTheBalanceClosesTheInvoice() throws Exception {
+		long id = this.createInvoice();
+		this.pay(id, "50000.00");
+		this.pay(id, "75878.05");
+
+		mvc.perform(get("/api/purchases/{id}", id))
+				.andExpect(jsonPath("$.balance").value(0))
+				.andExpect(jsonPath("$.status").value("PAGADA"));
+	}
+
+	// Si se pago de mas, lo que esta mal es el total y no el pago.
+	@Test
+	void rejectsAPaymentOverTheBalance() throws Exception {
+		long id = this.createInvoice();
+
+		mvc.perform(post("/api/purchases/{id}/payments", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"date\":\"2026-10-21\",\"amount\":200000.00,\"method\":\"EFECTIVO\"}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.message").value("El pago no puede superar el saldo, que es de 125878.05."));
+	}
+
+	// Suele ser un error de tipeo en la fecha.
+	@Test
+	void rejectsAPaymentDatedBeforeTheInvoice() throws Exception {
+		long id = this.createInvoice();
+
+		mvc.perform(post("/api/purchases/{id}/payments", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"date\":\"2026-10-19\",\"amount\":100.00,\"method\":\"EFECTIVO\"}"))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.message").value("El pago no puede ser anterior a la factura."));
+	}
+
+	// Un pago no se borra: queda anulado y el saldo vuelve atras.
+	@Test
+	void cancellingAPaymentGivesTheBalanceBack() throws Exception {
+		long id = this.createInvoice();
+		String respuesta = mvc.perform(post("/api/purchases/{id}/payments", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"date\":\"2026-10-21\",\"amount\":50000.00,\"method\":\"EFECTIVO\"}"))
+				.andExpect(status().isCreated())
+				.andReturn().getResponse().getContentAsString();
+		int pagoId = ((Number) JsonPath.read(respuesta, "$.payments[0].id")).intValue();
+
+		mvc.perform(patch("/api/purchases/{id}/payments/{pago}/cancel", id, pagoId).with(csrf()))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.paid").value(0))
+				.andExpect(jsonPath("$.balance").value(125878.05))
+				.andExpect(jsonPath("$.status").value("PENDIENTE"))
+				// El pago sigue estando, marcado como anulado.
+				.andExpect(jsonPath("$.payments[0].cancelled").value(true));
+	}
+
+	@Test
+	void cannotCancelTheSamePaymentTwice() throws Exception {
+		long id = this.createInvoice();
+		String respuesta = mvc.perform(post("/api/purchases/{id}/payments", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"date\":\"2026-10-21\",\"amount\":100.00,\"method\":\"EFECTIVO\"}"))
+				.andReturn().getResponse().getContentAsString();
+		int pagoId = ((Number) JsonPath.read(respuesta, "$.payments[0].id")).intValue();
+
+		mvc.perform(patch("/api/purchases/{id}/payments/{pago}/cancel", id, pagoId).with(csrf()))
+				.andExpect(status().isOk());
+		mvc.perform(patch("/api/purchases/{id}/payments/{pago}/cancel", id, pagoId).with(csrf()))
+				.andExpect(status().isConflict());
+	}
+
+	// Despues de anular, el lugar que ocupaba ese pago vuelve a estar disponible.
+	@Test
+	void afterCancellingTheMoneyCanBePaidAgain() throws Exception {
+		long id = this.createInvoice();
+		String respuesta = mvc.perform(post("/api/purchases/{id}/payments", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"date\":\"2026-10-21\",\"amount\":125878.05,\"method\":\"EFECTIVO\"}"))
+				.andReturn().getResponse().getContentAsString();
+		int pagoId = ((Number) JsonPath.read(respuesta, "$.payments[0].id")).intValue();
+		mvc.perform(patch("/api/purchases/{id}/payments/{pago}/cancel", id, pagoId).with(csrf()))
+				.andExpect(status().isOk());
+
+		mvc.perform(post("/api/purchases/{id}/payments", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"date\":\"2026-10-22\",\"amount\":125878.05,\"method\":\"TRANSFERENCIA\"}"))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.status").value("PAGADA"));
+	}
+
+	@Test
+	@WithMockUser(username = "vendedor", roles = "EMPLEADO")
+	void anEmployeeCannotRegisterPayments() throws Exception {
+		mvc.perform(post("/api/purchases/{id}/payments", 1).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"date\":\"2026-10-21\",\"amount\":100.00,\"method\":\"EFECTIVO\"}"))
+				.andExpect(status().isForbidden());
+	}
+
 	// ---------- helpers ----------
 
 	private String invoice(int type, int point, long number, String invoiced, String agreed, String reason) {
@@ -249,6 +362,13 @@ class PurchaseApiTests {
 				+ (agreed == null ? "" : ",\"agreedTotal\":" + agreed)
 				+ (reason == null ? "" : ",\"adjustmentReason\":\"" + reason + "\"")
 				+ "}";
+	}
+
+	private void pay(long id, String amount) throws Exception {
+		mvc.perform(post("/api/purchases/{id}/payments", id).with(csrf())
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("{\"date\":\"2026-10-21\",\"amount\":" + amount + ",\"method\":\"EFECTIVO\"}"))
+				.andExpect(status().isCreated());
 	}
 
 	private long createInvoice() throws Exception {
