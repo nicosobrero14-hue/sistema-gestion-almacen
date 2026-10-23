@@ -1076,6 +1076,68 @@ a.button {
   font-size: 40px;
 }
 
+/* ---------- Pesaje (RF-12 / CU-21) ---------- */
+
+/* Las pestañas de unidad y balanza, arriba del buscador. */
+.tabs {
+  margin-bottom: 12px;
+}
+
+.weigh {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.weigh-main {
+  flex: 1;
+}
+
+/* El visor, con el número grande y en verde sobre oscuro, como el de la balanza. */
+.weigh-display {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  background: var(--color-text);
+  border-radius: var(--radius);
+  color: #9ef29e;
+}
+
+.weigh-kilos {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.weigh-unit {
+  font-size: 18px;
+}
+
+.weigh-input {
+  width: 100%;
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: 18px;
+  text-align: right;
+}
+
+.weigh-amount {
+  margin: 0;
+  text-align: right;
+  font-size: 18px;
+}
+
+.weigh-amount strong {
+  color: var(--color-primary);
+  font-size: 22px;
+}
+
 /* ---------- Logo de fondo ---------- */
 
 /* El logo en version clara, bien tenue, detras del contenido de todas las pantallas.

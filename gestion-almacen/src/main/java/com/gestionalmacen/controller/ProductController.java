@@ -47,25 +47,31 @@ public class ProductController {
 		return productService.getProductsWithoutBarcode();
 	}
 
-	//3- traer un producto
+	//3- los que se venden por peso, para la pestania de balanza de la venta (CU-21)
+	@GetMapping("/by-weight")
+	public List<Product> getProductsByWeight() {
+		return productService.getProductsByWeight();
+	}
+
+	//4- traer un producto
 	@GetMapping("/{id}")
 	public Product findProduct(@PathVariable Long id) {
 		return productService.findProduct(id);
 	}
 
-	//4- buscar por codigo de barras exacto: lo usa el lector (CU-03)
+	//5- buscar por codigo de barras exacto: lo usa el lector (CU-03)
 	@GetMapping("/barcode/{barcode}")
 	public Product findProductByBarcode(@PathVariable String barcode) {
 		return productService.findProductByBarcode(barcode);
 	}
 
-	//5- datos sugeridos para un codigo que no esta en el catalogo del comercio (CU-03 paso 6)
+	//6- datos sugeridos para un codigo que no esta en el catalogo del comercio (CU-03 paso 6)
 	@GetMapping("/suggestion/{barcode}")
 	public ProductSuggestionDTO suggestProduct(@PathVariable String barcode) {
 		return productService.suggestProduct(barcode);
 	}
 
-	//6- crear un producto
+	//7- crear un producto
 	// isUserInRole: el rol sale de la sesion, no de lo que manda el cliente.
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
@@ -73,35 +79,35 @@ public class ProductController {
 		return productService.saveProduct(productDTO, request.isUserInRole("ADMIN"));
 	}
 
-	//7- modificar un producto (CU-20). El stock no se modifica por aca
+	//8- modificar un producto (CU-20). El stock no se modifica por aca
 	@PutMapping("/{id}")
 	public Product editProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO,
 			HttpServletRequest request) {
 		return productService.editProduct(id, productDTO, request.isUserInRole("ADMIN"));
 	}
 
-	//8- cargar la foto del producto (CU-22). Va aparte del alta: el nombre del archivo sale del id
+	//9- cargar la foto del producto (CU-22). Va aparte del alta: el nombre del archivo sale del id
 	// del producto, asi que recien se puede guardar cuando el producto existe
 	@PostMapping("/{id}/image")
 	public Product saveImage(@PathVariable Long id, @RequestParam MultipartFile file) {
 		return productService.saveImage(id, file);
 	}
 
-	//9- quitar la foto
+	//10- quitar la foto
 	@DeleteMapping("/{id}/image")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteImage(@PathVariable Long id) {
 		productService.deleteImage(id);
 	}
 
-	//10- dar de baja: deja de aparecer, pero no se borra
+	//11- dar de baja: deja de aparecer, pero no se borra
 	@PatchMapping("/{id}/deactivate")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deactivateProduct(@PathVariable Long id) {
 		productService.deactivateProduct(id);
 	}
 
-	//11- reactivar un producto dado de baja
+	//12- reactivar un producto dado de baja
 	@PatchMapping("/{id}/activate")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void activateProduct(@PathVariable Long id) {

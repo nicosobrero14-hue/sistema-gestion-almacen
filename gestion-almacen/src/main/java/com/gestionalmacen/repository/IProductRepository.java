@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import com.gestionalmacen.dto.ProductSalesDTO;
 import com.gestionalmacen.entity.Product;
+import com.gestionalmacen.entity.SaleUnit;
 
 // Acceso a la tabla productos.
 @Repository
@@ -60,6 +61,9 @@ public interface IProductRepository extends JpaRepository<Product, Long> {
 	// Los que no se pueden leer con el lector: fruta, verdura y todo lo que se vende suelto.
 	// Son los que la pantalla de venta muestra en la grilla de fotos (RF-14 / CU-07).
 	List<Product> findByActiveTrueAndBarcodeIsNullOrderByName();
+
+	// Los que se venden por peso: son los que se pesan antes de cobrar (RF-12 / CU-21).
+	List<Product> findByActiveTrueAndSaleUnitOrderByName(SaleUnit saleUnit);
 
 	// Ofertas vigentes (CU-19 paso 6).
 	List<Product> findByActiveTrueAndOnOfferTrueOrderByName();

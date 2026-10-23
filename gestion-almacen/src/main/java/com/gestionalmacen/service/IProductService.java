@@ -18,6 +18,9 @@ public interface IProductService {
 	// Los productos sin codigo de barras, que son los que no se pueden escanear (RF-14 / CU-07).
 	List<Product> getProductsWithoutBarcode();
 
+	// Los que se venden por peso, que son los que pasan por la balanza (RF-12 / CU-21).
+	List<Product> getProductsByWeight();
+
 	// Busca por el codigo exacto, como lo manda el lector de codigo de barras (CU-03).
 	Product findProductByBarcode(String barcode);
 
