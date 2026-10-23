@@ -57,13 +57,8 @@ public class ProductService implements IProductService {
 	}
 
 	@Override
-	public List<Product> getProductsWithoutBarcode() {
-		return productRepository.findByActiveTrueAndBarcodeIsNullOrderByName();
-	}
-
-	@Override
-	public List<Product> getProductsByWeight() {
-		return productRepository.findByActiveTrueAndSaleUnitOrderByName(SaleUnit.KG);
+	public List<Product> getProductsBySaleUnit(SaleUnit saleUnit) {
+		return productRepository.findByActiveTrueAndSaleUnitOrderByName(saleUnit);
 	}
 
 	@Override

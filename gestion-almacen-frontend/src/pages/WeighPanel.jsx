@@ -74,25 +74,43 @@ export default function WeighPanel({ product, onConfirm, onCancel }) {
   })
 
   return (
-    <Modal title={`Pesar ${product.name}`} onClose={onCancel}>
+    <Modal title={`Pesar ${product.name}`} onClose={onCancel} wide>
+      {/* El visor: el peso grande arriba y el importe abajo, como el de una balanza de mostrador. */}
+      <div className="weigh-display">
+        <div className="weigh-row">
+          <span className="weigh-label">Peso neto</span>
+          <span className="weigh-kilos">{peso === '' ? '0.000' : Number(peso).toFixed(3)}</span>
+          <span className="weigh-unit">kg</span>
+        </div>
+        <div className="weigh-row weigh-row-amount">
+          <span className="weigh-label">A cobrar</span>
+          <span className="weigh-money">{formatPrice(importe)}</span>
+        </div>
+        {/* La lucecita verde: es lo primero que se mira para saber si el número es de verdad. */}
+        <span className={hayBalanza ? 'weigh-led on' : 'weigh-led'}>
+          {hayBalanza === null && 'buscando la balanza'}
+          {hayBalanza === true && 'peso en vivo'}
+          {hayBalanza === false && 'sin balanza'}
+        </span>
+      </div>
+
       <div className="weigh">
         <ProductImage src={productImageUrl(product.image)} name={product.name} large />
 
         <div className="weigh-main">
-          {/* El visor, con el número grande como el de la balanza. */}
-          <div className="weigh-display">
-            <span className="weigh-kilos">{peso === '' ? '0.000' : peso}</span>
-            <span className="weigh-unit">kg</span>
-          </div>
-
-          <p className="help">
-            {hayBalanza === null && 'Buscando la balanza...'}
-            {hayBalanza === true && 'Peso en vivo desde la balanza. Acomode la mercadería y confirme.'}
-            {hayBalanza === false && 'No hay balanza conectada: escriba el peso a mano.'}
+          <p className="weigh-product">
+            {product.name}
+            <br />
+            <small className="help">
+              {formatProductPrice(product.salePrice, 'KG')} · quedan {product.stock} kg
+            </small>
           </p>
 
-          {/* Siempre editable: aunque haya balanza, el empleado puede corregir. */}
+          <label htmlFor="peso">
+            {hayBalanza ? 'Peso leído, se puede corregir' : 'Peso en kilos'}
+          </label>
           <input
+            id="peso"
             ref={manualRef}
             type="number"
             step="0.001"
@@ -103,9 +121,9 @@ export default function WeighPanel({ product, onConfirm, onCancel }) {
             className="weigh-input"
           />
 
-          <p className="weigh-amount">
-            {formatProductPrice(product.salePrice, 'KG')} · <strong>{formatPrice(importe)}</strong>
-          </p>
+          {hayBalanza === false && (
+            <small className="help">No hay balanza conectada en este equipo: escriba el peso a mano.</small>
+          )}
 
           {peso !== '' && kilos > Number(product.stock) && (
             <p className="field-error">Solo hay {product.stock} kg de {product.name}.</p>

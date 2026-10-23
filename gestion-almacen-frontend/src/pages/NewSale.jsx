@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  findProductByBarcode, getProducts, getProductsByWeight, getProductsWithoutBarcode, productImageUrl,
-  suggestProduct,
+  findProductByBarcode, getProducts, getProductsBySaleUnit, productImageUrl, suggestProduct,
 } from '../api/products'
 import { cancelPayment, checkPayment, saveSale } from '../api/sales'
 import Message from '../components/Message'
@@ -36,17 +35,15 @@ export default function NewSale({ isAdmin }) {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState(null) // null = todavia no se busco nada
 
-  // RF-14 / CU-07: sin buscar nada, la pantalla muestra los productos que no se pueden escanear
-  // (fruta, verdura, fiambre). Lo que tiene codigo de barras se lee con el lector.
-  const [withoutBarcode, setWithoutBarcode] = useState(null) // null = todavia no cargo
+  // RF-12 / RF-14: el catalogo se muestra separado en dos, porque el circuito es distinto.
+  // Lo que se cuenta se toca y va al carrito; lo que se pesa pasa antes por la balanza.
+  const [byUnit, setByUnit] = useState(null) // null = todavia no cargo
+  const [byWeight, setByWeight] = useState(null)
   // Tarjetas con la foto o la tabla de siempre. Se recuerda: despues de cada venta la pantalla
   // se arma de nuevo y volver a cambiarla cada vez seria molesto.
   const [view, setView] = useState(() => localStorage.getItem('vista-venta') ?? 'tarjetas')
 
-  // RF-12: los que se pesan tienen su propia pestania. El circuito es distinto: uno se toca
-  // y va al carrito, el otro hay que pesarlo antes.
   const [tab, setTab] = useState('unidad')
-  const [byWeight, setByWeight] = useState(null)
   // El producto que se esta pesando, o null.
   const [weighing, setWeighing] = useState(null)
 
@@ -73,10 +70,10 @@ export default function NewSale({ isAdmin }) {
   const searchRef = useRef(null)
 
   useEffect(() => {
-    getProductsWithoutBarcode()
-      .then(setWithoutBarcode)
+    getProductsBySaleUnit('UNIDAD')
+      .then(setByUnit)
       .catch((e) => setError(e.message))
-    getProductsByWeight()
+    getProductsBySaleUnit('KG')
       .then(setByWeight)
       .catch((e) => setError(e.message))
   }, [])
@@ -147,7 +144,7 @@ export default function NewSale({ isAdmin }) {
   // Que productos se ven. Sin texto en el buscador, los que no se pueden escanear; con texto, lo
   // que devolvio la busqueda, que mira todo el catalogo. null en los dos casos es "todavia no llego".
   const searching = search.trim() !== ''
-  const shown = tab === 'balanza' ? byWeight : (searching ? results : withoutBarcode)
+  const shown = tab === 'balanza' ? byWeight : (searching ? results : byUnit)
 
   // CU-21 pasos 3 y 4: con el peso confirmado se calcula el importe y entra al carrito.
   const addWeighed = (kilos) => {
@@ -339,7 +336,7 @@ export default function NewSale({ isAdmin }) {
             <p className="help">
               {tab === 'balanza'
                 ? 'Los que se venden por kilo. Al elegir uno se abre la ventana de pesaje.'
-                : (!searching && 'Los que no tienen código de barras. El resto se lee con el lector o se busca por nombre.')}
+                : (!searching && 'Los que se venden por unidad. Con el lector se agregan sin buscarlos.')}
             </p>
           )}
 
@@ -350,7 +347,7 @@ export default function NewSale({ isAdmin }) {
                 ? 'No hay productos que se vendan por kilo.'
                 : (searching
                   ? 'No hay ningún producto con ese nombre o código.'
-                  : 'Todos los productos tienen código de barras: léalos con el lector o búsquelos por nombre.')}
+                  : 'No hay productos cargados.')}
             </p>
           )}
 

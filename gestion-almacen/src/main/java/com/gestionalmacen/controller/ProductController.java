@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.gestionalmacen.dto.ProductDTO;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.Product;
+import com.gestionalmacen.entity.SaleUnit;
 import com.gestionalmacen.service.IProductService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,38 +41,32 @@ public class ProductController {
 		return productService.getProducts(search, activeOnly);
 	}
 
-	//2- los productos que no se pueden escanear, para la grilla de la pantalla de venta (CU-07)
+	//2- los de una unidad de venta, para las pestanias de la pantalla de venta (RF-12 / RF-14)
 	// Va antes de /{id} no por el orden del archivo sino porque Spring prefiere la ruta literal.
-	@GetMapping("/without-barcode")
-	public List<Product> getProductsWithoutBarcode() {
-		return productService.getProductsWithoutBarcode();
+	@GetMapping("/by-sale-unit/{saleUnit}")
+	public List<Product> getProductsBySaleUnit(@PathVariable SaleUnit saleUnit) {
+		return productService.getProductsBySaleUnit(saleUnit);
 	}
 
-	//3- los que se venden por peso, para la pestania de balanza de la venta (CU-21)
-	@GetMapping("/by-weight")
-	public List<Product> getProductsByWeight() {
-		return productService.getProductsByWeight();
-	}
-
-	//4- traer un producto
+	//3- traer un producto
 	@GetMapping("/{id}")
 	public Product findProduct(@PathVariable Long id) {
 		return productService.findProduct(id);
 	}
 
-	//5- buscar por codigo de barras exacto: lo usa el lector (CU-03)
+	//4- buscar por codigo de barras exacto: lo usa el lector (CU-03)
 	@GetMapping("/barcode/{barcode}")
 	public Product findProductByBarcode(@PathVariable String barcode) {
 		return productService.findProductByBarcode(barcode);
 	}
 
-	//6- datos sugeridos para un codigo que no esta en el catalogo del comercio (CU-03 paso 6)
+	//5- datos sugeridos para un codigo que no esta en el catalogo del comercio (CU-03 paso 6)
 	@GetMapping("/suggestion/{barcode}")
 	public ProductSuggestionDTO suggestProduct(@PathVariable String barcode) {
 		return productService.suggestProduct(barcode);
 	}
 
-	//7- crear un producto
+	//6- crear un producto
 	// isUserInRole: el rol sale de la sesion, no de lo que manda el cliente.
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
@@ -79,35 +74,35 @@ public class ProductController {
 		return productService.saveProduct(productDTO, request.isUserInRole("ADMIN"));
 	}
 
-	//8- modificar un producto (CU-20). El stock no se modifica por aca
+	//7- modificar un producto (CU-20). El stock no se modifica por aca
 	@PutMapping("/{id}")
 	public Product editProduct(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO,
 			HttpServletRequest request) {
 		return productService.editProduct(id, productDTO, request.isUserInRole("ADMIN"));
 	}
 
-	//9- cargar la foto del producto (CU-22). Va aparte del alta: el nombre del archivo sale del id
+	//8- cargar la foto del producto (CU-22). Va aparte del alta: el nombre del archivo sale del id
 	// del producto, asi que recien se puede guardar cuando el producto existe
 	@PostMapping("/{id}/image")
 	public Product saveImage(@PathVariable Long id, @RequestParam MultipartFile file) {
 		return productService.saveImage(id, file);
 	}
 
-	//10- quitar la foto
+	//9- quitar la foto
 	@DeleteMapping("/{id}/image")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deleteImage(@PathVariable Long id) {
 		productService.deleteImage(id);
 	}
 
-	//11- dar de baja: deja de aparecer, pero no se borra
+	//10- dar de baja: deja de aparecer, pero no se borra
 	@PatchMapping("/{id}/deactivate")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void deactivateProduct(@PathVariable Long id) {
 		productService.deactivateProduct(id);
 	}
 
-	//12- reactivar un producto dado de baja
+	//11- reactivar un producto dado de baja
 	@PatchMapping("/{id}/activate")
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	public void activateProduct(@PathVariable Long id) {

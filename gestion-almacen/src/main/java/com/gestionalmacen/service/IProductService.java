@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.gestionalmacen.dto.ProductDTO;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.Product;
+import com.gestionalmacen.entity.SaleUnit;
 
 // Operaciones sobre el catalogo de productos (RF-01 / CU-02, CU-20).
 public interface IProductService {
@@ -15,11 +16,9 @@ public interface IProductService {
 
 	Product findProduct(Long id);
 
-	// Los productos sin codigo de barras, que son los que no se pueden escanear (RF-14 / CU-07).
-	List<Product> getProductsWithoutBarcode();
-
-	// Los que se venden por peso, que son los que pasan por la balanza (RF-12 / CU-21).
-	List<Product> getProductsByWeight();
+	// Los activos de una unidad de venta, para las pestanias de la pantalla de venta.
+	// Los que se cuentan van en una y los que se pesan en la otra (RF-12 / RF-14).
+	List<Product> getProductsBySaleUnit(SaleUnit saleUnit);
 
 	// Busca por el codigo exacto, como lo manda el lector de codigo de barras (CU-03).
 	Product findProductByBarcode(String barcode);
