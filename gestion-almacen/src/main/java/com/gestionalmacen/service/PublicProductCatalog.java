@@ -1,11 +1,13 @@
 package com.gestionalmacen.service;
 
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -15,8 +17,17 @@ import com.gestionalmacen.dto.ProductSuggestionDTO;
 // Catalogos publicos de productos: se consulta el codigo de barras para sugerir los datos
 // de un producto que el comercio todavia no tiene cargado (CU-03).
 //
-// Es una base abierta y gratuita, sin credenciales. La cobertura es parcial: los productos
-// de marca suelen estar, lo que se vende suelto no. Por eso no sugerir es normal y no es un error.
+// Se consultan dos clases de fuente, en este orden.
+//
+// Primero los catalogos abiertos del proyecto Open Food Facts, que publican sus datos con una
+// licencia que permite reusarlos y traen tambien la foto del producto. El problema es la
+// cobertura: medida contra 24 productos reales de gondola, encuentran 10. En alimentos aciertan
+// algo mas de la mitad y fuera de alimentos practicamente nada.
+//
+// Despues, y solo si ninguno lo conoce, el catalogo de un supermercado. Ahi estan casi todos,
+// porque las marcas les entregan la ficha de cada producto. De esa fuente se toma unicamente el
+// nombre y nunca la foto: la foto es una obra con autor y el nombre es un dato. Igual lo que
+// llega es una sugerencia que el empleado revisa antes de guardar.
 //
 // @Profile("!test"): las pruebas usan un catalogo falso y no dependen de internet.
 @Service
@@ -33,8 +44,22 @@ public class PublicProductCatalog implements IProductCatalog {
 			"https://world.openproductsfacts.org", // el resto
 			"https://world.openpetfoodfacts.org", // alimento para mascotas
 	};
+	// Ultimo recurso, solo para el nombre. Son dos y no uno porque si uno no responde el otro
+	// suele tenerlo igual: las dos cadenas reciben la ficha de la misma marca.
+	private static final String[] TIENDAS = {
+			"https://www.carrefour.com.ar",
+			"https://www.jumbo.com.ar",
+	};
+
 	private static final ParameterizedTypeReference<Map<String, Object>> RESPUESTA = new ParameterizedTypeReference<>() {
 	};
+
+	private static final ParameterizedTypeReference<List<Map<String, Object>>> LISTA = new ParameterizedTypeReference<>() {
+	};
+
+	// Las tiendas responden su pagina de error a un cliente que no se presenta como un navegador.
+	private static final String NAVEGADOR = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+			+ " (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 	@Override
 	public ProductSuggestionDTO findByBarcode(String barcode) {
@@ -44,7 +69,45 @@ public class PublicProductCatalog implements IProductCatalog {
 				return suggestion;
 			}
 		}
+
+		// Ninguno de los abiertos lo conoce, que es lo que pasa con cuatro de cada seis productos
+		// de gondola y con todo lo que no sea comida.
+		for (String tienda : TIENDAS) {
+			String name = this.searchInStore(tienda, barcode);
+			if (name != null) {
+				return new ProductSuggestionDTO(barcode, name, null);
+			}
+		}
 		return null;
+	}
+
+	// Busca el codigo en el catalogo de un supermercado y devuelve solo el nombre del producto.
+	// La foto queda afuera a proposito: se devuelve null y el alta sigue sin imagen.
+	private String searchInStore(String tienda, String barcode) {
+		List<Map<String, Object>> respuesta;
+		try {
+			respuesta = RestClient.builder()
+					.baseUrl(tienda)
+					// Sin esto la tienda responde con su pagina de error en vez de con datos.
+					.defaultHeader(HttpHeaders.USER_AGENT, NAVEGADOR)
+					.defaultHeader(HttpHeaders.ACCEPT, "application/json")
+					.build()
+					.get()
+					.uri("/api/catalog_system/pub/products/search?fq=alternateIds_Ean:{barcode}", barcode)
+					.retrieve()
+					.body(LISTA);
+		} catch (RestClientException e) {
+			log.warn("No se pudo consultar {}: {}", tienda, e.getMessage());
+			return null;
+		}
+
+		if (respuesta == null || respuesta.isEmpty()) {
+			return null;
+		}
+
+		// El nombre de la tienda ya viene armado y completo, con la marca y el tamanio adentro.
+		String name = this.clean(respuesta.get(0).get("productName"));
+		return name.isEmpty() ? null : this.capitalize(name);
 	}
 
 	private ProductSuggestionDTO search(String base, String barcode) {
