@@ -55,3 +55,22 @@ export const SALE_STATUS = {
   CONFIRMADA: 'Confirmada',
   CANCELADA: 'Cancelada',
 }
+
+// Tipos de comprobante de ARCA, por su codigo. El QR de la factura trae el numero (RF-15).
+export const VOUCHER_TYPES = {
+  1: 'Factura A',
+  6: 'Factura B',
+  11: 'Factura C',
+  3: 'Nota de crédito A',
+  8: 'Nota de crédito B',
+  13: 'Nota de crédito C',
+}
+
+export const voucherTypeName = (code) => VOUCHER_TYPES[code] ?? `Comprobante ${code}`
+
+// Como esta una factura respecto de lo que se le pago. No se guarda, se calcula.
+export const PURCHASE_STATUS = {
+  PENDIENTE: 'Sin pagar',
+  PARCIAL: 'Pago parcial',
+  PAGADA: 'Pagada',
+}

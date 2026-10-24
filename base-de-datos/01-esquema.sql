@@ -25,11 +25,14 @@ CREATE TABLE IF NOT EXISTS proveedores (
     email        VARCHAR(120) NULL,
     telefono     VARCHAR(30)  NULL,                 -- texto: admite +54, guiones y ceros a la izquierda
     direccion    VARCHAR(150) NULL,
+    -- Sirve para reconocer al proveedor con el CUIT que trae el QR de sus facturas
+    cuit         VARCHAR(13)  NULL,
     activo       TINYINT(1)   NOT NULL DEFAULT 1,   -- baja lógica
     fecha_alta   DATETIME     NOT NULL,
 
     PRIMARY KEY (id_proveedor),
-    CONSTRAINT uq_proveedores_email UNIQUE (email)
+    CONSTRAINT uq_proveedores_email UNIQUE (email),
+    CONSTRAINT uq_proveedores_cuit  UNIQUE (cuit)
 ) ENGINE = InnoDB;
 
 
@@ -60,6 +63,7 @@ CREATE TABLE IF NOT EXISTS productos (
     nombre            VARCHAR(120)  NOT NULL,
     descripcion       VARCHAR(255)  NULL,
     precio            DECIMAL(10,2) NOT NULL,            -- DECIMAL y no coma flotante: es dinero
+    precio_costo      DECIMAL(10,2) NULL,                -- lo que cuesta reponerlo; sirve para el margen
     -- DECIMAL y no entero: los productos que se venden por peso tienen stock fraccionado
     stock_actual      DECIMAL(10,3) NOT NULL DEFAULT 0,
     stock_minimo      DECIMAL(10,3) NOT NULL DEFAULT 0,  -- umbral de la alerta de stock bajo
@@ -84,6 +88,7 @@ CREATE TABLE IF NOT EXISTS productos (
         ON DELETE SET NULL ON UPDATE CASCADE,
 
     CONSTRAINT ck_productos_precio CHECK (precio > 0),
+    CONSTRAINT ck_productos_costo  CHECK (precio_costo IS NULL OR precio_costo >= 0),
     CONSTRAINT ck_productos_stock  CHECK (stock_actual >= 0 AND stock_minimo >= 0),
     CONSTRAINT ck_productos_unidad CHECK (unidad_venta IN ('UNIDAD', 'KG')),
     CONSTRAINT ck_productos_oferta CHECK (en_oferta = 0 OR (precio_oferta IS NOT NULL AND precio_oferta < precio)),
@@ -221,4 +226,102 @@ CREATE TABLE IF NOT EXISTS movimientos_stock (
     CONSTRAINT ck_movimientos_stock CHECK (stock_anterior >= 0 AND stock_nuevo >= 0),
 
     INDEX idx_movimientos_producto (id_producto, fecha_hora)
+) ENGINE = InnoDB;
+
+
+-- ----------------------------------------------------------------------------
+--  compras
+--  La factura que entrega un proveedor. Es el egreso: hasta la fase 15 el
+--  sistema registraba solo la plata que entra y no podía decir cuánto se ganó.
+--
+--  Se guardan dos totales. El facturado es el que figura en el comprobante y el
+--  que trae su código QR. El acordado es lo que realmente se debe, y se usa
+--  cuando no se paga el total: por ejemplo si faltó un producto del pedido. Casi
+--  siempre son iguales. El saldo y la ganancia se calculan sobre el acordado.
+--
+--  No se guarda el detalle renglón por renglón. Las facturas del reparto vienen
+--  sin código de producto y con descripciones del distribuidor que no coinciden
+--  con el catálogo del comercio, así que no habría con qué relacionarlas.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS compras (
+    id_compra        BIGINT        NOT NULL AUTO_INCREMENT,
+    id_proveedor     BIGINT        NOT NULL,          -- una factura siempre es de alguien
+    cuit_emisor      VARCHAR(13)   NULL,              -- el que viene en el QR del comprobante
+    tipo_comprobante INT           NOT NULL,          -- código de ARCA: 1 factura A, 6 factura B, 11 factura C
+    punto_venta      INT           NOT NULL,
+    numero           BIGINT        NOT NULL,
+    fecha            DATE          NOT NULL,          -- la del comprobante, no la de carga
+    total_facturado  DECIMAL(12,2) NOT NULL,          -- lo que dice el papel
+    total_acordado   DECIMAL(12,2) NOT NULL,          -- lo que realmente se debe
+    motivo_ajuste    VARCHAR(255)  NULL,              -- por qué difieren, si difieren
+    cae              VARCHAR(20)   NULL,              -- código de autorización del comprobante
+    imagen           VARCHAR(255)  NULL,              -- nombre del archivo de la foto, no la foto
+    fecha_alta       DATETIME      NOT NULL,
+    id_usuario       BIGINT        NULL,
+    username         VARCHAR(50)   NOT NULL,          -- copia, igual que en ventas
+
+    PRIMARY KEY (id_compra),
+
+    -- El mismo comprobante no se puede cargar dos veces. Con fotos y reparto diario,
+    -- cargar la misma factura repetida es un error que va a pasar.
+    CONSTRAINT uq_compras_comprobante UNIQUE (id_proveedor, tipo_comprobante, punto_venta, numero),
+
+    -- RESTRICT y no SET NULL: una compra sin proveedor no significa nada. En el sistema
+    -- los proveedores se dan de baja lógicamente, así que esto no se dispara en el uso normal.
+    CONSTRAINT fk_compras_proveedor
+        FOREIGN KEY (id_proveedor) REFERENCES proveedores (id_proveedor)
+        ON DELETE RESTRICT ON UPDATE CASCADE,
+
+    CONSTRAINT fk_compras_usuario
+        FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+
+    CONSTRAINT ck_compras_totales CHECK (total_facturado > 0
+                                     AND total_acordado  > 0
+                                     AND total_acordado <= total_facturado),
+    CONSTRAINT ck_compras_numero  CHECK (punto_venta > 0 AND numero > 0 AND tipo_comprobante > 0),
+
+    INDEX idx_compras_fecha (fecha),
+    INDEX idx_compras_proveedor (id_proveedor, fecha)
+) ENGINE = InnoDB;
+
+
+-- ----------------------------------------------------------------------------
+--  pagos_proveedor
+--  La plata que sale. Va aparte de la factura porque no coinciden: se le puede
+--  pagar a un proveedor en dos veces, o pagarle tres facturas el mismo día.
+--
+--  Un pago pertenece a una factura. Pagar tres juntas son tres pagos del mismo
+--  día: es menos fiel que un pago que cubra varias, pero mucho más simple, y el
+--  total pagado en el día se sigue pudiendo consultar.
+--
+--  El estado de la factura no se guarda, se calcula con la suma de sus pagos,
+--  por lo mismo que no se guardan las alertas de stock: queda desactualizado
+--  apenas se registra un pago.
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS pagos_proveedor (
+    id_pago     BIGINT        NOT NULL AUTO_INCREMENT,
+    id_compra   BIGINT        NOT NULL,
+    fecha       DATE          NOT NULL,
+    monto       DECIMAL(12,2) NOT NULL,
+    metodo      VARCHAR(20)   NOT NULL,
+    anulado     TINYINT(1)    NOT NULL DEFAULT 0,   -- un pago no se borra, se anula
+    fecha_alta  DATETIME      NOT NULL,
+    id_usuario  BIGINT        NULL,
+    username    VARCHAR(50)   NOT NULL,
+
+    PRIMARY KEY (id_pago),
+
+    CONSTRAINT fk_pagosprov_compra
+        FOREIGN KEY (id_compra) REFERENCES compras (id_compra)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+
+    CONSTRAINT fk_pagosprov_usuario
+        FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario)
+        ON DELETE SET NULL ON UPDATE CASCADE,
+
+    CONSTRAINT ck_pagosprov_monto  CHECK (monto > 0),
+    CONSTRAINT ck_pagosprov_metodo CHECK (metodo IN ('EFECTIVO', 'TRANSFERENCIA', 'MERCADOPAGO')),
+
+    INDEX idx_pagosprov_compra (id_compra)
 ) ENGINE = InnoDB;

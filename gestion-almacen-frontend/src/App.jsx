@@ -9,6 +9,7 @@ import Offers from './pages/Offers'
 import Products from './pages/Products'
 import SalesHistory from './pages/SalesHistory'
 import Stock from './pages/Stock'
+import Purchases from './pages/Purchases'
 import Suppliers from './pages/Suppliers'
 import Ticket from './pages/Ticket'
 import Users from './pages/Users'
@@ -51,6 +52,7 @@ export default function App() {
           {/* RF-10 / CU-19: las ofertas son solo del administrador. */}
           {isAdmin && <Route path="offers" element={<Offers />} />}
           <Route path="suppliers" element={<Suppliers />} />
+          {isAdmin && <Route path="purchases" element={<Purchases />} />}
           {/* RF-11: la gestion de usuarios es solo del administrador. */}
           {isAdmin && <Route path="users" element={<Users />} />}
           {/* Cualquier otra direccion vuelve al inicio, incluida /users para un empleado. */}

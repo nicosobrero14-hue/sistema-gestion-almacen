@@ -43,7 +43,12 @@ public class ProductService implements IProductService {
 
 	// Guarda y trae las fotos de los productos (CU-22).
 	@Autowired
-	private IProductImageService imageService;
+	private IImageStorage imageStorage;
+
+	// El nombre del archivo sale del id del producto, nunca de lo que manda el cliente.
+	private String imageName(Long productId) {
+		return "producto-" + productId;
+	}
 
 	@Override
 	public List<Product> getProducts(String search, boolean activeOnly) {
@@ -97,7 +102,7 @@ public class ProductService implements IProductService {
 
 		// La foto que sugirio el catalogo se descarga ahora, con el producto ya guardado: el nombre
 		// del archivo sale de su id. Si no se pudo traer, el producto queda sin foto y se carga despues.
-		product.setImage(imageService.download(product.getId(), productDTO.getImageUrl()));
+		product.setImage(imageStorage.downloadFromCatalog(this.imageName(product.getId()), productDTO.getImageUrl()));
 
 		// RF-02: el stock inicial tambien queda registrado como movimiento.
 		movementRepository.save(new StockMovement(product, userService.getSessionUser(),
@@ -122,7 +127,7 @@ public class ProductService implements IProductService {
 
 		// CU-22: la foto que se pidio traer del catalogo publico. Solo se reemplaza si la descarga
 		// funciono: si el catalogo no responde, la que ya tenia el producto sigue estando.
-		String downloaded = imageService.download(id, productDTO.getImageUrl());
+		String downloaded = imageStorage.downloadFromCatalog(this.imageName(id), productDTO.getImageUrl());
 		if (downloaded != null) {
 			product.setImage(downloaded);
 		}
@@ -133,14 +138,14 @@ public class ProductService implements IProductService {
 	@Override
 	public Product saveImage(Long id, MultipartFile file) {
 		Product product = this.findProduct(id);
-		product.setImage(imageService.save(id, file));
+		product.setImage(imageStorage.save(this.imageName(id), file));
 		return productRepository.save(product);
 	}
 
 	@Override
 	public void deleteImage(Long id) {
 		Product product = this.findProduct(id);
-		imageService.delete(id);
+		imageStorage.delete(this.imageName(id));
 		product.setImage(null);
 		productRepository.save(product);
 	}

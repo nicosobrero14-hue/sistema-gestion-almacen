@@ -20,14 +20,15 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.gestionalmacen.exception.BusinessRuleException;
 
-// Guarda, trae y borra la imagen de un producto (RF-14 / CU-22).
+// Guarda, trae y borra las imagenes del sistema: la foto de un producto (RF-14 / CU-22)
+// y la de una factura de proveedor (RF-15 / CU-23).
 //
 // El archivo se guarda en una carpeta del servidor y en la base queda solo el nombre: un BLOB
 // engorda los respaldos y servir un archivo estatico es mas rapido que sacar el binario de la base.
 @Service
-public class ProductImageService implements IProductImageService {
+public class ImageStorageService implements IImageStorage {
 
-	private static final Logger log = LoggerFactory.getLogger(ProductImageService.class);
+	private static final Logger log = LoggerFactory.getLogger(ImageStorageService.class);
 
 	// Formatos que acepta, con la extension que le corresponde a cada uno. Lo que no este aca
 	// se rechaza: asi no se guarda cualquier archivo con nombre de imagen.
@@ -53,7 +54,7 @@ public class ProductImageService implements IProductImageService {
 	private String folder;
 
 	@Override
-	public String save(Long productId, MultipartFile file) {
+	public String save(String baseName, MultipartFile file) {
 		if (file == null || file.isEmpty()) {
 			throw new BusinessRuleException("No se recibió ninguna imagen.");
 		}
@@ -67,15 +68,15 @@ public class ProductImageService implements IProductImageService {
 		}
 
 		try {
-			return this.write(productId, extension, file.getBytes());
+			return this.write(baseName, extension, file.getBytes());
 		} catch (IOException e) {
-			log.error("No se pudo guardar la imagen del producto {}", productId, e);
+			log.error("No se pudo guardar la imagen {}", baseName, e);
 			throw new BusinessRuleException("No se pudo guardar la imagen. Intente de nuevo.");
 		}
 	}
 
 	@Override
-	public String download(Long productId, String url) {
+	public String downloadFromCatalog(String baseName, String url) {
 		if (url == null || url.isBlank() || !this.isAllowed(url)) {
 			return null;
 		}
@@ -87,39 +88,39 @@ public class ProductImageService implements IProductImageService {
 			String extension = tipo == null ? null : TYPES.get(tipo.toString());
 
 			if (contenido == null || contenido.length == 0 || contenido.length > MAX_SIZE || extension == null) {
-				log.warn("La imagen sugerida para el producto {} no sirve: {}", productId, url);
+				log.warn("La imagen sugerida para {} no sirve: {}", baseName, url);
 				return null;
 			}
-			return this.write(productId, extension, contenido);
+			return this.write(baseName, extension, contenido);
 		} catch (RestClientException | IOException e) {
 			// No poder traer la foto no es un error: el producto se da de alta igual y la foto se carga despues.
-			log.warn("No se pudo descargar la imagen del producto {}: {}", productId, e.getMessage());
+			log.warn("No se pudo descargar la imagen de {}: {}", baseName, e.getMessage());
 			return null;
 		}
 	}
 
 	@Override
-	public void delete(Long productId) {
+	public void delete(String baseName) {
 		// Se borran todas las extensiones posibles: si antes era un JPG y ahora un PNG, el viejo
 		// quedaria ocupando lugar para siempre.
 		for (String extension : TYPES.values()) {
 			try {
-				Files.deleteIfExists(this.folder().resolve(this.fileName(productId, extension)));
+				Files.deleteIfExists(this.folder().resolve(this.fileName(baseName, extension)));
 			} catch (IOException e) {
-				log.warn("No se pudo borrar la imagen {} del producto {}", extension, productId);
+				log.warn("No se pudo borrar la imagen {} de {}", extension, baseName);
 			}
 		}
 	}
 
-	// El nombre sale del id del producto y nunca de lo que mando el cliente: asi no hay forma
-	// de que un nombre con ".." termine escribiendo fuera de la carpeta.
-	private String fileName(Long productId, String extension) {
-		return "producto-" + productId + "." + extension;
+	// El nombre lo arma quien llama a partir de un id, nunca lo manda el cliente: asi no hay
+	// forma de que un nombre con ".." termine escribiendo fuera de la carpeta.
+	private String fileName(String baseName, String extension) {
+		return baseName + "." + extension;
 	}
 
-	private String write(Long productId, String extension, byte[] contenido) throws IOException {
-		this.delete(productId);
-		String nombre = this.fileName(productId, extension);
+	private String write(String baseName, String extension, byte[] contenido) throws IOException {
+		this.delete(baseName);
+		String nombre = this.fileName(baseName, extension);
 		Files.write(this.folder().resolve(nombre), contenido);
 		return nombre;
 	}
