@@ -3,6 +3,7 @@ package com.gestionalmacen.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,7 +18,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.gestionalmacen.dto.PageDTO;
 import com.gestionalmacen.dto.ProductDTO;
+import com.gestionalmacen.dto.ProductSort;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.Product;
 import com.gestionalmacen.entity.SaleUnit;
@@ -34,11 +37,18 @@ public class ProductController {
 	@Autowired
 	private IProductService productService;
 
-	//1- listar productos, con busqueda por nombre o codigo de barras
+	//1- listar productos, con busqueda por nombre o codigo de barras, de a paginas (RF-13)
+	// sort y direction llegan como enum: una columna o un sentido que no existan se rechazan solos.
 	@GetMapping
-	public List<Product> getProducts(@RequestParam(defaultValue = "") String search,
-			@RequestParam(defaultValue = "true") boolean activeOnly) {
-		return productService.getProducts(search, activeOnly);
+	public PageDTO<Product> getProducts(@RequestParam(defaultValue = "") String search,
+			@RequestParam(defaultValue = "true") boolean activeOnly,
+			@RequestParam(defaultValue = "false") boolean lowStockOnly,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size,
+			@RequestParam(defaultValue = "NOMBRE") ProductSort sort,
+			@RequestParam(defaultValue = "ASC") Sort.Direction direction) {
+		return new PageDTO<>(
+				productService.getProducts(search, activeOnly, lowStockOnly, page, size, sort, direction));
 	}
 
 	//2- los de una unidad de venta, para las pestanias de la pantalla de venta (RF-12 / RF-14)

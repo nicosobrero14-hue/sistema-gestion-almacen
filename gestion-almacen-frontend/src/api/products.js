@@ -2,8 +2,11 @@ import client from './client'
 
 // Llamadas a /api/products.
 
-export const getProducts = (search, activeOnly) =>
-  client.get('/products', { params: { search, activeOnly } }).then((response) => response.data)
+// RF-13: el catalogo viaja de a paginas.
+// params: { search, activeOnly, lowStockOnly, page, size, sort, direction }, todos opcionales.
+// Devuelve { content, page, size, totalElements, totalPages }.
+export const getProducts = (params) =>
+  client.get('/products', { params }).then((response) => response.data)
 
 // Los de una unidad de venta: UNIDAD para los que se cuentan, KG para los que se pesan.
 // Cada pestania de la pantalla de venta muestra unos (RF-12 / RF-14).

@@ -1,9 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { getSales } from '../api/sales'
+import { getSales, getSalesSummary } from '../api/sales'
 import { getUsers } from '../api/users'
 import Message from '../components/Message'
+import Pagination from '../components/Pagination'
 import { formatDateTime, formatPrice, formatTicketNumber, PAYMENT_METHODS, SALE_STATUS } from '../utils/format'
+
+// Cuantas ventas entran en una pagina.
+const POR_PAGINA = 20
 
 // Fecha en el formato de los campos de fecha y de la API: 2026-09-21
 const toIsoDate = (date) =>
@@ -35,6 +39,14 @@ export default function SalesHistory() {
   const [users, setUsers] = useState([])
   const [error, setError] = useState('')
 
+  // Pagina del listado (RF-13).
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [total, setTotal] = useState(0)
+
+  // CU-16 paso 6: el resumen lo calcula el servidor sobre todas las ventas del filtro.
+  const [summary, setSummary] = useState({ charged: 0, total: 0, byMethod: {} })
+
   // Para el filtro de empleado: todos los usuarios, incluidos los dados de baja, que pueden tener ventas.
   useEffect(() => {
     getUsers('', false)
@@ -45,17 +57,28 @@ export default function SalesHistory() {
   // CU-16 paso 4: vuelve a buscar cuando cambia un filtro. Espera 300 ms a que se termine de escribir.
   useEffect(() => {
     const timer = setTimeout(() => {
-      getSales({ from, to, username, product, reference })
+      const filtros = { from, to, username, product, reference }
+      getSales({ ...filtros, page, size: POR_PAGINA })
         .then((data) => {
-          setSales(data)
+          setSales(data.content)
+          setTotalPages(data.totalPages)
+          setTotal(data.totalElements)
           setError('')
         })
         .catch((e) => {
           setSales([])
           setError(e.message)
         })
+      getSalesSummary(filtros)
+        .then(setSummary)
+        .catch(() => setSummary({ charged: 0, total: 0, byMethod: {} }))
     }, 300)
     return () => clearTimeout(timer)
+  }, [from, to, username, product, reference, page])
+
+  // Un filtro nuevo empieza en la primera pagina.
+  useEffect(() => {
+    setPage(0)
   }, [from, to, username, product, reference])
 
   // Guarda el filtro en la direccion. Un campo vacio vuelve al valor por defecto.
@@ -68,15 +91,6 @@ export default function SalesHistory() {
     }
     setSearchParams(params, { replace: true })
   }
-
-  // CU-16 paso 6: total recaudado en el periodo, y cuanto por cada forma de pago.
-  // Solo cuentan las confirmadas: una venta cancelada aparece en la lista pero no entro a la caja.
-  const charged = sales.filter((sale) => sale.status === 'CONFIRMADA')
-  const total = charged.reduce((sum, sale) => sum + Number(sale.total), 0)
-  const totalByMethod = (method) => charged
-    .flatMap((sale) => sale.payments)
-    .filter((payment) => payment.method === method)
-    .reduce((sum, payment) => sum + Number(payment.amount), 0)
 
   return (
     <>
@@ -127,16 +141,16 @@ export default function SalesHistory() {
       <div className="cards">
         <div className="card">
           <span className="card-label">Ventas cobradas</span>
-          <strong className="card-value">{charged.length}</strong>
+          <strong className="card-value">{summary.charged}</strong>
         </div>
         <div className="card">
           <span className="card-label">Total recaudado</span>
-          <strong className="card-value">{formatPrice(total)}</strong>
+          <strong className="card-value">{formatPrice(summary.total)}</strong>
         </div>
         {Object.keys(PAYMENT_METHODS).map((method) => (
           <div key={method} className="card">
             <span className="card-label">{PAYMENT_METHODS[method]}</span>
-            <strong className="card-value">{formatPrice(totalByMethod(method))}</strong>
+            <strong className="card-value">{formatPrice(summary.byMethod[method] ?? 0)}</strong>
           </div>
         ))}
       </div>
@@ -188,6 +202,9 @@ export default function SalesHistory() {
               ))}
             </tbody>
           </table>
+
+          <Pagination page={page} totalPages={totalPages} totalElements={total}
+            name="venta" onChange={setPage} />
         </div>
       )}
     </>

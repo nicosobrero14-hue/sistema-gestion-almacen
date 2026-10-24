@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.gestionalmacen.dto.PageDTO;
 import com.gestionalmacen.dto.SaleDTO;
+import com.gestionalmacen.dto.SaleSummaryDTO;
 import com.gestionalmacen.entity.Sale;
 import com.gestionalmacen.service.ISaleService;
 
@@ -58,11 +60,25 @@ public class SaleController {
 	//5- historial de ventas entre dos fechas, por empleado o por producto (CU-16). Solo el administrador
 	// Las fechas llegan como 2026-09-21.
 	@GetMapping
-	public List<Sale> getSales(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+	public PageDTO<Sale> getSales(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+			@RequestParam(defaultValue = "") String username,
+			@RequestParam(defaultValue = "") String product,
+			@RequestParam(defaultValue = "") String reference,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size) {
+		return new PageDTO<>(saleService.getSales(from, to, username, product, reference, page, size));
+	}
+
+	//6- resumen del periodo: cuanto se cobro y como se reparte por forma de pago (CU-16 paso 6)
+	// Va aparte del listado porque no depende de la pagina que se este mirando.
+	@GetMapping("/summary")
+	public SaleSummaryDTO getSalesSummary(
+			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 			@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
 			@RequestParam(defaultValue = "") String username,
 			@RequestParam(defaultValue = "") String product,
 			@RequestParam(defaultValue = "") String reference) {
-		return saleService.getSales(from, to, username, product, reference);
+		return saleService.getSalesSummary(from, to, username, product, reference);
 	}
 }

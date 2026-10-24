@@ -196,9 +196,79 @@ class ProductApiTests {
 		create("/api/products", product("Azúcar 1kg", "1890.00", 30, 10, null, null));
 
 		mvc.perform(get("/api/products").param("search", "gaseosa"))
-				.andExpect(jsonPath("$.length()").value(1));
+				.andExpect(jsonPath("$.content.length()").value(1));
 		mvc.perform(get("/api/products").param("search", "7790895"))
-				.andExpect(jsonPath("$[0].name").value("Gaseosa cola"));
+				.andExpect(jsonPath("$.content[0].name").value("Gaseosa cola"));
+	}
+
+	// ---------- RF-13: el catalogo de a paginas ----------
+
+	// Con el catalogo entero en una sola respuesta la pantalla no cumple el tiempo del RNF-01.
+	// Se pide de a pocos y la respuesta dice cuantos hay en total, para poder armar los controles.
+	@Test
+	void bringsTheCatalogOnePageAtATime() throws Exception {
+		for (int i = 1; i <= 5; i++) {
+			create("/api/products", product("Producto " + i, "100.00", 10, 1, null, null));
+		}
+
+		mvc.perform(get("/api/products").param("page", "0").param("size", "2"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.content.length()").value(2))
+				.andExpect(jsonPath("$.content[0].name").value("Producto 1"))
+				.andExpect(jsonPath("$.page").value(0))
+				.andExpect(jsonPath("$.totalElements").value(5))
+				.andExpect(jsonPath("$.totalPages").value(3));
+
+		// La ultima pagina trae lo que sobra, que casi nunca es una pagina completa.
+		mvc.perform(get("/api/products").param("page", "2").param("size", "2"))
+				.andExpect(jsonPath("$.content.length()").value(1))
+				.andExpect(jsonPath("$.content[0].name").value("Producto 5"));
+	}
+
+	// El orden lo elige la pantalla al hacer clic en el encabezado de una columna.
+	@Test
+	void sortsTheCatalogByTheRequestedColumn() throws Exception {
+		create("/api/products", product("Azúcar", "1890.00", 30, 10, null, null));
+		create("/api/products", product("Yerba", "4850.00", 40, 10, null, null));
+		create("/api/products", product("Leche", "1650.00", 5, 10, null, null));
+
+		mvc.perform(get("/api/products").param("sort", "PRECIO").param("direction", "DESC"))
+				.andExpect(jsonPath("$.content[0].name").value("Yerba"))
+				.andExpect(jsonPath("$.content[2].name").value("Leche"));
+
+		mvc.perform(get("/api/products").param("sort", "STOCK").param("direction", "ASC"))
+				.andExpect(jsonPath("$.content[0].name").value("Leche"));
+	}
+
+	// Una columna que no existe no llega a la consulta: el listado de columnas es cerrado.
+	@Test
+	void rejectsAColumnThatCannotBeSorted() throws Exception {
+		mvc.perform(get("/api/products").param("sort", "PROVEEDOR"))
+				.andExpect(status().isBadRequest());
+	}
+
+	// El tamanio de pagina tiene tope. Sin el, pedir cien mil trae el catalogo entero y la
+	// paginacion no habria servido de nada.
+	@Test
+	void doesNotBringMoreThanTheMaximumPageSize() throws Exception {
+		create("/api/products", product("Yerba", "4850.00", 40, 10, null, null));
+
+		mvc.perform(get("/api/products").param("size", "100000"))
+				.andExpect(jsonPath("$.size").value(100));
+	}
+
+	// El filtro de stock bajo lo resuelve la consulta. Si se filtrara la pagina ya recibida,
+	// los productos con stock bajo de las otras paginas no aparecerian nunca (RF-09).
+	@Test
+	void filtersByLowStockOverTheWholeCatalog() throws Exception {
+		create("/api/products", product("Yerba", "4850.00", 40, 10, null, null));
+		create("/api/products", product("Leche", "1650.00", 5, 10, null, null));
+		create("/api/products", product("Fideos", "1200.00", 2, 10, null, null));
+
+		mvc.perform(get("/api/products").param("lowStockOnly", "true"))
+				.andExpect(jsonPath("$.totalElements").value(2))
+				.andExpect(jsonPath("$.content[0].name").value("Fideos"))
+				.andExpect(jsonPath("$.content[1].name").value("Leche"));
 	}
 
 	// CU-03: el lector manda el codigo exacto.

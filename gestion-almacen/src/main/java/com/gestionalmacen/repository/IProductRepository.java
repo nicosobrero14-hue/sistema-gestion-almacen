@@ -5,6 +5,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,14 +21,16 @@ import com.gestionalmacen.entity.SaleUnit;
 public interface IProductRepository extends JpaRepository<Product, Long> {
 
 	// Busca por nombre o codigo de barras (RF-01). Misma idea que la busqueda de proveedores.
+	// Devuelve una pagina: el orden no va en la consulta porque lo elige la pantalla (RF-13).
 	@Query("""
 			SELECT p FROM Product p
 			WHERE (:activeOnly = FALSE OR p.active = TRUE)
+			  AND (:lowStockOnly = FALSE OR p.stock <= p.minimumStock)
 			  AND (LOWER(p.name) LIKE LOWER(CONCAT('%', :text, '%'))
 			       OR LOWER(p.barcode) LIKE LOWER(CONCAT('%', :text, '%')))
-			ORDER BY p.name
 			""")
-	List<Product> search(@Param("text") String text, @Param("activeOnly") boolean activeOnly);
+	Page<Product> search(@Param("text") String text, @Param("activeOnly") boolean activeOnly,
+			@Param("lowStockOnly") boolean lowStockOnly, Pageable pageable);
 
 	// Alerta de stock bajo (RF-09): productos activos con el stock en el minimo o por debajo.
 	@Query("""
