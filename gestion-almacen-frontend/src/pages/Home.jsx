@@ -1,23 +1,32 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import client from '../api/client'
+import { getStatistics } from '../api/statistics'
 import { getExpiringProducts, getLowStockProducts } from '../api/stock'
-import { daysUntil, expirationText, formatDate, formatQuantity } from '../utils/format'
+import SalesChart from '../components/SalesChart'
+import {
+  daysUntil, expirationText, formatDate, formatPrice, formatQuantity, PAYMENT_METHODS,
+} from '../utils/format'
 
 // Se avisa de los productos que vencen dentro de este plazo.
 const EXPIRATION_DAYS = 30
 
-// Panel principal: estado del sistema y alertas de stock bajo y vencimiento (RF-09 / CU-06).
+// Panel principal (RF-09, RF-15 / CU-06): como viene el dia y las alertas de stock y vencimiento.
+//
+// Lo que ve cada uno depende del rol, y la diferencia la hace el servidor: al empleado no se le
+// envian la ganancia ni la deuda a proveedores. El empleado si ve lo cobrado y como se reparte,
+// que es lo que necesita para cerrar su caja al terminar el turno.
 export default function Home({ user }) {
-  const [status, setStatus] = useState(null)
+  const isAdmin = user.role === 'ADMIN'
+
+  const [stats, setStats] = useState(null)
   const [lowStock, setLowStock] = useState([])
   const [expiring, setExpiring] = useState([])
   const [error, setError] = useState('')
 
-  // CU-06 pasos 2 y 3: las alertas se calculan cada vez que se abre el panel.
+  // CU-06 pasos 2 y 3: los numeros y las alertas se calculan cada vez que se abre el panel.
   useEffect(() => {
-    client.get('/status')
-      .then((response) => setStatus(response.data))
+    getStatistics()
+      .then(setStats)
       .catch(() => setError('No se pudo conectar con el servidor. Verifique que el backend esté en ejecución.'))
     getLowStockProducts()
       .then(setLowStock)
@@ -30,29 +39,105 @@ export default function Home({ user }) {
   return (
     <>
       <h1>Panel principal</h1>
-      <p className="subtitle">Bienvenido, {user.name}. Este es el estado del sistema.</p>
+      <p className="subtitle">
+        Bienvenido, {user.name}. {isAdmin ? 'Así viene el día.' : 'Así viene la caja de hoy.'}
+      </p>
 
       {error && <p className="alert">{error}</p>}
 
-      {status && (
-        <div className="cards">
-          <div className="card">
-            <span className="card-label">Aplicación</span>
-            <strong className="card-value">{status.application}</strong>
+      {stats && (
+        <>
+          <div className="cards">
+            <div className="card card-main">
+              <span className="card-label">Vendido hoy</span>
+              <strong className="card-value">{formatPrice(stats.soldToday)}</strong>
+              <small className="card-note">
+                {stats.ticketsToday === 1 ? '1 venta' : `${stats.ticketsToday} ventas`}
+                {stats.averageTicket && ` · ${formatPrice(stats.averageTicket)} promedio`}
+              </small>
+            </div>
+
+            {/* La ganancia es del comercio: el servidor no la manda si quien mira es empleado. */}
+            {stats.profitToday !== undefined && (
+              <div className="card card-main">
+                <span className="card-label">Ganancia de hoy</span>
+                <strong className="card-value">{formatPrice(stats.profitToday)}</strong>
+                <small className="card-note">
+                  {stats.linesWithoutCost > 0
+                    ? `${stats.linesWithoutCost} ${stats.linesWithoutCost === 1 ? 'renglón' : 'renglones'} sin precio de costo cargado`
+                    : 'Lo vendido menos lo que costó esa mercadería'}
+                </small>
+              </div>
+            )}
+
+            {Object.keys(PAYMENT_METHODS).map((method) => (
+              <div key={method} className="card">
+                <span className="card-label">{PAYMENT_METHODS[method]}</span>
+                <strong className="card-value">{formatPrice(stats.byMethod[method] ?? 0)}</strong>
+              </div>
+            ))}
+
+            {stats.monthPurchases !== undefined && (
+              <div className="card">
+                <span className="card-label">Compras del mes</span>
+                <strong className="card-value">{formatPrice(stats.monthPurchases)}</strong>
+              </div>
+            )}
+
+            {stats.supplierDebt !== undefined && (
+              <div className={Number(stats.supplierDebt) > 0 ? 'card card-warning' : 'card'}>
+                <span className="card-label">Deuda a proveedores</span>
+                <strong className="card-value">{formatPrice(stats.supplierDebt)}</strong>
+              </div>
+            )}
+
+            <div className={lowStock.length > 0 ? 'card card-warning' : 'card'}>
+              <span className="card-label">Stock bajo</span>
+              <strong className="card-value">{lowStock.length}</strong>
+            </div>
+
+            <div className={expiring.length > 0 ? 'card card-warning' : 'card'}>
+              <span className="card-label">Por vencer</span>
+              <strong className="card-value">{expiring.length}</strong>
+            </div>
           </div>
-          <div className="card">
-            <span className="card-label">Base de datos</span>
-            <strong className="card-value">{status.database}</strong>
-          </div>
-          <div className={lowStock.length > 0 ? 'card card-warning' : 'card'}>
-            <span className="card-label">Stock bajo</span>
-            <strong className="card-value">{lowStock.length}</strong>
-          </div>
-          <div className={expiring.length > 0 ? 'card card-warning' : 'card'}>
-            <span className="card-label">Por vencer</span>
-            <strong className="card-value">{expiring.length}</strong>
-          </div>
-        </div>
+
+          {/* El grafico y lo mas vendido son del administrador, como la ganancia. */}
+          {stats.lastDays && (
+            <div className="panels panels-wide">
+              <section className="panel">
+                <h2>Ventas de las últimas dos semanas</h2>
+                <SalesChart days={stats.lastDays} />
+              </section>
+
+              <section className="panel">
+                <h2>Lo más vendido del mes</h2>
+                {stats.topProducts.length === 0 ? (
+                  <p className="notice">Todavía no hay ventas este mes.</p>
+                ) : (
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Producto</th>
+                        <th className="right">Cantidad</th>
+                        <th className="right">Importe</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stats.topProducts.map((product) => (
+                        <tr key={product.name}>
+                          <td>{product.name}</td>
+                          <td className="right">{Number(product.quantity)}</td>
+                          <td className="right">{formatPrice(product.total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </section>
+            </div>
+          )}
+        </>
       )}
 
       <div className="panels">

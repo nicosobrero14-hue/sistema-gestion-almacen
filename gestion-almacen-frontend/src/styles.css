@@ -227,7 +227,24 @@ h1 {
 
 .card-value {
   font-size: 20px;
-  text-transform: capitalize;
+}
+
+/* La tarjeta grande del panel: el numero que se mira primero al abrir el sistema. */
+.card-main {
+  min-width: 240px;
+}
+
+.card-main .card-value {
+  font-size: 26px;
+}
+
+/* La aclaracion de abajo: cuantas ventas, de donde sale el numero, que falta cargar. */
+.card-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 /* Tarjeta con alertas: borde naranja a la izquierda. */
@@ -237,6 +254,51 @@ h1 {
 
 .card-warning .card-value {
   color: var(--color-warning);
+}
+
+/* ---------- Grafico de ventas del panel principal (RF-15) ---------- */
+
+.panels-wide {
+  margin-bottom: 24px;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  margin-top: 4px;
+}
+
+.chart-bar {
+  fill: var(--color-primary);
+}
+
+.chart-bar:hover {
+  fill: var(--color-primary-dark);
+}
+
+/* Un dia sin ventas deja una marca fina en vez de nada: asi se ve que el dia existio y que
+   estuvo en cero, que no es lo mismo que no estar en el grafico. */
+.chart-bar-empty {
+  fill: var(--color-border);
+}
+
+.chart-day,
+.chart-weekday {
+  text-anchor: middle;
+  fill: var(--color-muted);
+  font-size: 11px;
+}
+
+.chart-weekday {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chart-scale {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 12px;
 }
 
 /* ---------- Alertas del panel principal ---------- */

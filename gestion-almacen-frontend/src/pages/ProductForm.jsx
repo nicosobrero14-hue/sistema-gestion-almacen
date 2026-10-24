@@ -14,6 +14,7 @@ const EMPTY = {
   name: '',
   description: '',
   price: '',
+  costPrice: '',
   stock: 0,
   minimumStock: 0,
   saleUnit: 'UNIDAD',
@@ -48,6 +49,7 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
         ...product,
         supplierId: product.supplier?.id ?? '',
         offerPrice: product.offerPrice ?? '',
+        costPrice: product.costPrice ?? '',
         barcode: product.barcode ?? '',
         description: product.description ?? '',
         imageUrl: '',
@@ -180,6 +182,7 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
       name: data.name,
       description: data.description || null,
       price: toNumber(data.price),
+      costPrice: toNumber(data.costPrice),
       stock: toNumber(data.stock),
       minimumStock: toNumber(data.minimumStock),
       barcode: data.barcode || null,
@@ -245,6 +248,17 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
             value={data.price} onChange={onChange} error={errors.price} required disabled={!canEditPrice}
             help={canEditPrice ? null : 'Solo el administrador modifica precios'} />
         </div>
+
+        {/* El costo es lo que paga el comercio. De el sale la ganancia del panel principal
+            (RF-15), y por eso lo maneja el administrador igual que el precio de venta. */}
+        {isAdmin && (
+          <div className="fields-row">
+            <TextField name="costPrice" label={porPeso ? 'Precio de costo por kilo' : 'Precio de costo'}
+              type="number" step="0.01" min="0" value={data.costPrice} onChange={onChange}
+              error={errors.costPrice}
+              help="Opcional. Sin este dato el producto no entra en la ganancia del panel" />
+          </div>
+        )}
 
         <div className="fields-row">
           <TextField name="barcode" label="Código de barras" value={data.barcode} onChange={onChange}

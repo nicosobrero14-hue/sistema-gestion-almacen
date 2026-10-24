@@ -121,7 +121,7 @@ public class ProductService implements IProductService {
 	public Product editProduct(Long id, ProductDTO productDTO, boolean isAdmin) {
 		Product product = this.findProduct(id);
 
-		// CU-19 y CU-20: solo el administrador cambia el precio o la oferta.
+		// CU-19 y CU-20: solo el administrador cambia el precio, el costo o la oferta.
 		if (!isAdmin && this.changesPrice(product, productDTO)) {
 			throw new AccessDeniedException("Solo el administrador puede modificar el precio y la oferta.");
 		}
@@ -182,6 +182,7 @@ public class ProductService implements IProductService {
 		product.setName(productDTO.getName());
 		product.setDescription(productDTO.getDescription());
 		product.setPrice(productDTO.getPrice());
+		product.setCostPrice(productDTO.getCostPrice());
 		product.setMinimumStock(productDTO.getMinimumStock());
 		product.setSaleUnit(productDTO.getSaleUnit());
 		product.setBarcode(productDTO.getBarcode());
@@ -191,9 +192,12 @@ public class ProductService implements IProductService {
 		product.setSupplier(this.findActiveSupplier(productDTO.getSupplierId()));
 	}
 
-	// true si el DTO trae un precio o una oferta distinta de la que tiene el producto.
+	// true si el DTO trae un precio, un costo o una oferta distinta de la que tiene el producto.
+	// El costo entra en la misma regla que el precio: es lo que el comercio paga y de ahi sale
+	// la ganancia, asi que no lo toca un empleado.
 	private boolean changesPrice(Product product, ProductDTO productDTO) {
 		return !this.sameAmount(product.getPrice(), productDTO.getPrice())
+				|| !this.sameAmount(product.getCostPrice(), productDTO.getCostPrice())
 				|| product.isOnOffer() != productDTO.isOnOffer()
 				|| !this.sameAmount(product.getOfferPrice(), productDTO.getOfferPrice());
 	}

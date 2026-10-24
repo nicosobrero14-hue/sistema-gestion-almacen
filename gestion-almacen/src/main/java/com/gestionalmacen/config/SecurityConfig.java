@@ -44,7 +44,7 @@ public class SecurityConfig {
 				.authorizeHttpRequests(requests -> requests
 						.requestMatchers("/api/auth/login", "/api/status").permitAll()  // publicos
 						.requestMatchers("/api/users/**").hasRole("ADMIN")              // RF-11: usuarios, solo el administrador
-						.requestMatchers(HttpMethod.GET, "/api/sales").hasRole("ADMIN") // CU-16: historial de ventas, solo el administrador
+						.requestMatchers(HttpMethod.GET, "/api/sales", "/api/sales/summary").hasRole("ADMIN") // CU-16: historial y su resumen, solo el administrador
 						.requestMatchers("/api/offers/**").hasRole("ADMIN")             // CU-19: ofertas, solo el administrador
 						// CU-23: cargar la factura lo hace cualquiera, porque conviene sacarle la foto
 						// cuando llega el reparto. Lo que viene despues es plata y es del administrador.

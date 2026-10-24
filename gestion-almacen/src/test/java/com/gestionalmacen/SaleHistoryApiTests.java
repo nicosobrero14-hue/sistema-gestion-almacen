@@ -203,6 +203,15 @@ class SaleHistoryApiTests {
 				.andExpect(status().isForbidden());
 	}
 
+	// El resumen tampoco: son los mismos datos agrupados, y dejarlo abierto seria dar por otra
+	// puerta lo que el listado no da.
+	@Test
+	@WithMockUser(username = "vendedor", roles = "EMPLEADO")
+	void theEmployeeCannotSeeTheSummaryEither() throws Exception {
+		mvc.perform(get("/api/sales/summary").param("from", TODAY).param("to", TODAY))
+				.andExpect(status().isForbidden());
+	}
+
 	// Registra una venta en nombre del usuario indicado.
 	private void sell(String username, String role, long productId, int quantity) throws Exception {
 		mvc.perform(post("/api/sales").with(csrf()).with(user(username).roles(role))
