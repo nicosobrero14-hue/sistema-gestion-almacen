@@ -24,6 +24,9 @@ public final class ScaleMessage {
 	// significan lo mismo (manual, seccion 14.3.3).
 	public static final byte REQUEST = 'P';
 
+	// Retorno de carro: es lo que cierra el mensaje. Sirve para saber cuando termino de llegar.
+	public static final byte END = 0x0D;
+
 	private ScaleMessage() {
 	}
 
