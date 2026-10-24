@@ -193,6 +193,88 @@ class SaleApiTests {
 				.andExpect(jsonPath("$.message").value("El producto Leche 1L está repetido en la venta."));
 	}
 
+	// ---------- RF-12 / CU-21: venta por peso ----------
+
+	// Lo que se vende por kilo descuenta del stock la fraccion exacta que se peso. Si se
+	// redondeara a unidades, el stock del fiambre se desarma en pocas ventas.
+	@Test
+	void discountsTheWeightFromTheStock() throws Exception {
+		long queso = createByWeight("Queso cremoso", "12000.00", "3.250");
+
+		mvc.perform(sale("EFECTIVO", null, item(queso, "0.750")))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.details[0].quantity").value(0.750))
+				.andExpect(jsonPath("$.details[0].subtotal").value(9000.00))
+				.andExpect(jsonPath("$.total").value(9000.00));
+
+		mvc.perform(get("/api/products/" + queso)).andExpect(jsonPath("$.stock").value(2.500));
+	}
+
+	// El movimiento guarda los decimales igual que el stock: es lo que despues permite
+	// explicar una diferencia de inventario.
+	@Test
+	void theMovementKeepsTheDecimalsOfTheWeight() throws Exception {
+		long queso = createByWeight("Queso cremoso", "12000.00", "3.250");
+		long saleId = create(sale("EFECTIVO", null, item(queso, "0.750")));
+
+		mvc.perform(get("/api/stock/" + queso + "/movements"))
+				.andExpect(jsonPath("$[0].type").value("VENTA"))
+				.andExpect(jsonPath("$[0].previousStock").value(3.250))
+				.andExpect(jsonPath("$[0].newStock").value(2.500))
+				.andExpect(jsonPath("$[0].reason").value("Venta N° " + saleId));
+	}
+
+	// Por peso el importe casi nunca da exacto: 1234.50 por 0.333 son 411.0885 y se cobran
+	// 411.09. La regla de redondeo tiene que ser siempre la misma o la caja no cierra.
+	@Test
+	void roundsTheAmountOfAWeighedProduct() throws Exception {
+		long jamon = createByWeight("Jamón cocido", "1234.50", "5.000");
+
+		mvc.perform(sale("EFECTIVO", null, item(jamon, "0.333")))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.details[0].subtotal").value(411.09))
+				.andExpect(jsonPath("$.total").value(411.09));
+	}
+
+	// Un cuarto de queso es una venta normal: el minimo de una unidad no puede aplicarse aca.
+	@Test
+	void sellsLessThanOneKilo() throws Exception {
+		long queso = createByWeight("Queso cremoso", "12000.00", "3.250");
+
+		mvc.perform(sale("EFECTIVO", null, item(queso, "0.250")))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.total").value(3000.00));
+
+		mvc.perform(get("/api/products/" + queso)).andExpect(jsonPath("$.stock").value(3.000));
+	}
+
+	// Tampoco se pueden vender mas kilos de los que hay (CU-07 exc. 5a).
+	@Test
+	void rejectsMoreWeightThanAvailable() throws Exception {
+		long queso = createByWeight("Queso cremoso", "12000.00", "3.250");
+
+		mvc.perform(sale("EFECTIVO", null, item(queso, "4.000")))
+				.andExpect(status().isConflict())
+				.andExpect(jsonPath("$.message")
+						.value("No hay stock suficiente de Queso cremoso. Disponible: 3.250."));
+		mvc.perform(get("/api/products/" + queso)).andExpect(jsonPath("$.stock").value(3.250));
+	}
+
+	// Una venta del mostrador mezcla las dos cosas: lo que se cuenta y lo que se pesa.
+	@Test
+	void sellsUnitsAndWeightInTheSameSale() throws Exception {
+		long yerba = createProduct("Yerba 1kg", "4850.00", 40);
+		long queso = createByWeight("Queso cremoso", "12000.00", "3.250");
+
+		mvc.perform(sale("EFECTIVO", null, item(yerba, 2), item(queso, "0.500")))
+				.andExpect(status().isCreated())
+				.andExpect(jsonPath("$.subtotal").value(15700.00))
+				.andExpect(jsonPath("$.total").value(15700.00));
+
+		mvc.perform(get("/api/products/" + yerba)).andExpect(jsonPath("$.stock").value(38));
+		mvc.perform(get("/api/products/" + queso)).andExpect(jsonPath("$.stock").value(2.750));
+	}
+
 	// ---------- CU-14: ticket ----------
 
 	@Test
@@ -221,10 +303,22 @@ class SaleApiTests {
 		return "{\"productId\":" + productId + ",\"quantity\":" + quantity + "}";
 	}
 
+	// La cantidad va como texto para no perder los decimales del peso por el camino.
+	private String item(long productId, String quantity) {
+		return "{\"productId\":" + productId + ",\"quantity\":" + quantity + "}";
+	}
+
 	private long createProduct(String name, String price, int stock) throws Exception {
 		return create(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
 				.content("{\"name\":\"" + name + "\",\"price\":" + price + ",\"stock\":" + stock
 						+ ",\"minimumStock\":1,\"onOffer\":false}"));
+	}
+
+	// Un producto que se vende por kilo: el precio es por kilo y el stock lleva decimales.
+	private long createByWeight(String name, String price, String stock) throws Exception {
+		return create(post("/api/products").with(csrf()).contentType(MediaType.APPLICATION_JSON)
+				.content("{\"name\":\"" + name + "\",\"price\":" + price + ",\"stock\":" + stock
+						+ ",\"minimumStock\":1,\"saleUnit\":\"KG\",\"onOffer\":false}"));
 	}
 
 	// Manda el pedido de alta y devuelve el id que le asigno la base.
