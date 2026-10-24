@@ -1,3 +1,4 @@
+import { Banknote, Receipt, Wallet } from 'lucide-react'
 import { useState } from 'react'
 import {
   addPayment, cancelPayment, deletePurchaseImage, purchaseImageUrl, uploadPurchaseImage,
@@ -101,21 +102,30 @@ export default function PurchaseDetail({ purchase: inicial, onChanged, onClose }
 
       <div className="cards">
         <div className="card">
-          <span className="card-label">Total</span>
-          <strong className="card-value">{formatPrice(purchase.agreedTotal)}</strong>
-          {corregida && (
-            <small className="help">
-              Facturado {formatPrice(purchase.invoicedTotal)}. {purchase.adjustmentReason}
-            </small>
-          )}
+          <span className="card-icon"><Receipt aria-hidden="true" /></span>
+          <div className="card-body">
+            <span className="card-label">Total</span>
+            <strong className="card-value">{formatPrice(purchase.agreedTotal)}</strong>
+            {corregida && (
+              <small className="card-note">
+                Facturado {formatPrice(purchase.invoicedTotal)}. {purchase.adjustmentReason}
+              </small>
+            )}
+          </div>
         </div>
         <div className="card">
-          <span className="card-label">Pagado</span>
-          <strong className="card-value">{formatPrice(purchase.paid)}</strong>
+          <span className="card-icon"><Banknote aria-hidden="true" /></span>
+          <div className="card-body">
+            <span className="card-label">Pagado</span>
+            <strong className="card-value">{formatPrice(purchase.paid)}</strong>
+          </div>
         </div>
         <div className={saldo > 0 ? 'card card-warning' : 'card'}>
-          <span className="card-label">{PURCHASE_STATUS[purchase.status]}</span>
-          <strong className="card-value">{formatPrice(saldo)}</strong>
+          <span className="card-icon"><Wallet aria-hidden="true" /></span>
+          <div className="card-body">
+            <span className="card-label">{PURCHASE_STATUS[purchase.status]}</span>
+            <strong className="card-value">{formatPrice(saldo)}</strong>
+          </div>
         </div>
       </div>
 
