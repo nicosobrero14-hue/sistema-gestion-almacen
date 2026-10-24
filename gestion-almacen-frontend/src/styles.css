@@ -1,22 +1,41 @@
 /* Estilos de la aplicacion. */
 
+/* Inter, la tipografia del sistema.
+   Viaja empaquetada y no se le pide a Google: el comercio tiene que poder vender sin internet
+   (RNF-04), y una fuente que no carga cambia toda la pantalla.
+   Se declara a mano en lugar de importar el paquete entero porque ese trae tambien griego,
+   cirilico y vietnamita: el navegador no los descarga, pero igual se publican y aca no se usan.
+   woff2-variations: un solo archivo cubre todos los grosores, de 100 a 900. */
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('@fontsource-variable/inter/files/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
-  --color-background: #f3f1eb; /* marfil */
+  --color-background: #f4f2ec; /* marfil */
   --color-panel: #ffffff;
-  --color-border: #e2ddd2;
-  --color-text: #1b2733;
+  --color-border: #e7e2d7;
+  --color-text: #17222d;
   --color-muted: #5b6b7a;
   --color-primary: #2e7d32;       /* verde del logo */
   --color-primary-dark: #25652a;  /* el primario al pasar el mouse */
-  --color-primary-light: #e3f1e2; /* fondo de las etiquetas del primario */
+  --color-primary-light: #e8f3e7; /* fondo de las etiquetas del primario */
+  --color-warning-light: #fdf0e0; /* lo mismo para los avisos */
   --color-danger: #c0392b;
   --color-success: #1e7b34;
   --color-warning: #b35c00;
-  --radius: 8px;
-  --shadow: 0 1px 3px rgba(27, 39, 51, 0.12);
+  --radius: 10px;
+  --radius-small: 8px;
+  --shadow: 0 1px 2px rgba(27, 39, 51, 0.06), 0 2px 8px rgba(27, 39, 51, 0.08);
 
-  /* Menu lateral, verde oscuro con letras claras */
-  --color-sidebar: #1f3b29;
+  /* Menu lateral, verde oscuro con letras claras. El degradado da profundidad: una franja
+     de un solo color plano es lo que hace que una pantalla se vea vieja. */
+  --color-sidebar: linear-gradient(180deg, #24432e 0%, #17301e 100%);
   --color-sidebar-text: #eef4ea;
   --color-sidebar-muted: #a8bea6;
   --color-sidebar-hover: #2a4f37;
@@ -28,10 +47,14 @@
   box-sizing: border-box;
 }
 
+/* Inter en lugar de la tipografia del sistema. Esta pensada para pantallas: los numeros
+   son parejos y los textos chicos de las tablas se leen mejor. Viaja con el sistema, no se
+   pide a internet (RNF-04). */
 body {
   margin: 0;
-  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-family: 'Inter Variable', 'Segoe UI', Tahoma, Arial, sans-serif;
   font-size: 15px;
+  -webkit-font-smoothing: antialiased;
   color: var(--color-text);
   background: var(--color-background);
   accent-color: var(--color-primary); /* casillas y opciones del navegador en el mismo verde */
@@ -39,12 +62,120 @@ body {
 
 h1 {
   margin: 0 0 4px;
-  font-size: 24px;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+h2 {
+  letter-spacing: -0.01em;
 }
 
 .subtitle {
   margin: 0 0 24px;
   color: var(--color-muted);
+}
+
+/* ---------- Movimiento, foco y detalle visual (RNF-03) ---------- */
+
+/* Los cambios de estado acompaniados en vez de secos. Los tiempos son cortos a proposito:
+   lo justo para que la vista siga el cambio sin que el sistema se sienta lento. */
+.button,
+.nav-link,
+.sort,
+.table tbody tr,
+.field input,
+.field select {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.button {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    transform 0.08s ease;
+}
+
+/* El boton se hunde al apretarlo. En un mostrador, saber que el clic entro es la diferencia
+   entre seguir y apretar dos veces. */
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Foco visible para quien se mueve con el teclado, que en una caja es lo habitual.
+   :focus-visible y no :focus: el recuadro aparece al tabular, no al hacer clic con el mouse. */
+.button:focus-visible,
+.sort:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Sobre el menu oscuro el verde no se distingue: ahi el recuadro va claro. */
+.nav-link:focus-visible,
+.session .button:focus-visible {
+  outline: 2px solid var(--color-sidebar-text);
+  outline-offset: 2px;
+}
+
+/* La fila sobre la que esta el mouse, marcada. En un listado de veinte renglones evita
+   perder la linea al ir a buscar el boton de la derecha. */
+.table tbody tr:hover {
+  background: var(--color-primary-light);
+}
+
+.table tbody tr.inactive-row:hover {
+  background: var(--color-background);
+}
+
+/* Los numeros en columna, todos del mismo ancho: asi los importes quedan alineados por la
+   coma y se comparan de un vistazo, en vez de bailar segun los digitos. */
+.table .right,
+.card-value,
+.pagination-total {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lo que llega de una consulta entra con una transicion corta, en lugar de saltar a la
+   pantalla cuando responde el servidor. */
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.cards,
+.table-container,
+.modal {
+  animation: appear 0.18s ease-out;
+}
+
+.modal-background {
+  animation: fade 0.18s ease-out;
+}
+
+/* Hay quien configura el sistema para que no haya animaciones, por mareo o por preferencia.
+   Se respeta: los estados siguen cambiando, pero sin movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ---------- Estructura ---------- */
@@ -57,11 +188,10 @@ h1 {
 .sidebar {
   display: flex;
   flex-direction: column;
-  width: 240px;
+  width: 250px;
   flex-shrink: 0;
-  padding: 20px 16px;
+  padding: 22px 14px 18px;
   background: var(--color-sidebar);
-  border-right: 1px solid var(--color-sidebar-border);
   color: var(--color-sidebar-text);
 }
 
@@ -72,14 +202,39 @@ h1 {
   border-top: 1px solid var(--color-sidebar-border);
 }
 
+.session-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+/* Las iniciales en un circulo: de un vistazo se sabe con que usuario quedo abierta la caja. */
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--color-sidebar-active);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .session strong,
 .session small {
   display: block;
 }
 
+.session strong {
+  font-size: 14px;
+}
+
 .session small {
-  margin-bottom: 10px;
   color: var(--color-sidebar-muted);
+  font-size: 12px;
 }
 
 /* Cerrar sesion: boton sin relleno, para que no quede un recuadro blanco sobre el menu oscuro. */
@@ -162,14 +317,26 @@ h1 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
   text-align: center;
+}
+
+/* La linea separadora va solo en el menu: en la tarjeta de inicio de sesion, sobre fondo
+   blanco, un verde oscuro quedaria fuera de lugar. */
+.sidebar .brand {
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-sidebar-border);
 }
 
 .brand-logo {
   width: 100%;
-  max-width: 170px;
+  max-width: 152px;
   margin-bottom: 8px;
+}
+
+.brand strong {
+  font-size: 15px;
+  letter-spacing: -0.01em;
 }
 
 .brand small {
@@ -182,52 +349,131 @@ h1 {
   color: var(--color-muted);
 }
 
+/* La opcion donde no se esta parado va apagada y la actual en claro: esa diferencia es la
+   que deja ver de un golpe en que seccion se esta, sin tener que leer. */
 .nav-link {
-  display: block;
-  padding: 9px 12px;
-  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 11px;
+  margin-bottom: 2px;
   border-radius: var(--radius);
-  color: var(--color-sidebar-text);
+  color: var(--color-sidebar-muted);
+  font-size: 14px;
+  font-weight: 500;
   text-decoration: none;
+}
+
+.nav-link svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  stroke-width: 1.9;
 }
 
 .nav-link:hover {
   background: var(--color-sidebar-hover);
+  color: var(--color-sidebar-text);
 }
 
 .nav-link.active {
-  background: var(--color-sidebar-active);
+  background: linear-gradient(90deg, #3f8f46, #357a3c);
   color: #fff;
   font-weight: 600;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
 }
 
 /* ---------- Tarjetas ---------- */
 
 .cards {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
   margin-bottom: 24px;
 }
 
 .card {
-  min-width: 180px;
-  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  padding: 15px 18px;
   background: var(--color-panel);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
 
+/* El icono en un cuadrado de color: le da un punto de entrada a la tarjeta y distingue una
+   de otra sin tener que leer la etiqueta. */
+.card-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.card-icon svg {
+  width: 19px;
+  height: 19px;
+  stroke-width: 2;
+}
+
+.card-body {
+  min-width: 0;
+}
+
 .card-label {
   display: block;
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 12.5px;
+  font-weight: 500;
 }
 
 .card-value {
-  font-size: 20px;
-  text-transform: capitalize;
+  display: block;
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+/* La tarjeta grande del panel: el numero que se mira primero al abrir el sistema. */
+.card-main {
+  grid-column: span 2;
+}
+
+/* En una pantalla angosta no hay dos columnas que ocupar. */
+@media (max-width: 620px) {
+  .card-main {
+    grid-column: auto;
+  }
+}
+
+.card-main .card-icon {
+  width: 44px;
+  height: 44px;
+}
+
+.card-main .card-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.card-main .card-value {
+  font-size: 26px;
+}
+
+/* La aclaracion de abajo: cuantas ventas, de donde sale el numero, que falta cargar. */
+.card-note {
+  display: block;
+  margin-top: 4px;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 /* Tarjeta con alertas: borde naranja a la izquierda. */
@@ -237,6 +483,119 @@ h1 {
 
 .card-warning .card-value {
   color: var(--color-warning);
+}
+
+.card-warning .card-icon {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+/* ---------- Grafico de ventas del panel principal (RF-15) ---------- */
+
+.panels-wide {
+  margin-bottom: 24px;
+}
+
+.chart-svg {
+  width: 100%;
+  height: auto;
+  margin-top: 6px;
+  overflow: visible;
+}
+
+/* Las lineas de referencia: la del cero marcada y las de arriba apenas insinuadas, para que
+   ayuden a estimar sin competir con las barras. */
+.chart-axis {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.chart-grid {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  stroke-dasharray: 3 5;
+  opacity: 0.7;
+}
+
+/* Toda la columna responde al mouse, no solo la barra. */
+.chart-hit {
+  fill: transparent;
+}
+
+.chart-bar {
+  fill: url(#barraVenta);
+  transition: opacity 0.15s ease;
+}
+
+.chart-bar-today {
+  fill: url(#barraHoy);
+}
+
+/* Un dia sin ventas deja una marca fina en vez de nada: asi se ve que el dia existio y que
+   estuvo en cero, que no es lo mismo que no estar en el grafico. */
+.chart-bar-empty {
+  fill: var(--color-border);
+}
+
+/* Al apuntar una barra las demas se apagan. Es lo que hace que el ojo se quede en la que
+   interesa en lugar de recorrer catorce. */
+.chart-bar-dim {
+  opacity: 0.35;
+}
+
+/* El importe aparece arriba de la barra apuntada. */
+.chart-amount {
+  text-anchor: middle;
+  fill: var(--color-text);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.chart-day,
+.chart-weekday {
+  text-anchor: middle;
+  fill: var(--color-muted);
+  font-size: 11px;
+}
+
+.chart-day-today {
+  fill: var(--color-warning);
+  font-weight: 700;
+}
+
+.chart-weekday {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* El fin de semana mas apagado: ayuda a ubicarse en la quincena de un vistazo. */
+.chart-weekend {
+  opacity: 0.55;
+}
+
+.chart-scale {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+/* El cuadradito de la referencia, del mismo color que la barra de hoy. */
+.chart-key {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.chart-key-today {
+  background: linear-gradient(180deg, #f0b429, #d99409);
+}
+
+.chart-separator {
+  opacity: 0.5;
 }
 
 /* ---------- Alertas del panel principal ---------- */
@@ -315,13 +674,24 @@ h1 {
 /* ---------- Botones ---------- */
 
 .button {
-  padding: 9px 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 15px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-small);
   background: var(--color-panel);
   color: var(--color-text);
   font: inherit;
+  font-weight: 500;
   cursor: pointer;
+}
+
+.button svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .button:hover {
@@ -330,7 +700,6 @@ h1 {
 
 /* Enlace con forma de boton, como los accesos directos de las alertas. */
 a.button {
-  display: inline-block;
   text-decoration: none;
 }
 
@@ -344,10 +713,16 @@ a.button {
   border-color: var(--color-primary);
   color: #fff;
   font-weight: 600;
+  box-shadow: 0 2px 6px rgba(46, 125, 50, 0.26);
 }
 
 .button-primary:hover {
   background: var(--color-primary-dark);
+  box-shadow: 0 3px 10px rgba(46, 125, 50, 0.32);
+}
+
+.button-primary:disabled {
+  box-shadow: none;
 }
 
 .button-secondary {
@@ -392,9 +767,10 @@ a.button {
 
 .table th {
   background: var(--color-background);
-  font-size: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   color: var(--color-muted);
 }
 
@@ -436,6 +812,70 @@ a.button {
   display: block;
   color: var(--color-muted);
   font-size: 12px;
+}
+
+/* ---------- Paginacion y orden de los listados (RF-13) ---------- */
+
+/* Va dentro del recuadro de la tabla, como un pie: queda claro que es de ese listado. */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background);
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.pagination-total {
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination-position {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El encabezado que ordena se ve igual que uno comun hasta que se le pasa el mouse: la tabla
+   no se llena de botones, pero el que prueba hacer clic encuentra que funciona. */
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.sort:hover {
+  color: var(--color-primary);
+}
+
+.sort-active {
+  color: var(--color-primary);
+}
+
+.sort-arrow {
+  font-size: 11px;
+}
+
+/* En una columna de numeros el encabezado tambien va a la derecha. */
+.table th.right .sort {
+  width: 100%;
+  justify-content: flex-end;
 }
 
 /* ---------- Etiquetas de estado ---------- */
@@ -1058,6 +1498,13 @@ a.button {
 
 /* ---------- Comprobantes de compra (RF-15) ---------- */
 
+/* El aviso de que el QR se leyo bien: en verde, para distinguirlo de la ayuda comun. */
+.help.scanned {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+
 .voucher-preview {
   width: 120px;
   height: 150px;
@@ -1074,6 +1521,139 @@ a.button {
   justify-content: center;
   background: var(--color-background);
   font-size: 40px;
+}
+
+/* ---------- Pesaje (RF-12 / CU-21) ---------- */
+
+/* Las pestañas de unidad y balanza, arriba del buscador. */
+.tabs {
+  margin-bottom: 12px;
+}
+
+/* El visor imita el de una balanza de mostrador: números claros sobre fondo oscuro,
+   que es lo que se lee de lejos y con las manos ocupadas. */
+.weigh-display {
+  position: relative;
+  padding: 20px 26px 26px;
+  background: #111a14;
+  border: 1px solid #2b3a30;
+  border-radius: 10px;
+  box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.55);
+}
+
+.weigh-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.weigh-label {
+  margin-right: auto;
+  color: #6f8a78;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* tabular-nums: los dígitos ocupan todos lo mismo, así el número no se mueve al cambiar. */
+.weigh-kilos {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 68px;
+  font-weight: 700;
+  line-height: 1;
+  color: #8df5a4;
+  text-shadow: 0 0 18px rgba(141, 245, 164, 0.35);
+}
+
+.weigh-unit {
+  color: #8df5a4;
+  font-size: 22px;
+}
+
+.weigh-row-amount {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #2b3a30;
+}
+
+.weigh-money {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 30px;
+  font-weight: 700;
+  color: #f2e9a4;
+}
+
+/* La lucecita de estado, abajo a la izquierda del visor. */
+.weigh-led {
+  position: absolute;
+  left: 26px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6f8a78;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.weigh-led::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4a5c50;
+}
+
+.weigh-led.on {
+  color: #8df5a4;
+}
+
+.weigh-led.on::before {
+  background: #8df5a4;
+  box-shadow: 0 0 8px #8df5a4;
+}
+
+.weigh {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-top: 18px;
+}
+
+.weigh-main {
+  flex: 1;
+}
+
+.weigh-product {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.weigh-input {
+  width: 100%;
+  margin: 4px 0 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 24px;
+  text-align: right;
+}
+
+/* En una pantalla angosta la foto estorba más de lo que ayuda. */
+@media (max-width: 700px) {
+  .weigh .product-image-large {
+    display: none;
+  }
+
+  .weigh-kilos {
+    font-size: 52px;
+  }
 }
 
 /* ---------- Logo de fondo ---------- */

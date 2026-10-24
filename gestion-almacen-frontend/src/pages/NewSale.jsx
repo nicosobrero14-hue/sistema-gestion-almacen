@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  findProductByBarcode, getProducts, getProductsWithoutBarcode, productImageUrl, suggestProduct,
+  findProductByBarcode, getProducts, getProductsBySaleUnit, productImageUrl, suggestProduct,
 } from '../api/products'
 import { cancelPayment, checkPayment, saveSale } from '../api/sales'
 import Message from '../components/Message'
@@ -10,11 +10,19 @@ import TextField from '../components/TextField'
 import { isBarcode } from '../utils/barcode'
 import { formatPrice, formatProductPrice, formatQuantity } from '../utils/format'
 import ProductForm from './ProductForm'
+import WeighPanel from './WeighPanel'
 
 // El error de un renglon del carrito, o null si la cantidad esta bien (CU-08 exc. 3a y 4a).
 const quantityError = (line) => {
-  if (line.quantity === '' || Number(line.quantity) < 1) return 'Mínimo 1'
-  if (Number(line.quantity) > line.product.stock) return `Hay ${line.product.stock} disponibles`
+  // Lo que se pesa admite menos de un kilo: 0,120 son 120 gramos. Lo que se cuenta, no.
+  const porPeso = line.product.saleUnit === 'KG'
+  const minimo = porPeso ? 0.001 : 1
+  if (line.quantity === '' || Number(line.quantity) < minimo) {
+    return porPeso ? 'Mínimo 0,001 kg' : 'Mínimo 1'
+  }
+  if (Number(line.quantity) > line.product.stock) {
+    return `Hay ${formatQuantity(line.product.stock, line.product.saleUnit)} disponibles`
+  }
   return null
 }
 
@@ -27,12 +35,17 @@ export default function NewSale({ isAdmin }) {
   const [search, setSearch] = useState('')
   const [results, setResults] = useState(null) // null = todavia no se busco nada
 
-  // RF-14 / CU-07: sin buscar nada, la pantalla muestra los productos que no se pueden escanear
-  // (fruta, verdura, fiambre). Lo que tiene codigo de barras se lee con el lector.
-  const [withoutBarcode, setWithoutBarcode] = useState(null) // null = todavia no cargo
+  // RF-12 / RF-14: el catalogo se muestra separado en dos, porque el circuito es distinto.
+  // Lo que se cuenta se toca y va al carrito; lo que se pesa pasa antes por la balanza.
+  const [byUnit, setByUnit] = useState(null) // null = todavia no cargo
+  const [byWeight, setByWeight] = useState(null)
   // Tarjetas con la foto o la tabla de siempre. Se recuerda: despues de cada venta la pantalla
   // se arma de nuevo y volver a cambiarla cada vez seria molesto.
   const [view, setView] = useState(() => localStorage.getItem('vista-venta') ?? 'tarjetas')
+
+  const [tab, setTab] = useState('unidad')
+  // El producto que se esta pesando, o null.
+  const [weighing, setWeighing] = useState(null)
 
   const changeView = (nueva) => {
     setView(nueva)
@@ -57,8 +70,11 @@ export default function NewSale({ isAdmin }) {
   const searchRef = useRef(null)
 
   useEffect(() => {
-    getProductsWithoutBarcode()
-      .then(setWithoutBarcode)
+    getProductsBySaleUnit('UNIDAD')
+      .then(setByUnit)
+      .catch((e) => setError(e.message))
+    getProductsBySaleUnit('KG')
+      .then(setByWeight)
       .catch((e) => setError(e.message))
   }, [])
 
@@ -69,8 +85,10 @@ export default function NewSale({ isAdmin }) {
       return
     }
     const timer = setTimeout(() => {
-      getProducts(search, true)
-        .then(setResults)
+      // El buscador del mostrador muestra las primeras coincidencias: si hay que afinar se
+      // escribe un poco mas, que es mas rapido que recorrer paginas con el cliente esperando.
+      getProducts({ search, activeOnly: true, size: 20 })
+        .then((data) => setResults(data.content))
         .catch((e) => setError(e.message))
     }, 300)
     return () => clearTimeout(timer)
@@ -128,7 +146,26 @@ export default function NewSale({ isAdmin }) {
   // Que productos se ven. Sin texto en el buscador, los que no se pueden escanear; con texto, lo
   // que devolvio la busqueda, que mira todo el catalogo. null en los dos casos es "todavia no llego".
   const searching = search.trim() !== ''
-  const shown = searching ? results : withoutBarcode
+  const shown = tab === 'balanza' ? byWeight : (searching ? results : byUnit)
+
+  // CU-21 pasos 3 y 4: con el peso confirmado se calcula el importe y entra al carrito.
+  const addWeighed = (kilos) => {
+    const product = weighing
+    setWeighing(null)
+    const line = cart.find((item) => item.product.id === product.id)
+    if (line) {
+      changeQuantity(product.id, kilos)
+    } else {
+      setCart([...cart, { product, quantity: kilos }])
+    }
+    searchRef.current?.focus()
+  }
+
+  // Un producto que se pesa no va directo al carrito: primero se pesa.
+  const choose = (product) => {
+    if (product.saleUnit === 'KG') setWeighing(product)
+    else addToCart(product)
+  }
 
   // CU-03 paso 4: en una venta, el codigo leido agrega el producto al carrito.
   const onSearchKeyDown = async (event) => {
@@ -272,6 +309,18 @@ export default function NewSale({ isAdmin }) {
               </button>
             </div>
           </div>
+          {/* RF-12: el circuito de lo que se pesa es distinto al de lo que se cuenta. */}
+          <div className="view-toggle tabs">
+            <button type="button" className={tab === 'unidad' ? 'active' : ''}
+              onClick={() => setTab('unidad')} aria-pressed={tab === 'unidad'}>
+              Por unidad
+            </button>
+            <button type="button" className={tab === 'balanza' ? 'active' : ''}
+              onClick={() => setTab('balanza')} aria-pressed={tab === 'balanza'}>
+              Balanza
+            </button>
+          </div>
+
           <div className="filters">
             <input
               type="search"
@@ -285,16 +334,22 @@ export default function NewSale({ isAdmin }) {
             />
           </div>
 
-          {!searching && shown !== null && shown.length > 0 && (
-            <p className="help">Los que no tienen código de barras. El resto se lee con el lector o se busca por nombre.</p>
+          {shown !== null && shown.length > 0 && (
+            <p className="help">
+              {tab === 'balanza'
+                ? 'Los que se venden por kilo. Al elegir uno se abre la ventana de pesaje.'
+                : (!searching && 'Los que se venden por unidad. Con el lector se agregan sin buscarlos.')}
+            </p>
           )}
 
           {/* CU-07 exc. 3a: el producto buscado no existe. Si lo leyo el lector, ya lo dice el aviso de arriba. */}
           {shown !== null && shown.length === 0 && !missingBarcode && (
             <p className="notice">
-              {searching
-                ? 'No hay ningún producto con ese nombre o código.'
-                : 'Todos los productos tienen código de barras: léalos con el lector o búsquelos por nombre.'}
+              {tab === 'balanza'
+                ? 'No hay productos que se vendan por kilo.'
+                : (searching
+                  ? 'No hay ningún producto con ese nombre o código.'
+                  : 'No hay productos cargados.')}
             </p>
           )}
 
@@ -303,7 +358,7 @@ export default function NewSale({ isAdmin }) {
             <div className="product-grid">
               {shown.map((product) => (
                 <button key={product.id} type="button" className="product-card"
-                  onClick={() => addToCart(product)} disabled={product.stock === 0}>
+                  onClick={() => choose(product)} disabled={product.stock === 0}>
                   <ProductImage src={productImageUrl(product.image)} name={product.name} large />
                   <span className="product-card-name">{product.name}</span>
                   <span className="product-card-price">
@@ -350,7 +405,7 @@ export default function NewSale({ isAdmin }) {
                       {formatQuantity(product.stock, product.saleUnit)}
                     </td>
                     <td className="actions">
-                      <button type="button" className="button button-small" onClick={() => addToCart(product)}
+                      <button type="button" className="button button-small" onClick={() => choose(product)}
                         disabled={product.stock === 0}>
                         {product.stock === 0 ? 'Sin stock' : 'Agregar'}
                       </button>
@@ -382,11 +437,12 @@ export default function NewSale({ isAdmin }) {
                 {cart.map((line) => (
                   <tr key={line.product.id}>
                     <td>{line.product.name}</td>
-                    <td className="right">{formatPrice(line.product.salePrice)}</td>
+                    {/* El precio de lo que se pesa es por kilo y tiene que decirlo. */}
+                    <td className="right">{formatProductPrice(line.product.salePrice, line.product.saleUnit)}</td>
                     <td>
                       <input
                         type="number"
-                        min="1"
+                        min={line.product.saleUnit === 'KG' ? '0.001' : '1'}
                         max={line.product.stock}
                         step={line.product.saleUnit === 'KG' ? '0.001' : '1'}
                         className={quantityError(line) ? 'quantity has-error' : 'quantity'}
@@ -466,6 +522,10 @@ export default function NewSale({ isAdmin }) {
           </div>
         </section>
       </div>
+
+      {weighing && (
+        <WeighPanel product={weighing} onConfirm={addWeighed} onCancel={() => setWeighing(null)} />
+      )}
 
       {productFormOpen && (
         <ProductForm product={null} barcode={missingBarcode} suggestedName={suggestion?.name ?? ''}

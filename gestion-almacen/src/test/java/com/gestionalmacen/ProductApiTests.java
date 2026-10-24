@@ -79,32 +79,44 @@ class ProductApiTests {
 		mvc.perform(get("/api/products/barcode/7791813444411")).andExpect(status().isNotFound());
 	}
 
-	// ---------- RF-14 / CU-07: los que no se pueden escanear ----------
+	// ---------- RF-12 / RF-14: las pestanias de la pantalla de venta ----------
 
-	// La grilla de la pantalla de venta muestra justo los que no tienen codigo: fruta, verdura
-	// y todo lo que se vende suelto. Lo que tiene codigo se lee con el lector.
+	// La venta separa lo que se cuenta de lo que se pesa, porque el circuito es distinto:
+	// uno se toca y va al carrito, el otro pasa antes por la balanza.
 	@Test
-	void listsOnlyTheProductsWithoutABarcode() throws Exception {
+	void listsTheProductsOfEachSaleUnit() throws Exception {
 		create("/api/products", product("Yerba 1kg", "4850.00", 40, 10, "7790010001234", null));
-		create("/api/products", product("Lechuga", "1200.00", 5, 1, null, null));
-		create("/api/products", product("Banana", "2300.00", 8, 2, null, null));
+		create("/api/products", byWeight("Queso cremoso", "12000.00"));
+		create("/api/products", byWeight("Jamón cocido", "14500.00"));
 
-		mvc.perform(get("/api/products/without-barcode"))
+		mvc.perform(get("/api/products/by-sale-unit/{unit}", "KG"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(2))
-				.andExpect(jsonPath("$[0].name").value("Banana"))  // alfabetico: el mostrador los busca por nombre
-				.andExpect(jsonPath("$[1].name").value("Lechuga"));
+				.andExpect(jsonPath("$[0].name").value("Jamón cocido"))  // alfabetico: se buscan por nombre
+				.andExpect(jsonPath("$[1].name").value("Queso cremoso"));
+
+		mvc.perform(get("/api/products/by-sale-unit/{unit}", "UNIDAD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(1))
+				.andExpect(jsonPath("$[0].name").value("Yerba 1kg"));
 	}
 
-	// Un producto dado de baja no se puede vender, asi que tampoco aparece en la grilla.
+	// Un producto dado de baja no se puede vender, asi que tampoco aparece en la pestania.
 	@Test
-	void theGridLeavesOutProductsThatAreDeactivated() throws Exception {
-		long id = create("/api/products", product("Lechuga", "1200.00", 5, 1, null, null));
+	void theTabLeavesOutProductsThatAreDeactivated() throws Exception {
+		long id = create("/api/products", byWeight("Queso cremoso", "12000.00"));
 		mvc.perform(patch("/api/products/{id}/deactivate", id).with(csrf())).andExpect(status().isNoContent());
 
-		mvc.perform(get("/api/products/without-barcode"))
+		mvc.perform(get("/api/products/by-sale-unit/{unit}", "KG"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(0));
+	}
+
+	// Una unidad de venta que no existe no puede devolver un listado vacio como si nada.
+	@Test
+	void rejectsASaleUnitThatDoesNotExist() throws Exception {
+		mvc.perform(get("/api/products/by-sale-unit/{unit}", "LITROS"))
+				.andExpect(status().isBadRequest());
 	}
 
 	@Test
@@ -184,9 +196,79 @@ class ProductApiTests {
 		create("/api/products", product("Azúcar 1kg", "1890.00", 30, 10, null, null));
 
 		mvc.perform(get("/api/products").param("search", "gaseosa"))
-				.andExpect(jsonPath("$.length()").value(1));
+				.andExpect(jsonPath("$.content.length()").value(1));
 		mvc.perform(get("/api/products").param("search", "7790895"))
-				.andExpect(jsonPath("$[0].name").value("Gaseosa cola"));
+				.andExpect(jsonPath("$.content[0].name").value("Gaseosa cola"));
+	}
+
+	// ---------- RF-13: el catalogo de a paginas ----------
+
+	// Con el catalogo entero en una sola respuesta la pantalla no cumple el tiempo del RNF-01.
+	// Se pide de a pocos y la respuesta dice cuantos hay en total, para poder armar los controles.
+	@Test
+	void bringsTheCatalogOnePageAtATime() throws Exception {
+		for (int i = 1; i <= 5; i++) {
+			create("/api/products", product("Producto " + i, "100.00", 10, 1, null, null));
+		}
+
+		mvc.perform(get("/api/products").param("page", "0").param("size", "2"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.content.length()").value(2))
+				.andExpect(jsonPath("$.content[0].name").value("Producto 1"))
+				.andExpect(jsonPath("$.page").value(0))
+				.andExpect(jsonPath("$.totalElements").value(5))
+				.andExpect(jsonPath("$.totalPages").value(3));
+
+		// La ultima pagina trae lo que sobra, que casi nunca es una pagina completa.
+		mvc.perform(get("/api/products").param("page", "2").param("size", "2"))
+				.andExpect(jsonPath("$.content.length()").value(1))
+				.andExpect(jsonPath("$.content[0].name").value("Producto 5"));
+	}
+
+	// El orden lo elige la pantalla al hacer clic en el encabezado de una columna.
+	@Test
+	void sortsTheCatalogByTheRequestedColumn() throws Exception {
+		create("/api/products", product("Azúcar", "1890.00", 30, 10, null, null));
+		create("/api/products", product("Yerba", "4850.00", 40, 10, null, null));
+		create("/api/products", product("Leche", "1650.00", 5, 10, null, null));
+
+		mvc.perform(get("/api/products").param("sort", "PRECIO").param("direction", "DESC"))
+				.andExpect(jsonPath("$.content[0].name").value("Yerba"))
+				.andExpect(jsonPath("$.content[2].name").value("Leche"));
+
+		mvc.perform(get("/api/products").param("sort", "STOCK").param("direction", "ASC"))
+				.andExpect(jsonPath("$.content[0].name").value("Leche"));
+	}
+
+	// Una columna que no existe no llega a la consulta: el listado de columnas es cerrado.
+	@Test
+	void rejectsAColumnThatCannotBeSorted() throws Exception {
+		mvc.perform(get("/api/products").param("sort", "PROVEEDOR"))
+				.andExpect(status().isBadRequest());
+	}
+
+	// El tamanio de pagina tiene tope. Sin el, pedir cien mil trae el catalogo entero y la
+	// paginacion no habria servido de nada.
+	@Test
+	void doesNotBringMoreThanTheMaximumPageSize() throws Exception {
+		create("/api/products", product("Yerba", "4850.00", 40, 10, null, null));
+
+		mvc.perform(get("/api/products").param("size", "100000"))
+				.andExpect(jsonPath("$.size").value(100));
+	}
+
+	// El filtro de stock bajo lo resuelve la consulta. Si se filtrara la pagina ya recibida,
+	// los productos con stock bajo de las otras paginas no aparecerian nunca (RF-09).
+	@Test
+	void filtersByLowStockOverTheWholeCatalog() throws Exception {
+		create("/api/products", product("Yerba", "4850.00", 40, 10, null, null));
+		create("/api/products", product("Leche", "1650.00", 5, 10, null, null));
+		create("/api/products", product("Fideos", "1200.00", 2, 10, null, null));
+
+		mvc.perform(get("/api/products").param("lowStockOnly", "true"))
+				.andExpect(jsonPath("$.totalElements").value(2))
+				.andExpect(jsonPath("$.content[0].name").value("Fideos"))
+				.andExpect(jsonPath("$.content[1].name").value("Leche"));
 	}
 
 	// CU-03: el lector manda el codigo exacto.
@@ -251,6 +333,12 @@ class ProductApiTests {
 	}
 
 	// Arma el JSON de un producto. barcode y supplierId pueden ir en null.
+	// Un producto que se vende por kilo, con el stock fraccionado.
+	private String byWeight(String name, String price) {
+		return "{\"name\":\"" + name + "\",\"price\":" + price
+				+ ",\"stock\":3.250,\"minimumStock\":1,\"saleUnit\":\"KG\",\"onOffer\":false}";
+	}
+
 	private String product(String name, String price, int stock, int minimumStock, String barcode, Long supplierId) {
 		return "{\"name\":\"" + name + "\",\"price\":" + price + ",\"stock\":" + stock
 				+ ",\"minimumStock\":" + minimumStock + ",\"onOffer\":false"

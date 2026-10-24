@@ -1,3 +1,4 @@
+import { Banknote, ShoppingBag, Wallet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getPurchases } from '../api/purchases'
@@ -119,16 +120,25 @@ export default function Purchases() {
 
       <div className="cards">
         <div className="card">
-          <span className="card-label">Comprado</span>
-          <strong className="card-value">{formatPrice(totalAcordado)}</strong>
+          <span className="card-icon"><ShoppingBag aria-hidden="true" /></span>
+          <div className="card-body">
+            <span className="card-label">Comprado</span>
+            <strong className="card-value">{formatPrice(totalAcordado)}</strong>
+          </div>
         </div>
         <div className="card">
-          <span className="card-label">Pagado</span>
-          <strong className="card-value">{formatPrice(totalPagado)}</strong>
+          <span className="card-icon"><Banknote aria-hidden="true" /></span>
+          <div className="card-body">
+            <span className="card-label">Pagado</span>
+            <strong className="card-value">{formatPrice(totalPagado)}</strong>
+          </div>
         </div>
         <div className={totalSaldo > 0 ? 'card card-warning' : 'card'}>
-          <span className="card-label">Saldo</span>
-          <strong className="card-value">{formatPrice(totalSaldo)}</strong>
+          <span className="card-icon"><Wallet aria-hidden="true" /></span>
+          <div className="card-body">
+            <span className="card-label">Saldo</span>
+            <strong className="card-value">{formatPrice(totalSaldo)}</strong>
+          </div>
         </div>
       </div>
 

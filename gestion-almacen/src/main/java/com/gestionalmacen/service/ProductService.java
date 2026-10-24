@@ -4,15 +4,20 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.gestionalmacen.dto.ProductDTO;
+import com.gestionalmacen.dto.ProductSort;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.MovementType;
 import com.gestionalmacen.entity.Product;
+import com.gestionalmacen.entity.SaleUnit;
 import com.gestionalmacen.entity.StockMovement;
 import com.gestionalmacen.entity.Supplier;
 import com.gestionalmacen.exception.BusinessRuleException;
@@ -51,13 +56,15 @@ public class ProductService implements IProductService {
 	}
 
 	@Override
-	public List<Product> getProducts(String search, boolean activeOnly) {
-		return productRepository.search(search.trim(), activeOnly);
+	public Page<Product> getProducts(String search, boolean activeOnly, boolean lowStockOnly, int page, int size,
+			ProductSort sort, Sort.Direction direction) {
+		PageRequest pagina = PageRequest.of(Math.max(page, 0), Pages.size(size), Sort.by(direction, sort.getField()));
+		return productRepository.search(search.trim(), activeOnly, lowStockOnly, pagina);
 	}
 
 	@Override
-	public List<Product> getProductsWithoutBarcode() {
-		return productRepository.findByActiveTrueAndBarcodeIsNullOrderByName();
+	public List<Product> getProductsBySaleUnit(SaleUnit saleUnit) {
+		return productRepository.findByActiveTrueAndSaleUnitOrderByName(saleUnit);
 	}
 
 	@Override
@@ -114,7 +121,7 @@ public class ProductService implements IProductService {
 	public Product editProduct(Long id, ProductDTO productDTO, boolean isAdmin) {
 		Product product = this.findProduct(id);
 
-		// CU-19 y CU-20: solo el administrador cambia el precio o la oferta.
+		// CU-19 y CU-20: solo el administrador cambia el precio, el costo o la oferta.
 		if (!isAdmin && this.changesPrice(product, productDTO)) {
 			throw new AccessDeniedException("Solo el administrador puede modificar el precio y la oferta.");
 		}
@@ -175,6 +182,7 @@ public class ProductService implements IProductService {
 		product.setName(productDTO.getName());
 		product.setDescription(productDTO.getDescription());
 		product.setPrice(productDTO.getPrice());
+		product.setCostPrice(productDTO.getCostPrice());
 		product.setMinimumStock(productDTO.getMinimumStock());
 		product.setSaleUnit(productDTO.getSaleUnit());
 		product.setBarcode(productDTO.getBarcode());
@@ -184,9 +192,12 @@ public class ProductService implements IProductService {
 		product.setSupplier(this.findActiveSupplier(productDTO.getSupplierId()));
 	}
 
-	// true si el DTO trae un precio o una oferta distinta de la que tiene el producto.
+	// true si el DTO trae un precio, un costo o una oferta distinta de la que tiene el producto.
+	// El costo entra en la misma regla que el precio: es lo que el comercio paga y de ahi sale
+	// la ganancia, asi que no lo toca un empleado.
 	private boolean changesPrice(Product product, ProductDTO productDTO) {
 		return !this.sameAmount(product.getPrice(), productDTO.getPrice())
+				|| !this.sameAmount(product.getCostPrice(), productDTO.getCostPrice())
 				|| product.isOnOffer() != productDTO.isOnOffer()
 				|| !this.sameAmount(product.getOfferPrice(), productDTO.getOfferPrice());
 	}
