@@ -85,8 +85,10 @@ export default function NewSale({ isAdmin }) {
       return
     }
     const timer = setTimeout(() => {
-      getProducts(search, true)
-        .then(setResults)
+      // El buscador del mostrador muestra las primeras coincidencias: si hay que afinar se
+      // escribe un poco mas, que es mas rapido que recorrer paginas con el cliente esperando.
+      getProducts({ search, activeOnly: true, size: 20 })
+        .then((data) => setResults(data.content))
         .catch((e) => setError(e.message))
     }, 300)
     return () => clearTimeout(timer)

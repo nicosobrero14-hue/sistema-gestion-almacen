@@ -4,10 +4,15 @@ import {
   activateProduct, deactivateProduct, findProductByBarcode, getProducts, productImageUrl, suggestProduct,
 } from '../api/products'
 import Message from '../components/Message'
+import Pagination from '../components/Pagination'
+import SortHeader from '../components/SortHeader'
 import ProductImage from '../components/ProductImage'
 import { isBarcode } from '../utils/barcode'
 import { formatPrice, formatProductPrice, formatQuantity } from '../utils/format'
 import ProductForm from './ProductForm'
+
+// Cuantos productos entran en una pagina. Veinte es lo que se lee sin tener que desplazarse.
+const POR_PAGINA = 20
 
 // Pantalla del catalogo de productos (RF-01 / CU-02, CU-20).
 // isAdmin: el formulario bloquea el precio y la oferta si quien lo usa es empleado.
@@ -20,6 +25,13 @@ export default function Products({ isAdmin }) {
   const [products, setProducts] = useState([])
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const [activeOnly, setActiveOnly] = useState(true)
+
+  // Pagina y orden del listado (RF-13).
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [sort, setSort] = useState('NOMBRE')
+  const [direction, setDirection] = useState('ASC')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
 
@@ -33,8 +45,12 @@ export default function Products({ isAdmin }) {
   const [suggestion, setSuggestion] = useState(null)
 
   const load = () => {
-    getProducts(search, activeOnly)
-      .then(setProducts)
+    getProducts({ search, activeOnly, page, size: POR_PAGINA, sort, direction })
+      .then((data) => {
+        setProducts(data.content)
+        setTotalPages(data.totalPages)
+        setTotal(data.totalElements)
+      })
       .catch((e) => setError(e.message))
   }
 
@@ -42,7 +58,23 @@ export default function Products({ isAdmin }) {
   useEffect(() => {
     const timer = setTimeout(load, 300)
     return () => clearTimeout(timer)
-  }, [search, activeOnly])
+  }, [search, activeOnly, page, sort, direction])
+
+  // Un filtro nuevo empieza en la primera pagina: la quinta de la busqueda anterior no tiene
+  // nada que ver con la nueva.
+  useEffect(() => {
+    setPage(0)
+  }, [search, activeOnly, sort, direction])
+
+  // Clic en una columna: si ya se ordenaba por ella se da vuelta el sentido, si no se cambia de columna.
+  const ordenarPor = (columna) => {
+    if (columna === sort) {
+      setDirection(direction === 'ASC' ? 'DESC' : 'ASC')
+    } else {
+      setSort(columna)
+      setDirection('ASC')
+    }
+  }
 
   const openForm = (product) => {
     setSelected(product)
@@ -156,10 +188,10 @@ export default function Products({ isAdmin }) {
             <thead>
               <tr>
                 <th>Foto</th>
-                <th>Producto</th>
-                <th>Código</th>
-                <th className="right">Precio</th>
-                <th className="right">Stock</th>
+                <SortHeader column="NOMBRE" sort={sort} direction={direction} onSort={ordenarPor}>Producto</SortHeader>
+                <SortHeader column="CODIGO" sort={sort} direction={direction} onSort={ordenarPor}>Código</SortHeader>
+                <SortHeader column="PRECIO" sort={sort} direction={direction} onSort={ordenarPor} className="right">Precio</SortHeader>
+                <SortHeader column="STOCK" sort={sort} direction={direction} onSort={ordenarPor} className="right">Stock</SortHeader>
                 <th className="right">Mínimo</th>
                 <th>Proveedor</th>
                 <th>Estado</th>
@@ -206,6 +238,9 @@ export default function Products({ isAdmin }) {
               ))}
             </tbody>
           </table>
+
+          <Pagination page={page} totalPages={totalPages} totalElements={total}
+            name="producto" onChange={setPage} />
         </div>
       )}
 

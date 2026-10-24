@@ -59,26 +59,26 @@ class SaleHistoryApiTests {
 	void listsTheSalesOfThePeriodNewestFirst() throws Exception {
 		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.length()").value(2))
-				.andExpect(jsonPath("$[0].username").value("admin"))
-				.andExpect(jsonPath("$[1].username").value("vendedor"))
-				.andExpect(jsonPath("$[1].details[0].productName").value("Yerba Mate 1kg"))
-				.andExpect(jsonPath("$[1].payments[0].method").value("EFECTIVO"));
+				.andExpect(jsonPath("$.content.length()").value(2))
+				.andExpect(jsonPath("$.content[0].username").value("admin"))
+				.andExpect(jsonPath("$.content[1].username").value("vendedor"))
+				.andExpect(jsonPath("$.content[1].details[0].productName").value("Yerba Mate 1kg"))
+				.andExpect(jsonPath("$.content[1].payments[0].method").value("EFECTIVO"));
 	}
 
 	@Test
 	void filtersByEmployee() throws Exception {
 		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY).param("username", "vendedor"))
-				.andExpect(jsonPath("$.length()").value(1))
-				.andExpect(jsonPath("$[0].total").value(9700.00));
+				.andExpect(jsonPath("$.content.length()").value(1))
+				.andExpect(jsonPath("$.content[0].total").value(9700.00));
 	}
 
 	// El producto se busca por su nombre en los renglones de la venta.
 	@Test
 	void filtersByProduct() throws Exception {
 		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY).param("product", "leche"))
-				.andExpect(jsonPath("$.length()").value(1))
-				.andExpect(jsonPath("$[0].username").value("admin"));
+				.andExpect(jsonPath("$.content.length()").value(1))
+				.andExpect(jsonPath("$.content[0].username").value("admin"));
 	}
 
 	// CU-10: el numero de operacion encuentra la venta de un cobro del reporte de MercadoPago.
@@ -87,11 +87,11 @@ class SaleHistoryApiTests {
 		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY).param("reference", "ORD-PRUEBA"))
 				.andExpect(status().isOk())
 				// Las dos ventas de la preparacion son en efectivo, asi que no tienen numero de operacion.
-				.andExpect(jsonPath("$.length()").value(0));
+				.andExpect(jsonPath("$.content.length()").value(0));
 
 		// Sin filtro siguen apareciendo las dos.
 		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY))
-				.andExpect(jsonPath("$.length()").value(2));
+				.andExpect(jsonPath("$.content.length()").value(2));
 	}
 
 	// CU-16 exc. 3a: no hay ventas en el periodo.
@@ -101,7 +101,7 @@ class SaleHistoryApiTests {
 
 		mvc.perform(get("/api/sales").param("from", yesterday).param("to", yesterday))
 				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.length()").value(0));
+				.andExpect(jsonPath("$.content.length()").value(0));
 	}
 
 	@Test
@@ -121,6 +121,78 @@ class SaleHistoryApiTests {
 		mvc.perform(get("/api/sales").param("from", "21/09/2026").param("to", TODAY))
 				.andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.message").value("Falta un dato de la búsqueda o tiene un formato inválido."));
+	}
+
+	// ---------- RF-13: el historial de a paginas ----------
+
+	@Test
+	void bringsTheHistoryOnePageAtATime() throws Exception {
+		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY)
+						.param("page", "0").param("size", "1"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.content.length()").value(1))
+				.andExpect(jsonPath("$.content[0].username").value("admin"))
+				.andExpect(jsonPath("$.totalElements").value(2))
+				.andExpect(jsonPath("$.totalPages").value(2));
+
+		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY)
+						.param("page", "1").param("size", "1"))
+				.andExpect(jsonPath("$.content[0].username").value("vendedor"));
+	}
+
+	// Aunque la pagina traiga una sola venta, los renglones y el pago siguen viniendo: la
+	// pantalla los muestra en el listado.
+	@Test
+	void eachPageStillBringsTheDetailsAndThePayment() throws Exception {
+		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY)
+						.param("page", "1").param("size", "1"))
+				.andExpect(jsonPath("$.content[0].details[0].productName").value("Yerba Mate 1kg"))
+				.andExpect(jsonPath("$.content[0].payments[0].method").value("EFECTIVO"));
+	}
+
+	// ---------- CU-16 paso 6: el resumen del periodo ----------
+
+	// Lo cobrado y como se reparte por forma de pago.
+	@Test
+	void summarisesWhatWasCharged() throws Exception {
+		mvc.perform(get("/api/sales/summary").param("from", TODAY).param("to", TODAY))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.charged").value(2))
+				.andExpect(jsonPath("$.total").value(11350.00))
+				.andExpect(jsonPath("$.byMethod.EFECTIVO").value(11350.00));
+	}
+
+	// El resumen es del periodo entero y no de la pagina que se esta viendo: si fuera de la
+	// pagina, el total de la pantalla no serviria para controlar la caja.
+	@Test
+	void theSummaryDoesNotDependOnThePage() throws Exception {
+		mvc.perform(get("/api/sales").param("from", TODAY).param("to", TODAY)
+						.param("page", "0").param("size", "1"))
+				.andExpect(jsonPath("$.content.length()").value(1));
+
+		mvc.perform(get("/api/sales/summary").param("from", TODAY).param("to", TODAY))
+				.andExpect(jsonPath("$.charged").value(2))
+				.andExpect(jsonPath("$.total").value(11350.00));
+	}
+
+	// El resumen respeta los mismos filtros que el listado.
+	@Test
+	void theSummaryUsesTheSameFilters() throws Exception {
+		mvc.perform(get("/api/sales/summary").param("from", TODAY).param("to", TODAY)
+						.param("username", "vendedor"))
+				.andExpect(jsonPath("$.charged").value(1))
+				.andExpect(jsonPath("$.total").value(9700.00));
+	}
+
+	// Un periodo sin ventas no deja los importes en null: la pantalla muestra cero.
+	@Test
+	void theSummaryOfAPeriodWithoutSalesIsZero() throws Exception {
+		String yesterday = LocalDate.now().minusDays(1).toString();
+
+		mvc.perform(get("/api/sales/summary").param("from", yesterday).param("to", yesterday))
+				.andExpect(jsonPath("$.charged").value(0))
+				.andExpect(jsonPath("$.total").value(0))
+				.andExpect(jsonPath("$.byMethod").isEmpty());
 	}
 
 	// RF-07: el historial es del administrador. El empleado igual puede ver el ticket de una venta.

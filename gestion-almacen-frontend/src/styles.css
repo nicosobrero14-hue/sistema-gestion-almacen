@@ -438,6 +438,70 @@ a.button {
   font-size: 12px;
 }
 
+/* ---------- Paginacion y orden de los listados (RF-13) ---------- */
+
+/* Va dentro del recuadro de la tabla, como un pie: queda claro que es de ese listado. */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-background);
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.pagination-total {
+  font-variant-numeric: tabular-nums;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination-position {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El encabezado que ordena se ve igual que uno comun hasta que se le pasa el mouse: la tabla
+   no se llena de botones, pero el que prueba hacer clic encuentra que funciona. */
+.sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.sort:hover {
+  color: var(--color-primary);
+}
+
+.sort-active {
+  color: var(--color-primary);
+}
+
+.sort-arrow {
+  font-size: 11px;
+}
+
+/* En una columna de numeros el encabezado tambien va a la derecha. */
+.table th.right .sort {
+  width: 100%;
+  justify-content: flex-end;
+}
+
 /* ---------- Etiquetas de estado ---------- */
 
 .chip {

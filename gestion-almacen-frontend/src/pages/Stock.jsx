@@ -2,9 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { getProducts } from '../api/products'
 import Message from '../components/Message'
+import Pagination from '../components/Pagination'
+import SortHeader from '../components/SortHeader'
 import StockAdjustmentForm from './StockAdjustmentForm'
 import StockMovements from './StockMovements'
 import { formatQuantity } from '../utils/format'
+
+// Cuantos productos entran en una pagina.
+const POR_PAGINA = 20
 
 // Pantalla de stock (RF-02 / CU-04): stock actual y minimo de cada producto, ajuste manual y movimientos.
 export default function Stock() {
@@ -16,6 +21,13 @@ export default function Stock() {
   const [products, setProducts] = useState([])
   const [search, setSearch] = useState(searchParams.get('search') ?? '')
   const [lowStockOnly, setLowStockOnly] = useState(false)
+
+  // Pagina y orden del listado (RF-13).
+  const [page, setPage] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
+  const [total, setTotal] = useState(0)
+  const [sort, setSort] = useState('NOMBRE')
+  const [direction, setDirection] = useState('ASC')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [warning, setWarning] = useState('')
@@ -25,17 +37,38 @@ export default function Stock() {
   const [viewing, setViewing] = useState(null)
 
   // Solo los activos: a un producto dado de baja no se le ajusta el stock.
+  // El filtro de stock bajo lo resuelve el backend. Filtrar aca solo la pagina que llego
+  // escondia los productos con stock bajo que estaban en las otras.
   const load = () => {
-    getProducts(search, true)
-      .then(setProducts)
+    getProducts({ search, activeOnly: true, lowStockOnly, page, size: POR_PAGINA, sort, direction })
+      .then((data) => {
+        setProducts(data.content)
+        setTotalPages(data.totalPages)
+        setTotal(data.totalElements)
+      })
       .catch((e) => setError(e.message))
   }
 
-  // Vuelve a buscar cuando cambia el texto. Espera 300 ms a que se termine de escribir.
+  // Vuelve a buscar cuando cambia el texto o el filtro. Espera 300 ms a que se termine de escribir.
   useEffect(() => {
     const timer = setTimeout(load, 300)
     return () => clearTimeout(timer)
-  }, [search])
+  }, [search, lowStockOnly, page, sort, direction])
+
+  // Un filtro nuevo empieza en la primera pagina.
+  useEffect(() => {
+    setPage(0)
+  }, [search, lowStockOnly, sort, direction])
+
+  // Clic en una columna: si ya se ordenaba por ella se da vuelta el sentido.
+  const ordenarPor = (columna) => {
+    if (columna === sort) {
+      setDirection(direction === 'ASC' ? 'DESC' : 'ASC')
+    } else {
+      setSort(columna)
+      setDirection('ASC')
+    }
+  }
 
   const onAdjusted = (product) => {
     setAdjusting(null)
@@ -50,8 +83,6 @@ export default function Stock() {
     }
     load()
   }
-
-  const visibleProducts = lowStockOnly ? products.filter((product) => product.lowStock) : products
 
   return (
     <>
@@ -78,23 +109,23 @@ export default function Stock() {
       <Message type="success" text={success} onClose={() => setSuccess('')} />
       <Message type="warning" text={warning} onClose={() => setWarning('')} />
 
-      {visibleProducts.length === 0 ? (
+      {products.length === 0 ? (
         <p className="notice">No se encontraron productos.</p>
       ) : (
         <div className="table-container">
           <table className="table">
             <thead>
               <tr>
-                <th>Producto</th>
-                <th>Código</th>
-                <th className="right">Stock actual</th>
+                <SortHeader column="NOMBRE" sort={sort} direction={direction} onSort={ordenarPor}>Producto</SortHeader>
+                <SortHeader column="CODIGO" sort={sort} direction={direction} onSort={ordenarPor}>Código</SortHeader>
+                <SortHeader column="STOCK" sort={sort} direction={direction} onSort={ordenarPor} className="right">Stock actual</SortHeader>
                 <th className="right">Mínimo</th>
                 <th>Estado</th>
                 <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {visibleProducts.map((product) => (
+              {products.map((product) => (
                 <tr key={product.id}>
                   <td>{product.name}</td>
                   <td>{product.barcode ?? '—'}</td>
@@ -120,6 +151,9 @@ export default function Stock() {
               ))}
             </tbody>
           </table>
+
+          <Pagination page={page} totalPages={totalPages} totalElements={total}
+            name="producto" onChange={setPage} />
         </div>
       )}
 

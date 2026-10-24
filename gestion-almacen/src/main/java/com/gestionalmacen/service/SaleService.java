@@ -4,14 +4,20 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gestionalmacen.dto.MethodTotalDTO;
 import com.gestionalmacen.dto.SaleDTO;
+import com.gestionalmacen.dto.SaleSummaryDTO;
 import com.gestionalmacen.dto.SaleItemDTO;
 import com.gestionalmacen.entity.MovementType;
 import com.gestionalmacen.entity.Payment;
@@ -205,13 +211,38 @@ public class SaleService implements ISaleService {
 	}
 
 	@Override
-	public List<Sale> getSales(LocalDate from, LocalDate to, String username, String product, String reference) {
+	public Page<Sale> getSales(LocalDate from, LocalDate to, String username, String product, String reference,
+			int page, int size) {
 		if (from.isAfter(to)) {
 			throw new BusinessRuleException("La fecha desde no puede ser posterior a la fecha hasta.");
 		}
 		// "Hasta" incluye todo ese dia: se busca hasta el comienzo del dia siguiente.
 		return saleRepository.search(from.atStartOfDay(), to.plusDays(1).atStartOfDay(), username.trim(),
-				product.trim(), reference.trim());
+				product.trim(), reference.trim(), PageRequest.of(Math.max(page, 0), Pages.size(size)));
+	}
+
+	@Override
+	public SaleSummaryDTO getSalesSummary(LocalDate from, LocalDate to, String username, String product,
+			String reference) {
+		if (from.isAfter(to)) {
+			throw new BusinessRuleException("La fecha desde no puede ser posterior a la fecha hasta.");
+		}
+
+		LocalDateTime desde = from.atStartOfDay();
+		LocalDateTime hasta = to.plusDays(1).atStartOfDay();
+		String empleado = username.trim();
+		String producto = product.trim();
+		String operacion = reference.trim();
+
+		SaleSummaryDTO resumen = saleRepository.summary(desde, hasta, empleado, producto, operacion);
+
+		// El reparto por forma de pago sale de otra consulta: una venta puede tener mas de un pago.
+		Map<String, BigDecimal> porMetodo = new LinkedHashMap<>();
+		for (MethodTotalDTO fila : saleRepository.totalsByMethod(desde, hasta, empleado, producto, operacion)) {
+			porMetodo.put(fila.getMethod().name(), fila.getAmount());
+		}
+		resumen.setByMethod(porMetodo);
+		return resumen;
 	}
 
 	// El producto tiene que estar activo y tener stock suficiente (CU-07 exc. 5a, CU-08 exc. 4a).

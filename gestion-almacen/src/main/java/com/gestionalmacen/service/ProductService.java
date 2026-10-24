@@ -4,12 +4,16 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.gestionalmacen.dto.ProductDTO;
+import com.gestionalmacen.dto.ProductSort;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.MovementType;
 import com.gestionalmacen.entity.Product;
@@ -52,8 +56,10 @@ public class ProductService implements IProductService {
 	}
 
 	@Override
-	public List<Product> getProducts(String search, boolean activeOnly) {
-		return productRepository.search(search.trim(), activeOnly);
+	public Page<Product> getProducts(String search, boolean activeOnly, boolean lowStockOnly, int page, int size,
+			ProductSort sort, Sort.Direction direction) {
+		PageRequest pagina = PageRequest.of(Math.max(page, 0), Pages.size(size), Sort.by(direction, sort.getField()));
+		return productRepository.search(search.trim(), activeOnly, lowStockOnly, pagina);
 	}
 
 	@Override
