@@ -1,3 +1,7 @@
+import {
+  ArrowLeftRight, Banknote, Boxes, CalendarClock, CreditCard, Receipt, ShoppingBag, TrendingUp,
+  Wallet,
+} from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getStatistics } from '../api/statistics'
@@ -9,6 +13,13 @@ import {
 
 // Se avisa de los productos que vencen dentro de este plazo.
 const EXPIRATION_DAYS = 30
+
+// Un icono por forma de pago, para distinguir las tarjetas de un vistazo.
+const METHOD_ICONS = {
+  EFECTIVO: Banknote,
+  TRANSFERENCIA: ArrowLeftRight,
+  MERCADOPAGO: CreditCard,
+}
 
 // Panel principal (RF-09, RF-15 / CU-06): como viene el dia y las alertas de stock y vencimiento.
 //
@@ -49,56 +60,80 @@ export default function Home({ user }) {
         <>
           <div className="cards">
             <div className="card card-main">
-              <span className="card-label">Vendido hoy</span>
-              <strong className="card-value">{formatPrice(stats.soldToday)}</strong>
-              <small className="card-note">
-                {stats.ticketsToday === 1 ? '1 venta' : `${stats.ticketsToday} ventas`}
-                {stats.averageTicket && ` · ${formatPrice(stats.averageTicket)} promedio`}
-              </small>
+              <span className="card-icon"><Wallet aria-hidden="true" /></span>
+              <div className="card-body">
+                <span className="card-label">Vendido hoy</span>
+                <strong className="card-value">{formatPrice(stats.soldToday)}</strong>
+                <small className="card-note">
+                  {stats.ticketsToday === 1 ? '1 venta' : `${stats.ticketsToday} ventas`}
+                  {stats.averageTicket && ` · ${formatPrice(stats.averageTicket)} promedio`}
+                </small>
+              </div>
             </div>
 
             {/* La ganancia es del comercio: el servidor no la manda si quien mira es empleado. */}
             {stats.profitToday !== undefined && (
               <div className="card card-main">
-                <span className="card-label">Ganancia de hoy</span>
-                <strong className="card-value">{formatPrice(stats.profitToday)}</strong>
-                <small className="card-note">
-                  {stats.linesWithoutCost > 0
-                    ? `${stats.linesWithoutCost} ${stats.linesWithoutCost === 1 ? 'renglón' : 'renglones'} sin precio de costo cargado`
-                    : 'Lo vendido menos lo que costó esa mercadería'}
-                </small>
+                <span className="card-icon"><TrendingUp aria-hidden="true" /></span>
+                <div className="card-body">
+                  <span className="card-label">Ganancia de hoy</span>
+                  <strong className="card-value">{formatPrice(stats.profitToday)}</strong>
+                  <small className="card-note">
+                    {stats.linesWithoutCost > 0
+                      ? `${stats.linesWithoutCost} ${stats.linesWithoutCost === 1 ? 'renglón' : 'renglones'} sin precio de costo cargado`
+                      : 'Lo vendido menos lo que costó esa mercadería'}
+                  </small>
+                </div>
               </div>
             )}
 
-            {Object.keys(PAYMENT_METHODS).map((method) => (
-              <div key={method} className="card">
-                <span className="card-label">{PAYMENT_METHODS[method]}</span>
-                <strong className="card-value">{formatPrice(stats.byMethod[method] ?? 0)}</strong>
-              </div>
-            ))}
+            {Object.keys(PAYMENT_METHODS).map((method) => {
+              const Icon = METHOD_ICONS[method] ?? Banknote
+              return (
+                <div key={method} className="card">
+                  <span className="card-icon"><Icon aria-hidden="true" /></span>
+                  <div className="card-body">
+                    <span className="card-label">{PAYMENT_METHODS[method]}</span>
+                    <strong className="card-value">{formatPrice(stats.byMethod[method] ?? 0)}</strong>
+                  </div>
+                </div>
+              )
+            })}
 
             {stats.monthPurchases !== undefined && (
               <div className="card">
-                <span className="card-label">Compras del mes</span>
-                <strong className="card-value">{formatPrice(stats.monthPurchases)}</strong>
+                <span className="card-icon"><ShoppingBag aria-hidden="true" /></span>
+                <div className="card-body">
+                  <span className="card-label">Compras del mes</span>
+                  <strong className="card-value">{formatPrice(stats.monthPurchases)}</strong>
+                </div>
               </div>
             )}
 
             {stats.supplierDebt !== undefined && (
               <div className={Number(stats.supplierDebt) > 0 ? 'card card-warning' : 'card'}>
-                <span className="card-label">Deuda a proveedores</span>
-                <strong className="card-value">{formatPrice(stats.supplierDebt)}</strong>
+                <span className="card-icon"><Receipt aria-hidden="true" /></span>
+                <div className="card-body">
+                  <span className="card-label">Deuda a proveedores</span>
+                  <strong className="card-value">{formatPrice(stats.supplierDebt)}</strong>
+                </div>
               </div>
             )}
 
             <div className={lowStock.length > 0 ? 'card card-warning' : 'card'}>
-              <span className="card-label">Stock bajo</span>
-              <strong className="card-value">{lowStock.length}</strong>
+              <span className="card-icon"><Boxes aria-hidden="true" /></span>
+              <div className="card-body">
+                <span className="card-label">Stock bajo</span>
+                <strong className="card-value">{lowStock.length}</strong>
+              </div>
             </div>
 
             <div className={expiring.length > 0 ? 'card card-warning' : 'card'}>
-              <span className="card-label">Por vencer</span>
-              <strong className="card-value">{expiring.length}</strong>
+              <span className="card-icon"><CalendarClock aria-hidden="true" /></span>
+              <div className="card-body">
+                <span className="card-label">Por vencer</span>
+                <strong className="card-value">{expiring.length}</strong>
+              </div>
             </div>
           </div>
 

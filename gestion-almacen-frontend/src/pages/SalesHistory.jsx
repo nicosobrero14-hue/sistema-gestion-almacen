@@ -1,3 +1,4 @@
+import { ArrowLeftRight, Banknote, CreditCard, Receipt, Wallet } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getSales, getSalesSummary } from '../api/sales'
@@ -8,6 +9,13 @@ import { formatDateTime, formatPrice, formatTicketNumber, PAYMENT_METHODS, SALE_
 
 // Cuantas ventas entran en una pagina.
 const POR_PAGINA = 20
+
+// Un icono por forma de pago, el mismo que usa el panel principal.
+const METHOD_ICONS = {
+  EFECTIVO: Banknote,
+  TRANSFERENCIA: ArrowLeftRight,
+  MERCADOPAGO: CreditCard,
+}
 
 // Fecha en el formato de los campos de fecha y de la API: 2026-09-21
 const toIsoDate = (date) =>
@@ -140,19 +148,31 @@ export default function SalesHistory() {
 
       <div className="cards">
         <div className="card">
-          <span className="card-label">Ventas cobradas</span>
-          <strong className="card-value">{summary.charged}</strong>
-        </div>
-        <div className="card">
-          <span className="card-label">Total recaudado</span>
-          <strong className="card-value">{formatPrice(summary.total)}</strong>
-        </div>
-        {Object.keys(PAYMENT_METHODS).map((method) => (
-          <div key={method} className="card">
-            <span className="card-label">{PAYMENT_METHODS[method]}</span>
-            <strong className="card-value">{formatPrice(summary.byMethod[method] ?? 0)}</strong>
+          <span className="card-icon"><Receipt aria-hidden="true" /></span>
+          <div className="card-body">
+            <span className="card-label">Ventas cobradas</span>
+            <strong className="card-value">{summary.charged}</strong>
           </div>
-        ))}
+        </div>
+        <div className="card card-main">
+          <span className="card-icon"><Wallet aria-hidden="true" /></span>
+          <div className="card-body">
+            <span className="card-label">Total recaudado</span>
+            <strong className="card-value">{formatPrice(summary.total)}</strong>
+          </div>
+        </div>
+        {Object.keys(PAYMENT_METHODS).map((method) => {
+          const Icon = METHOD_ICONS[method] ?? Banknote
+          return (
+            <div key={method} className="card">
+              <span className="card-icon"><Icon aria-hidden="true" /></span>
+              <div className="card-body">
+                <span className="card-label">{PAYMENT_METHODS[method]}</span>
+                <strong className="card-value">{formatPrice(summary.byMethod[method] ?? 0)}</strong>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {/* CU-16 exc. 3a: no hay ventas con esos filtros. */}
