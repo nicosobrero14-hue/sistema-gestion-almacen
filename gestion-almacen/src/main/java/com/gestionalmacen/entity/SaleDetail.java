@@ -51,6 +51,12 @@ public class SaleDetail {
 	@Column(name = "precio_unitario", nullable = false, precision = 10, scale = 2)
 	private BigDecimal unitPrice;
 
+	// Copia del costo, por lo mismo que el precio: si la ganancia se calculara con el costo
+	// actual del producto, cada aumento del proveedor cambiaria la ganancia de los meses
+	// anteriores (RF-15). Queda en null si al producto todavia no se le cargo un costo.
+	@Column(name = "precio_costo", precision = 10, scale = 2)
+	private BigDecimal costPrice;
+
 	// Copia de como se vendia el producto, igual que el nombre y el precio: el ticket no
 	// cambia aunque despues el producto se reclasifique (RF-12).
 	@Enumerated(EnumType.STRING)
@@ -67,6 +73,7 @@ public class SaleDetail {
 		this.product = product;
 		this.productName = product.getName();
 		this.unitPrice = product.getSalePrice();
+		this.costPrice = product.getCostPrice();
 		this.saleUnit = product.getSaleUnit();
 		this.quantity = quantity;
 	}

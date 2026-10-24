@@ -1,5 +1,6 @@
 package com.gestionalmacen.repository;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -10,8 +11,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.gestionalmacen.dto.DaySalesDTO;
 import com.gestionalmacen.dto.MethodTotalDTO;
 import com.gestionalmacen.dto.SaleSummaryDTO;
+import com.gestionalmacen.dto.TopProductDTO;
 import com.gestionalmacen.entity.Sale;
 
 // Acceso a la tabla ventas. Los renglones y el pago se guardan junto con la venta.
@@ -65,4 +68,55 @@ public interface ISaleRepository extends JpaRepository<Sale, Long> {
 	List<MethodTotalDTO> totalsByMethod(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to,
 			@Param("username") String username, @Param("product") String product,
 			@Param("reference") String reference);
+
+	// ---------- Panel principal (RF-15 / CU-06) ----------
+
+	// La ganancia del periodo: lo que se cobro menos lo que costo esa mercaderia.
+	// El costo sale del renglon y no del producto, que es lo que hace que la ganancia de un mes
+	// cerrado no cambie cuando el proveedor aumenta.
+	// Los renglones sin costo quedan afuera: contarlos como costo cero inventaria una ganancia.
+	@Query("""
+			SELECT COALESCE(SUM((d.unitPrice - d.costPrice) * d.quantity), 0)
+			FROM SaleDetail d
+			WHERE d.sale.dateTime >= :from AND d.sale.dateTime < :to
+			  AND d.sale.status = com.gestionalmacen.entity.SaleStatus.CONFIRMADA
+			  AND d.costPrice IS NOT NULL
+			""")
+	BigDecimal profit(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+	// Cuantos renglones quedaron afuera de la cuenta anterior. La pantalla lo usa para avisar
+	// que hay productos sin precio de costo, en vez de mostrar una ganancia incompleta sin decirlo.
+	@Query("""
+			SELECT COUNT(d)
+			FROM SaleDetail d
+			WHERE d.sale.dateTime >= :from AND d.sale.dateTime < :to
+			  AND d.sale.status = com.gestionalmacen.entity.SaleStatus.CONFIRMADA
+			  AND d.costPrice IS NULL
+			""")
+	long linesWithoutCost(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+	// Lo mas vendido del periodo, por importe. Cinco alcanza para ver de que vive el comercio.
+	@Query("""
+			SELECT new com.gestionalmacen.dto.TopProductDTO(d.productName, SUM(d.quantity),
+			        SUM(d.unitPrice * d.quantity))
+			FROM SaleDetail d
+			WHERE d.sale.dateTime >= :from AND d.sale.dateTime < :to
+			  AND d.sale.status = com.gestionalmacen.entity.SaleStatus.CONFIRMADA
+			GROUP BY d.productName
+			ORDER BY SUM(d.unitPrice * d.quantity) DESC
+			LIMIT 5
+			""")
+	List<TopProductDTO> topProducts(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+	// Lo vendido cada dia, para el grafico. Los dias sin ventas no vienen: los completa el servicio,
+	// porque un dia cerrado tiene que dibujarse como una barra en cero y no desaparecer del grafico.
+	@Query("""
+			SELECT new com.gestionalmacen.dto.DaySalesDTO(CAST(s.dateTime AS LocalDate),
+			        COALESCE(SUM(s.total), 0))
+			FROM Sale s
+			WHERE s.dateTime >= :from AND s.dateTime < :to AND s.status = com.gestionalmacen.entity.SaleStatus.CONFIRMADA
+			GROUP BY CAST(s.dateTime AS LocalDate)
+			ORDER BY CAST(s.dateTime AS LocalDate)
+			""")
+	List<DaySalesDTO> salesByDay(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }

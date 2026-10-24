@@ -34,4 +34,8 @@ public interface IPurchaseRepository extends JpaRepository<Purchase, Long> {
 	// realmente se debe, y no el facturado. Devuelve null si no hubo compras.
 	@Query("SELECT SUM(c.agreedTotal) FROM Purchase c WHERE c.date BETWEEN :from AND :to")
 	BigDecimal totalForPeriod(@Param("from") LocalDate from, @Param("to") LocalDate to);
+
+	// Todo lo comprado hasta hoy. Con lo pagado, da lo que se le debe a los proveedores (RF-15).
+	@Query("SELECT COALESCE(SUM(c.agreedTotal), 0) FROM Purchase c")
+	BigDecimal totalPurchased();
 }

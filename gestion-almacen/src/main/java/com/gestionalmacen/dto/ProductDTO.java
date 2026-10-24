@@ -32,6 +32,13 @@ public class ProductDTO {
 	@Digits(integer = 8, fraction = 2, message = "El precio admite hasta 8 enteros y 2 decimales")
 	private BigDecimal price;
 
+	// Lo que le cuesta al comercio. Es opcional: un producto puede estar cargado antes de que
+	// llegue su primera factura. Sin costo, ese producto no entra en el calculo de la ganancia
+	// y el panel principal avisa cuantos renglones quedaron afuera (RF-15).
+	@DecimalMin(value = "0", message = "El precio de costo no puede ser negativo")
+	@Digits(integer = 8, fraction = 2, message = "El precio de costo admite hasta 8 enteros y 2 decimales")
+	private BigDecimal costPrice;
+
 	// Solo se usa en el alta. Despues el stock se ajusta desde la pantalla de stock.
 	// Decimal: lo que se vende por peso tiene stock fraccionado (RF-12).
 	@NotNull(message = "El stock es obligatorio")

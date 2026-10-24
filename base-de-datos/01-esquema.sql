@@ -138,6 +138,7 @@ CREATE TABLE IF NOT EXISTS detalle_venta (
     id_producto     BIGINT        NULL,
     nombre_producto VARCHAR(120)  NOT NULL,
     precio_unitario DECIMAL(10,2) NOT NULL,
+    precio_costo    DECIMAL(10,2) NULL,              -- copia: la ganancia de ayer no cambia si hoy aumenta el proveedor
     unidad_venta    VARCHAR(10)   NOT NULL DEFAULT 'UNIDAD',  -- copia: el ticket no cambia si el producto se reclasifica
     cantidad        DECIMAL(10,3) NOT NULL,          -- fraccionada en los productos que se venden por peso
 
