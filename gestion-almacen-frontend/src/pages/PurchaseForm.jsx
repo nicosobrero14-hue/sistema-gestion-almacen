@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { savePurchase, uploadPurchaseImage } from '../api/purchases'
 import { getSuppliers } from '../api/suppliers'
 import Message from '../components/Message'
 import Modal from '../components/Modal'
 import TextField from '../components/TextField'
+import { readAfipQr } from '../utils/afip'
 import { VOUCHER_TYPES } from '../utils/format'
 
 const EMPTY = {
@@ -35,6 +36,11 @@ export default function PurchaseForm({ onSaved, onCancel }) {
   // El total acordado solo se pide cuando no se paga el total de la factura.
   const [corregido, setCorregido] = useState(false)
 
+  // CU-23 paso 2: lo que lee el escaner del QR, y el aviso de como salio.
+  const qrRef = useRef(null)
+  const [qr, setQr] = useState('')
+  const [qrMessage, setQrMessage] = useState('')
+
   useEffect(() => {
     getSuppliers('', true)
       .then(setSuppliers)
@@ -55,6 +61,33 @@ export default function PurchaseForm({ onSaved, onCancel }) {
   const onChange = (event) => {
     const { name, value } = event.target
     setData({ ...data, [name]: value })
+  }
+
+  // El escaner escribe lo que lee como si fuera un teclado, igual que con los codigos de barras.
+  // Se mira cada vez que cambia el campo: cuando lo que entro es un QR de ARCA, se completan
+  // los datos del comprobante y el campo queda libre para el siguiente.
+  const onQrChange = (event) => {
+    const texto = event.target.value
+    setQr(texto)
+
+    const leido = readAfipQr(texto)
+    if (!leido) {
+      return
+    }
+
+    // Si el CUIT del emisor es el de un proveedor cargado, se elige solo.
+    const proveedor = suppliers.find((supplier) => supplier.cuit === leido.fields.issuerCuit)
+
+    setData((actual) => ({
+      ...actual,
+      ...leido.fields,
+      supplierId: proveedor ? proveedor.id : actual.supplierId,
+    }))
+    setQr('')
+    setErrors({})
+    setQrMessage(leido.currency === 'PES'
+      ? 'Datos cargados desde el QR. Controle el total contra el papel antes de guardar.'
+      : `El comprobante está en ${leido.currency}: el total se cargó tal cual viene en el QR.`)
   }
 
   const onFileChange = (event) => {
@@ -116,6 +149,26 @@ export default function PurchaseForm({ onSaved, onCancel }) {
       <Message text={error} onClose={() => setError('')} />
 
       <form onSubmit={onSubmit} noValidate>
+        {/* CU-23 paso 2: el QR impreso en el comprobante trae el CUIT del emisor, el punto de
+            venta, el numero, la fecha, el importe y el CAE. Escanearlo evita copiar seis campos
+            a mano y, sobre todo, evita equivocarse en el numero de factura. */}
+        <div className="field">
+          <label htmlFor="qr">Escanear el QR del comprobante</label>
+          <input
+            id="qr"
+            ref={qrRef}
+            type="text"
+            value={qr}
+            onChange={onQrChange}
+            onKeyDown={(event) => { if (event.key === 'Enter') event.preventDefault() }}
+            placeholder="Apunte el lector al código QR de la factura"
+            autoFocus
+          />
+          <small className={qrMessage ? 'help scanned' : 'help'}>
+            {qrMessage || 'Opcional. También se puede cargar todo a mano.'}
+          </small>
+        </div>
+
         <div className="field">
           <label htmlFor="supplierId">
             Proveedor
