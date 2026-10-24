@@ -13,7 +13,7 @@
   --color-success: #1e7b34;
   --color-warning: #b35c00;
   --radius: 8px;
-  --shadow: 0 1px 3px rgba(27, 39, 51, 0.12);
+  --shadow: 0 1px 2px rgba(27, 39, 51, 0.06), 0 2px 8px rgba(27, 39, 51, 0.08);
 
   /* Menu lateral, verde oscuro con letras claras */
   --color-sidebar: #1f3b29;
@@ -45,6 +45,108 @@ h1 {
 .subtitle {
   margin: 0 0 24px;
   color: var(--color-muted);
+}
+
+/* ---------- Movimiento, foco y detalle visual (RNF-03) ---------- */
+
+/* Los cambios de estado acompaniados en vez de secos. Los tiempos son cortos a proposito:
+   lo justo para que la vista siga el cambio sin que el sistema se sienta lento. */
+.button,
+.nav-link,
+.sort,
+.table tbody tr,
+.field input,
+.field select {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.button {
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    transform 0.08s ease;
+}
+
+/* El boton se hunde al apretarlo. En un mostrador, saber que el clic entro es la diferencia
+   entre seguir y apretar dos veces. */
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Foco visible para quien se mueve con el teclado, que en una caja es lo habitual.
+   :focus-visible y no :focus: el recuadro aparece al tabular, no al hacer clic con el mouse. */
+.button:focus-visible,
+.sort:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Sobre el menu oscuro el verde no se distingue: ahi el recuadro va claro. */
+.nav-link:focus-visible,
+.session .button:focus-visible {
+  outline: 2px solid var(--color-sidebar-text);
+  outline-offset: 2px;
+}
+
+/* La fila sobre la que esta el mouse, marcada. En un listado de veinte renglones evita
+   perder la linea al ir a buscar el boton de la derecha. */
+.table tbody tr:hover {
+  background: var(--color-primary-light);
+}
+
+.table tbody tr.inactive-row:hover {
+  background: var(--color-background);
+}
+
+/* Los numeros en columna, todos del mismo ancho: asi los importes quedan alineados por la
+   coma y se comparan de un vistazo, en vez de bailar segun los digitos. */
+.table .right,
+.card-value,
+.pagination-total {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lo que llega de una consulta entra con una transicion corta, en lugar de saltar a la
+   pantalla cuando responde el servidor. */
+@keyframes appear {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.cards,
+.table-container,
+.modal {
+  animation: appear 0.18s ease-out;
+}
+
+.modal-background {
+  animation: fade 0.18s ease-out;
+}
+
+/* Hay quien configura el sistema para que no haya animaciones, por mareo o por preferencia.
+   Se respeta: los estados siguen cambiando, pero sin movimiento. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ---------- Estructura ---------- */
