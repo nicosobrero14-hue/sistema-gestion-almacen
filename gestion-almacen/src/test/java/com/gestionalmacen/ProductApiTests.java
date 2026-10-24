@@ -79,32 +79,44 @@ class ProductApiTests {
 		mvc.perform(get("/api/products/barcode/7791813444411")).andExpect(status().isNotFound());
 	}
 
-	// ---------- RF-14 / CU-07: los que no se pueden escanear ----------
+	// ---------- RF-12 / RF-14: las pestanias de la pantalla de venta ----------
 
-	// La grilla de la pantalla de venta muestra justo los que no tienen codigo: fruta, verdura
-	// y todo lo que se vende suelto. Lo que tiene codigo se lee con el lector.
+	// La venta separa lo que se cuenta de lo que se pesa, porque el circuito es distinto:
+	// uno se toca y va al carrito, el otro pasa antes por la balanza.
 	@Test
-	void listsOnlyTheProductsWithoutABarcode() throws Exception {
+	void listsTheProductsOfEachSaleUnit() throws Exception {
 		create("/api/products", product("Yerba 1kg", "4850.00", 40, 10, "7790010001234", null));
-		create("/api/products", product("Lechuga", "1200.00", 5, 1, null, null));
-		create("/api/products", product("Banana", "2300.00", 8, 2, null, null));
+		create("/api/products", byWeight("Queso cremoso", "12000.00"));
+		create("/api/products", byWeight("Jamón cocido", "14500.00"));
 
-		mvc.perform(get("/api/products/without-barcode"))
+		mvc.perform(get("/api/products/by-sale-unit/{unit}", "KG"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(2))
-				.andExpect(jsonPath("$[0].name").value("Banana"))  // alfabetico: el mostrador los busca por nombre
-				.andExpect(jsonPath("$[1].name").value("Lechuga"));
+				.andExpect(jsonPath("$[0].name").value("Jamón cocido"))  // alfabetico: se buscan por nombre
+				.andExpect(jsonPath("$[1].name").value("Queso cremoso"));
+
+		mvc.perform(get("/api/products/by-sale-unit/{unit}", "UNIDAD"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.length()").value(1))
+				.andExpect(jsonPath("$[0].name").value("Yerba 1kg"));
 	}
 
-	// Un producto dado de baja no se puede vender, asi que tampoco aparece en la grilla.
+	// Un producto dado de baja no se puede vender, asi que tampoco aparece en la pestania.
 	@Test
-	void theGridLeavesOutProductsThatAreDeactivated() throws Exception {
-		long id = create("/api/products", product("Lechuga", "1200.00", 5, 1, null, null));
+	void theTabLeavesOutProductsThatAreDeactivated() throws Exception {
+		long id = create("/api/products", byWeight("Queso cremoso", "12000.00"));
 		mvc.perform(patch("/api/products/{id}/deactivate", id).with(csrf())).andExpect(status().isNoContent());
 
-		mvc.perform(get("/api/products/without-barcode"))
+		mvc.perform(get("/api/products/by-sale-unit/{unit}", "KG"))
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$.length()").value(0));
+	}
+
+	// Una unidad de venta que no existe no puede devolver un listado vacio como si nada.
+	@Test
+	void rejectsASaleUnitThatDoesNotExist() throws Exception {
+		mvc.perform(get("/api/products/by-sale-unit/{unit}", "LITROS"))
+				.andExpect(status().isBadRequest());
 	}
 
 	@Test
@@ -251,6 +263,12 @@ class ProductApiTests {
 	}
 
 	// Arma el JSON de un producto. barcode y supplierId pueden ir en null.
+	// Un producto que se vende por kilo, con el stock fraccionado.
+	private String byWeight(String name, String price) {
+		return "{\"name\":\"" + name + "\",\"price\":" + price
+				+ ",\"stock\":3.250,\"minimumStock\":1,\"saleUnit\":\"KG\",\"onOffer\":false}";
+	}
+
 	private String product(String name, String price, int stock, int minimumStock, String barcode, Long supplierId) {
 		return "{\"name\":\"" + name + "\",\"price\":" + price + ",\"stock\":" + stock
 				+ ",\"minimumStock\":" + minimumStock + ",\"onOffer\":false"

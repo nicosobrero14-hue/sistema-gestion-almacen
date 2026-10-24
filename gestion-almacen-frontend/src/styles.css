@@ -1076,6 +1076,139 @@ a.button {
   font-size: 40px;
 }
 
+/* ---------- Pesaje (RF-12 / CU-21) ---------- */
+
+/* Las pestañas de unidad y balanza, arriba del buscador. */
+.tabs {
+  margin-bottom: 12px;
+}
+
+/* El visor imita el de una balanza de mostrador: números claros sobre fondo oscuro,
+   que es lo que se lee de lejos y con las manos ocupadas. */
+.weigh-display {
+  position: relative;
+  padding: 20px 26px 26px;
+  background: #111a14;
+  border: 1px solid #2b3a30;
+  border-radius: 10px;
+  box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.55);
+}
+
+.weigh-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.weigh-label {
+  margin-right: auto;
+  color: #6f8a78;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* tabular-nums: los dígitos ocupan todos lo mismo, así el número no se mueve al cambiar. */
+.weigh-kilos {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 68px;
+  font-weight: 700;
+  line-height: 1;
+  color: #8df5a4;
+  text-shadow: 0 0 18px rgba(141, 245, 164, 0.35);
+}
+
+.weigh-unit {
+  color: #8df5a4;
+  font-size: 22px;
+}
+
+.weigh-row-amount {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #2b3a30;
+}
+
+.weigh-money {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 30px;
+  font-weight: 700;
+  color: #f2e9a4;
+}
+
+/* La lucecita de estado, abajo a la izquierda del visor. */
+.weigh-led {
+  position: absolute;
+  left: 26px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #6f8a78;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.weigh-led::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4a5c50;
+}
+
+.weigh-led.on {
+  color: #8df5a4;
+}
+
+.weigh-led.on::before {
+  background: #8df5a4;
+  box-shadow: 0 0 8px #8df5a4;
+}
+
+.weigh {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-top: 18px;
+}
+
+.weigh-main {
+  flex: 1;
+}
+
+.weigh-product {
+  margin: 0 0 12px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.weigh-input {
+  width: 100%;
+  margin: 4px 0 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 24px;
+  text-align: right;
+}
+
+/* En una pantalla angosta la foto estorba más de lo que ayuda. */
+@media (max-width: 700px) {
+  .weigh .product-image-large {
+    display: none;
+  }
+
+  .weigh-kilos {
+    font-size: 52px;
+  }
+}
+
 /* ---------- Logo de fondo ---------- */
 
 /* El logo en version clara, bien tenue, detras del contenido de todas las pantallas.

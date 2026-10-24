@@ -12,6 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import com.gestionalmacen.dto.ProductSalesDTO;
 import com.gestionalmacen.entity.Product;
+import com.gestionalmacen.entity.SaleUnit;
 
 // Acceso a la tabla productos.
 @Repository
@@ -57,9 +58,9 @@ public interface IProductRepository extends JpaRepository<Product, Long> {
 			""")
 	List<ProductSalesDTO> findLeastSold(@Param("from") LocalDateTime from);
 
-	// Los que no se pueden leer con el lector: fruta, verdura y todo lo que se vende suelto.
-	// Son los que la pantalla de venta muestra en la grilla de fotos (RF-14 / CU-07).
-	List<Product> findByActiveTrueAndBarcodeIsNullOrderByName();
+	// Los de una unidad de venta: los que se cuentan o los que se pesan. Cada pestania de la
+	// pantalla de venta muestra unos (RF-12 / RF-14).
+	List<Product> findByActiveTrueAndSaleUnitOrderByName(SaleUnit saleUnit);
 
 	// Ofertas vigentes (CU-19 paso 6).
 	List<Product> findByActiveTrueAndOnOfferTrueOrderByName();

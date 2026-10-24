@@ -13,6 +13,7 @@ import com.gestionalmacen.dto.ProductDTO;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.MovementType;
 import com.gestionalmacen.entity.Product;
+import com.gestionalmacen.entity.SaleUnit;
 import com.gestionalmacen.entity.StockMovement;
 import com.gestionalmacen.entity.Supplier;
 import com.gestionalmacen.exception.BusinessRuleException;
@@ -56,8 +57,8 @@ public class ProductService implements IProductService {
 	}
 
 	@Override
-	public List<Product> getProductsWithoutBarcode() {
-		return productRepository.findByActiveTrueAndBarcodeIsNullOrderByName();
+	public List<Product> getProductsBySaleUnit(SaleUnit saleUnit) {
+		return productRepository.findByActiveTrueAndSaleUnitOrderByName(saleUnit);
 	}
 
 	@Override

@@ -20,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.gestionalmacen.dto.ProductDTO;
 import com.gestionalmacen.dto.ProductSuggestionDTO;
 import com.gestionalmacen.entity.Product;
+import com.gestionalmacen.entity.SaleUnit;
 import com.gestionalmacen.service.IProductService;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -40,11 +41,11 @@ public class ProductController {
 		return productService.getProducts(search, activeOnly);
 	}
 
-	//2- los productos que no se pueden escanear, para la grilla de la pantalla de venta (CU-07)
+	//2- los de una unidad de venta, para las pestanias de la pantalla de venta (RF-12 / RF-14)
 	// Va antes de /{id} no por el orden del archivo sino porque Spring prefiere la ruta literal.
-	@GetMapping("/without-barcode")
-	public List<Product> getProductsWithoutBarcode() {
-		return productService.getProductsWithoutBarcode();
+	@GetMapping("/by-sale-unit/{saleUnit}")
+	public List<Product> getProductsBySaleUnit(@PathVariable SaleUnit saleUnit) {
+		return productService.getProductsBySaleUnit(saleUnit);
 	}
 
 	//3- traer un producto
