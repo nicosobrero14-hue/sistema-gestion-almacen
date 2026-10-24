@@ -1184,6 +1184,13 @@ a.button {
 
 /* ---------- Comprobantes de compra (RF-15) ---------- */
 
+/* El aviso de que el QR se leyo bien: en verde, para distinguirlo de la ayuda comun. */
+.help.scanned {
+  color: var(--color-success);
+  font-weight: 600;
+}
+
+
 .voucher-preview {
   width: 120px;
   height: 150px;
