@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  activateProduct, deactivateProduct, findProductByBarcode, getProducts, productImageUrl, suggestProduct,
+  activateProduct, deactivateProduct, findProductByBarcode, getProducts, suggestProduct,
 } from '../api/products'
 import Message from '../components/Message'
 import Pagination from '../components/Pagination'
@@ -88,6 +88,19 @@ export default function Products({ isAdmin }) {
     openForm(null)
   }
 
+  // F1 abre el alta sin soltar el teclado: en el mostrador se carga un producto con una mano
+  // mientras se atiende con la otra, y buscar el boton con el mouse interrumpe.
+  // preventDefault: F1 es la tecla de ayuda del navegador y abriria su pagina de soporte.
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key !== 'F1') return
+      event.preventDefault()
+      if (!formOpen) newProduct()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  })
+
   const volverAlBuscador = () => searchRef.current?.focus()
 
   const onSaved = (message) => {
@@ -148,7 +161,7 @@ export default function Products({ isAdmin }) {
           <p className="subtitle">Catálogo del comercio.</p>
         </div>
         <button type="button" className="button button-primary" onClick={newProduct}>
-          + Nuevo producto
+          + Nuevo producto (F1)
         </button>
       </div>
 
@@ -201,7 +214,7 @@ export default function Products({ isAdmin }) {
             <tbody>
               {products.map((product) => (
                 <tr key={product.id} className={product.active ? '' : 'inactive-row'}>
-                  <td><ProductImage src={productImageUrl(product.image)} name={product.name} /></td>
+                  <td><ProductImage image={product.image} name={product.name} /></td>
                   <td>{product.name}</td>
                   <td>{product.barcode ?? '—'}</td>
                   <td className="right">

@@ -267,7 +267,7 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
 
         {/* CU-22: la foto con la que el producto se reconoce de un vistazo en la pantalla de venta. */}
         <div className="image-field">
-          <ProductImage src={preview} name={data.name} large />
+          <ProductImage preview={preview} name={data.name} large />
           <div>
             <label htmlFor="image">Foto del producto</label>
             <input id="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={onFileChange} />

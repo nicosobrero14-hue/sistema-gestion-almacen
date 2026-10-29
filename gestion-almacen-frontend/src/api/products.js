@@ -40,3 +40,8 @@ export const deleteProductImage = (id) => client.delete(`/products/${id}/image`)
 
 // La direccion desde la que el backend sirve la foto. Vacio si el producto todavia no tiene.
 export const productImageUrl = (image) => (image ? `/imagenes/${image}` : '')
+
+// La version chica de la foto, al lado de la original: "producto-7.jpg" -> "producto-7-mini.jpg".
+// Es la que va en los listados y en la grilla, donde la foto se dibuja a 40 o a 110 pixeles.
+export const productThumbUrl = (image) =>
+  (image ? `/imagenes/${image.replace(/\.[^.]+$/, '')}-mini.jpg` : '')
