@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  activateProduct, deactivateProduct, findProductByBarcode, getProducts, productImageUrl, suggestProduct,
+  activateProduct, deactivateProduct, findProductByBarcode, getProducts, suggestProduct,
 } from '../api/products'
 import Message from '../components/Message'
 import Pagination from '../components/Pagination'
@@ -214,7 +214,7 @@ export default function Products({ isAdmin }) {
             <tbody>
               {products.map((product) => (
                 <tr key={product.id} className={product.active ? '' : 'inactive-row'}>
-                  <td><ProductImage src={productImageUrl(product.image)} name={product.name} /></td>
+                  <td><ProductImage image={product.image} name={product.name} /></td>
                   <td>{product.name}</td>
                   <td>{product.barcode ?? '—'}</td>
                   <td className="right">

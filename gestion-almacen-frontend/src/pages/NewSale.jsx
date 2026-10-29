@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  findProductByBarcode, getProducts, getProductsBySaleUnit, productImageUrl, suggestProduct,
+  findProductByBarcode, getProducts, getProductsBySaleUnit, suggestProduct,
 } from '../api/products'
 import { cancelPayment, checkPayment, saveSale } from '../api/sales'
 import Message from '../components/Message'
@@ -359,7 +359,7 @@ export default function NewSale({ isAdmin }) {
               {shown.map((product) => (
                 <button key={product.id} type="button" className="product-card"
                   onClick={() => choose(product)} disabled={product.stock === 0}>
-                  <ProductImage src={productImageUrl(product.image)} name={product.name} large />
+                  <ProductImage image={product.image} name={product.name} />
                   <span className="product-card-name">{product.name}</span>
                   <span className="product-card-price">
                     {product.onOffer ? (

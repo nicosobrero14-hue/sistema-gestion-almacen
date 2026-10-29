@@ -1471,6 +1471,11 @@ a.button {
   height: 110px;
 }
 
+/* La inicial de un producto sin foto, a la medida de la tarjeta. */
+.product-card .product-image-empty {
+  font-size: 44px;
+}
+
 .product-card-name {
   font-size: 13px;
   font-weight: 600;
