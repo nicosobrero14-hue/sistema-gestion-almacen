@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 
 // Ventana que se abre sobre la pantalla. Se cierra con Escape, con la X o tocando el fondo.
-// wide: mas ancha, para las tablas con muchas columnas.
+// wide: mas ancha, para las tablas con muchas columnas y para los formularios en dos columnas.
 export default function Modal({ title, onClose, wide = false, children }) {
   // Si el clic empezo en el fondo o adentro de la ventana.
   //
@@ -42,7 +42,10 @@ export default function Modal({ title, onClose, wide = false, children }) {
             &times;
           </button>
         </div>
-        {children}
+
+        {/* El contenido desplaza aca adentro y no la pagina entera: asi el titulo y los botones
+            quedan siempre a la vista, aunque el formulario sea largo o la pantalla chica. */}
+        <div className="modal-body">{children}</div>
       </div>
     </div>
   )
