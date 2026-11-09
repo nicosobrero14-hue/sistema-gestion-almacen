@@ -18,6 +18,11 @@
 
 	<properties>
 		<java.version>25</java.version>
+
+		<!-- La pantalla se compila y queda adentro del jar, asi el comercio instala un solo
+		     programa en lugar de dos servidores. Ver el bloque de plugins mas abajo. -->
+		<frontend.folder>${project.basedir}/../gestion-almacen-frontend</frontend.folder>
+		<node.version>v24.14.1</node.version>
 	</properties>
 
 	<dependencies>
@@ -107,6 +112,76 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<!-- Compila la pantalla y la deja adentro del jar.
+			     Va en prepare-package: "mvnw test" no lo ejecuta, asi que el ciclo de desarrollo
+			     sigue igual de rapido, y "mvnw package" arma el programa completo.
+			     Node se descarga una vez a .frontend-tools y no se borra con clean: no hace falta
+			     tenerlo instalado, y la version queda fija para que el paquete salga siempre igual. -->
+			<plugin>
+				<groupId>com.github.eirslett</groupId>
+				<artifactId>frontend-maven-plugin</artifactId>
+				<version>1.15.1</version>
+				<configuration>
+					<workingDirectory>${frontend.folder}</workingDirectory>
+					<installDirectory>${project.basedir}/.frontend-tools</installDirectory>
+				</configuration>
+				<executions>
+					<execution>
+						<id>instalar-node</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>install-node-and-npm</goal>
+						</goals>
+						<configuration>
+							<nodeVersion>${node.version}</nodeVersion>
+						</configuration>
+					</execution>
+					<execution>
+						<id>instalar-dependencias</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<configuration>
+							<arguments>install</arguments>
+						</configuration>
+					</execution>
+					<execution>
+						<id>compilar-pantalla</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>npm</goal>
+						</goals>
+						<configuration>
+							<arguments>run build</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Y la copia adentro del jar. Spring Boot sirve solo lo que esta en /static. -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>copiar-pantalla</id>
+						<phase>prepare-package</phase>
+						<goals>
+							<goal>copy-resources</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
+							<resources>
+								<resource>
+									<directory>${frontend.folder}/dist</directory>
+								</resource>
+							</resources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>

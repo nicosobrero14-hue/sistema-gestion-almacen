@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { readWeight } from '../api/scale'
 import Modal from '../components/Modal'
 import ProductImage from '../components/ProductImage'
-import { productImageUrl } from '../api/products'
 import { formatPrice, formatProductPrice } from '../utils/format'
 
 // Cada cuánto se le pregunta el peso a la balanza. La Kretz transmite dos veces por segundo,
@@ -95,7 +94,7 @@ export default function WeighPanel({ product, onConfirm, onCancel }) {
       </div>
 
       <div className="weigh">
-        <ProductImage src={productImageUrl(product.image)} name={product.name} large />
+        <ProductImage image={product.image} name={product.name} large />
 
         <div className="weigh-main">
           <p className="weigh-product">

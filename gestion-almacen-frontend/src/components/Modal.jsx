@@ -1,8 +1,15 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 // Ventana que se abre sobre la pantalla. Se cierra con Escape, con la X o tocando el fondo.
-// wide: mas ancha, para las tablas con muchas columnas.
+// wide: mas ancha, para las tablas con muchas columnas y para los formularios en dos columnas.
 export default function Modal({ title, onClose, wide = false, children }) {
+  // Si el clic empezo en el fondo o adentro de la ventana.
+  //
+  // Hace falta porque al seleccionar texto con el mouse es normal pasarse del borde: se aprieta
+  // adentro y se suelta afuera. El navegador considera eso un clic del fondo, y la ventana se
+  // cerraba en medio de la carga, perdiendo lo que se estaba escribiendo.
+  const empezoEnElFondo = useRef(false)
+
   // Mientras esta abierta, la tecla Escape la cierra.
   useEffect(() => {
     const onKeyDown = (event) => {
@@ -13,11 +20,18 @@ export default function Modal({ title, onClose, wide = false, children }) {
   }, [onClose])
 
   return (
-    <div className="modal-background" onClick={onClose}>
-      {/* stopPropagation: un clic adentro no llega al fondo, asi no se cierra mientras se completa. */}
+    <div
+      className="modal-background"
+      onMouseDown={(event) => { empezoEnElFondo.current = event.target === event.currentTarget }}
+      onClick={(event) => {
+        // Las dos condiciones: que el clic termine en el fondo y que tambien haya empezado ahi.
+        if (event.target === event.currentTarget && empezoEnElFondo.current) {
+          onClose()
+        }
+      }}
+    >
       <div
         className={wide ? 'modal modal-wide' : 'modal'}
-        onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
@@ -28,7 +42,10 @@ export default function Modal({ title, onClose, wide = false, children }) {
             &times;
           </button>
         </div>
-        {children}
+
+        {/* El contenido desplaza aca adentro y no la pagina entera: asi el titulo y los botones
+            quedan siempre a la vista, aunque el formulario sea largo o la pantalla chica. */}
+        <div className="modal-body">{children}</div>
       </div>
     </div>
   )

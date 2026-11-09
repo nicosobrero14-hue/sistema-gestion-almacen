@@ -36,3 +36,9 @@ desktop.ini
 ~$*.docx
 ~$*.xlsx
 ~$*.pptx
+
+# Prueba interna en el almacen: no va al repositorio
+piloto/
+
+# Node que descarga el build para compilar la pantalla
+gestion-almacen/.frontend-tools/

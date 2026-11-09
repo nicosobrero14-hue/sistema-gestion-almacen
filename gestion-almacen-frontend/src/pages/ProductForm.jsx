@@ -221,10 +221,12 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
   }
 
   return (
-    <Modal title={product ? `Editar producto: ${product.name}` : 'Nuevo producto'} onClose={onCancel}>
+    <Modal title={product ? `Editar producto: ${product.name}` : 'Nuevo producto'} onClose={onCancel} wide>
       <Message text={error} onClose={() => setError('')} />
 
       <form onSubmit={onSubmit} noValidate>
+        <div className="form-columns">
+          <div>
         <TextField name="name" label="Nombre" value={data.name} onChange={onChange}
           onKeyDown={product ? undefined : onNameKeyDown}
           help={suggested && !product ? 'Sugerido por el catálogo público: revíselo antes de guardar' : null}
@@ -247,27 +249,50 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
           <TextField name="price" label={porPeso ? 'Precio por kilo' : 'Precio'} type="number" step="0.01" min="0"
             value={data.price} onChange={onChange} error={errors.price} required disabled={!canEditPrice}
             help={canEditPrice ? null : 'Solo el administrador modifica precios'} />
-        </div>
 
-        {/* El costo es lo que paga el comercio. De el sale la ganancia del panel principal
-            (RF-15), y por eso lo maneja el administrador igual que el precio de venta. */}
-        {isAdmin && (
-          <div className="fields-row">
-            <TextField name="costPrice" label={porPeso ? 'Precio de costo por kilo' : 'Precio de costo'}
+          {/* El costo es lo que paga el comercio. De el sale la ganancia del panel principal
+              (RF-15), y por eso lo maneja el administrador igual que el precio de venta. */}
+          {isAdmin && (
+            <TextField name="costPrice" label={porPeso ? 'Costo por kilo' : 'Precio de costo'}
               type="number" step="0.01" min="0" value={data.costPrice} onChange={onChange}
-              error={errors.costPrice}
-              help="Opcional. Sin este dato el producto no entra en la ganancia del panel" />
-          </div>
-        )}
+              error={errors.costPrice} help="Opcional. Sin esto no entra en la ganancia" />
+          )}
+        </div>
 
         <div className="fields-row">
           <TextField name="barcode" label="Código de barras" value={data.barcode} onChange={onChange}
             error={errors.barcode} maxLength={64} help="Opcional" />
+
+          <div className="field">
+            <label htmlFor="supplierId">Proveedor</label>
+            <select id="supplierId" name="supplierId" value={data.supplierId} onChange={onChange}>
+              <option value="">Sin proveedor</option>
+              {suppliers.map((supplier) => (
+                <option key={supplier.id} value={supplier.id}>
+                  {supplier.name} {supplier.lastName}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
-        {/* CU-22: la foto con la que el producto se reconoce de un vistazo en la pantalla de venta. */}
-        <div className="image-field">
-          <ProductImage src={preview} name={data.name} large />
+        <div className="fields-row">
+          {/* El stock se carga solo en el alta. Despues se ajusta desde la pantalla de stock. */}
+          <TextField name="stock" label={(product ? 'Stock actual' : 'Stock inicial') + (porPeso ? ' en kg' : '')}
+            type="number" min="0" step={porPeso ? '0.001' : '1'} value={data.stock}
+            onChange={onChange} error={errors.stock} required disabled={Boolean(product)}
+            help={product ? 'Se ajusta desde la pantalla de stock' : null} />
+          <TextField name="minimumStock" label={'Stock mínimo' + (porPeso ? ' en kg' : '')}
+            type="number" min="0" step={porPeso ? '0.001' : '1'} value={data.minimumStock}
+            onChange={onChange} error={errors.minimumStock} required help="Alerta de stock bajo" />
+          <TextField name="expirationDate" label="Vencimiento" type="date" value={data.expirationDate}
+            onChange={onChange} error={errors.expirationDate} help="Solo perecederos" />
+        </div>
+          </div>
+
+          {/* CU-22: la foto con la que el producto se reconoce de un vistazo en la pantalla de venta. */}
+          <div className="form-photo">
+            <ProductImage preview={preview} name={data.name} large />
           <div>
             <label htmlFor="image">Foto del producto</label>
             <input id="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={onFileChange} />
@@ -295,33 +320,6 @@ export default function ProductForm({ product, barcode = '', suggestedName = '',
               )}
             </div>
           </div>
-        </div>
-
-        <div className="fields-row">
-          {/* El stock se carga solo en el alta. Despues se ajusta desde la pantalla de stock. */}
-          <TextField name="stock" label={(product ? 'Stock actual' : 'Stock inicial') + (porPeso ? ' en kg' : '')}
-            type="number" min="0" step={porPeso ? '0.001' : '1'} value={data.stock}
-            onChange={onChange} error={errors.stock} required disabled={Boolean(product)}
-            help={product ? 'Se ajusta desde la pantalla de stock' : null} />
-          <TextField name="minimumStock" label={'Stock mínimo' + (porPeso ? ' en kg' : '')}
-            type="number" min="0" step={porPeso ? '0.001' : '1'} value={data.minimumStock}
-            onChange={onChange} error={errors.minimumStock} required help="Umbral de la alerta de stock bajo" />
-        </div>
-
-        <div className="fields-row">
-          <TextField name="expirationDate" label="Fecha de vencimiento" type="date" value={data.expirationDate}
-            onChange={onChange} error={errors.expirationDate} help="Solo productos perecederos" />
-
-          <div className="field">
-            <label htmlFor="supplierId">Proveedor</label>
-            <select id="supplierId" name="supplierId" value={data.supplierId} onChange={onChange}>
-              <option value="">Sin proveedor</option>
-              {suppliers.map((supplier) => (
-                <option key={supplier.id} value={supplier.id}>
-                  {supplier.name} {supplier.lastName}
-                </option>
-              ))}
-            </select>
           </div>
         </div>
 

@@ -50,7 +50,13 @@ public class SecurityConfig {
 						// cuando llega el reparto. Lo que viene despues es plata y es del administrador.
 						.requestMatchers(HttpMethod.POST, "/api/purchases", "/api/purchases/*/image").authenticated()
 						.requestMatchers("/api/purchases/**").hasRole("ADMIN")          // RF-15: compras y saldos
-						.anyRequest().authenticated())                                  // el resto, cualquiera con sesion
+						// Los datos del comercio piden sesion: eso es /api y las fotos de los productos.
+						.requestMatchers("/api/**", "/imagenes/**").authenticated()
+						// La pantalla en si es publica: el HTML, el javascript y los estilos no tienen
+						// datos adentro, y pidiendo sesion para servirlos no se podria mostrar ni el
+						// formulario para iniciarla. Solo aplica con el frontend adentro del jar;
+						// mientras se desarrolla la pantalla la sirve Vite y por aca no pasa.
+						.anyRequest().permitAll())
 				// Sin sesion responde 401 en vez de redirigir a una pagina de login: esto es una API.
 				.exceptionHandling(errors -> errors
 						.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
