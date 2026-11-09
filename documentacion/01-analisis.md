@@ -73,6 +73,15 @@ El Administrador hereda todos los permisos del Empleado.
 | RF-09 | Alertas de stock bajo y de vencimiento próximo en el panel principal |
 | RF-10 | Sugerencias de productos candidatos a oferta por baja rotación o vencimiento |
 | RF-11 | Gestión de usuarios y roles, con acceso protegido por usuario y contraseña |
+| RF-12 | Venta por peso, con la cantidad tomada de la balanza del comercio |
+| RF-13 | Listados de a páginas, ordenables por la columna que elija el usuario |
+| RF-14 | Imágenes de los productos y venta visual para lo que no tiene código de barras |
+| RF-15 | Compras a proveedores, pagos de facturas y ganancia del período |
+
+Los cuatro últimos no estaban en la entrega original. RF-12 surgió al medir qué vende el comercio
+suelto, y los otros tres aparecieron usando el sistema: el catálogo real hizo lenta la pantalla,
+elegir fruta por nombre resultó incómodo, y la pregunta que el comercio hacía todo el tiempo —
+cuánto se ganó— no se podía responder sin registrar lo que se compra.
 
 ## 1.8 Requisitos no funcionales
 
@@ -121,6 +130,10 @@ Del modelado de procesos de negocio se desprenden cuatro procesos principales:
 | CU-18 | Gestionar usuarios | Administrador | RF-11 |
 | CU-19 | Gestionar ofertas | Administrador | RF-10 |
 | CU-20 | Modificar precios y productos | Administrador | RF-01 |
+| CU-21 | Pesar un producto | Empleado / Balanza digital | RF-12 |
+| CU-22 | Cargar la foto de un producto | Empleado / Catálogo público | RF-14 |
+| CU-23 | Registrar una factura de proveedor | Empleado / Escáner | RF-15 |
+| CU-24 | Registrar el pago de una factura | Administrador | RF-15 |
 
 CU-17 queda fuera del desarrollo. El sistema tiene dos roles fijos, Administrador y Empleado, y
 hacerlos configurables agregaría una tabla de permisos y una consulta en cada pedido para resolver
