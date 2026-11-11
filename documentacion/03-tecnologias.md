@@ -47,6 +47,6 @@ El flujo de una funcionalidad, de principio a fin:
 |---|---|
 | Docker | El sistema se instala en la computadora del comercio. Un contenedor agrega una capa que el comerciante no va a poder mantener |
 | JWT | Se usa sesión con cookie. El motivo está explicado en el documento de arquitectura |
-| MapStruct | Para siete entidades, escribir la conversión a mano es más corto que configurar la herramienta |
+| MapStruct | Para nueve entidades, escribir la conversión a mano es más corto que configurar la herramienta |
 | GitHub Actions | Las pruebas se corren con Maven antes de abrir cada pull request. Automatizarlas en el servidor no agrega nada en un proyecto de una sola persona |
 | TypeScript | Suma tipado al frontend, pero también configuración y tiempo de aprendizaje. Se priorizó terminar la funcionalidad |
