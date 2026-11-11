@@ -36,7 +36,7 @@ mysql -u root -p < base-de-datos/01-esquema.sql
 mysql -u root -p gestion_almacen < base-de-datos/02-datos-de-prueba.sql
 ```
 
-El primero crea la base `gestion_almacen` y sus siete tablas. El segundo carga los datos de prueba.
+El primero crea la base `gestion_almacen` y sus nueve tablas. El segundo carga los datos de prueba.
 
 Para verificar que quedó bien:
 
@@ -44,8 +44,8 @@ Para verificar que quedó bien:
 mysql -u root -p -e "SHOW TABLES;" gestion_almacen
 ```
 
-Tienen que aparecer las siete tablas: `detalle_venta`, `movimientos_stock`, `pagos`, `productos`,
-`proveedores`, `usuarios` y `ventas`.
+Tienen que aparecer las nueve tablas: `compras`, `detalle_venta`, `movimientos_stock`, `pagos`,
+`pagos_proveedor`, `productos`, `proveedores`, `usuarios` y `ventas`.
 
 Los datos de prueba traen diez productos. Los ocho que tienen código de barras vienen con su foto,
 que es la que trajo el catálogo público cuando se los escaneó. La base guarda solo el nombre del

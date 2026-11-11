@@ -2,7 +2,8 @@
 
 ## 4.1 Modelo conceptual
 
-Del análisis se desprenden siete entidades.
+Del análisis se desprenden nueve entidades. Las dos últimas se incorporaron con el control de
+compras, que es lo que le permite al sistema calcular la ganancia y no solo lo vendido.
 
 | Entidad | Qué representa |
 |---|---|
@@ -13,6 +14,8 @@ Del análisis se desprenden siete entidades.
 | Venta | Una operación de venta cerrada, con su total |
 | Detalle de venta | Cada renglón de una venta: qué producto, cuántas unidades y a qué precio |
 | Pago | Cómo se pagó una venta y en qué estado quedó |
+| Compra | La factura de un proveedor, con su importe y su saldo pendiente |
+| Pago a proveedor | Cada pago hecho contra una factura, total o parcial |
 
 Las relaciones entre ellas:
 
@@ -26,15 +29,23 @@ Las relaciones entre ellas:
 | Producto – Movimiento | 1 a N (opcional) | Cada producto acumula sus movimientos de stock |
 | Usuario – Movimiento | 1 a N (opcional) | Cada movimiento registra quién lo hizo |
 | Venta – Movimiento | 1 a N (opcional) | Los movimientos originados por una venta quedan ligados a ella |
+| Proveedor – Compra | 1 a N | Una factura siempre es de un proveedor. Un proveedor acumula sus facturas |
+| Usuario – Compra | 1 a N (opcional) | Cada factura registra quién la cargó |
+| Compra – Pago a proveedor | 1 a N | Una factura se puede pagar en varias veces. Un pago pertenece a una sola factura |
+| Usuario – Pago a proveedor | 1 a N (opcional) | Cada pago registra quién lo cargó |
 
 ## 4.2 Diagrama entidad-relación
 
 ![Modelo de datos](imagenes/modelo-datos.png)
 
-La llave amarilla marca la clave primaria. El rombo rojo marca una clave foránea: lleno cuando es
-obligatoria, hueco cuando admite nulo. Los rombos azules son el resto de las columnas, con el mismo
-criterio. La pata de gallo señala el lado "muchos" de cada relación y el círculo indica que puede no
-haber ninguno.
+`PK` marca la clave primaria, que además va subrayada, y `FK` cada clave foránea. En el resto de las
+columnas el rombo lleno indica que el dato es obligatorio y el hueco que admite nulo. `UQ` marca las
+columnas con restricción de unicidad de una sola columna; la de `compras`, que abarca cuatro, no se
+puede dibujar sobre una fila y se explica más abajo. En cada relación, la pata de gallo señala el
+lado "muchos" y la barra el lado "uno". El color de cada tabla indica a qué módulo pertenece.
+
+El diagrama lo genera `herramientas/diagrama-modelo-datos.py` leyendo `base-de-datos/01-esquema.sql`,
+de modo que no puede quedar desactualizado respecto del esquema: se vuelve a correr y listo.
 
 ## 4.3 Decisiones de diseño
 
@@ -144,6 +155,10 @@ ejemplo desde MySQL Workbench.
 | `pagos` → `ventas` | Se borran los pagos | Ídem |
 | `ventas` → `usuarios` | La venta queda sin usuario | La venta ocurrió: borrar al empleado no puede borrar la facturación |
 | `movimientos_stock` → todos | El movimiento queda sin la referencia | Es un registro de auditoría: tiene que sobrevivir a lo que audita |
+| `compras` → `proveedores` | No deja borrar al proveedor | Una factura sin proveedor no se puede leer: no se sabría a quién se le debe |
+| `compras` → `usuarios` | La factura queda sin usuario | La compra ocurrió, igual que la venta |
+| `pagos_proveedor` → `compras` | Se borran los pagos | Un pago no existe fuera de su factura |
+| `pagos_proveedor` → `usuarios` | El pago queda sin usuario | Ídem |
 
 ## 4.4 Normalización
 
@@ -204,10 +219,14 @@ Además de lo que valida la aplicación, la base rechaza por su cuenta los datos
 | `ck_detalle_cantidad` | Vender una cantidad de cero o negativa |
 | `ck_pagos_metodo`, `ck_pagos_estado` | Un método o un estado de pago que no existe |
 | `ck_movimientos_tipo` | Un tipo de movimiento fuera de los tres previstos |
+| `ck_compras_totales`, `ck_compras_numero` | Una factura con importe o numeración que no puede existir |
+| `ck_pagosprov_monto`, `ck_pagosprov_metodo` | Un pago a proveedor de cero o con una forma de pago que no existe |
 | `uq_usuarios_username` | Dos usuarios con el mismo nombre de usuario |
 | `uq_proveedores_email` | Dos proveedores con el mismo correo |
+| `uq_proveedores_cuit` | Dos proveedores con el mismo CUIT |
 | `uq_productos_codigo_barras` | Dos productos con el mismo código de barras |
 | `uq_pagos_referencia` | Registrar dos veces la misma notificación de MercadoPago |
+| `uq_compras_comprobante` | Cargar dos veces la misma factura: abarca el proveedor, el tipo de comprobante, el punto de venta y el número |
 
 Las restricciones de unicidad admiten varios nulos. Por eso puede haber muchos productos sin código
 de barras, pero no dos con el mismo.
