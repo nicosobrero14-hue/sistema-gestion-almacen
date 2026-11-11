@@ -29,7 +29,7 @@ Las relaciones entre ellas:
 
 ## 4.2 Diagrama entidad-relación
 
-![Modelo de datos](imagenes/modelo-datos1.png)
+![Modelo de datos](imagenes/modelo-datos.png)
 
 La llave amarilla marca la clave primaria. El rombo rojo marca una clave foránea: lleno cuando es
 obligatoria, hueco cuando admite nulo. Los rombos azules son el resto de las columnas, con el mismo
